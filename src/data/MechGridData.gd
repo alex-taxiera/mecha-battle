@@ -36,7 +36,7 @@ var _placements: Dictionary[Vector2i, Placement] = {}
 func can_place_part(part: MechPart, origin_coords: Vector2i) -> bool:
 	if part == null or part.grid_shape.is_empty():
 		return false
-	for cell in _cells_for(part, origin_coords):
+	for cell in get_footprint(part, origin_coords):
 		if not _is_usable(cell) or _placements.has(cell):
 			return false
 	return true
@@ -46,7 +46,7 @@ func can_place_part(part: MechPart, origin_coords: Vector2i) -> bool:
 func place_part(part: MechPart, origin_coords: Vector2i) -> bool:
 	if not can_place_part(part, origin_coords):
 		return false
-	var placement := Placement.new(part, _cells_for(part, origin_coords))
+	var placement := Placement.new(part, get_footprint(part, origin_coords))
 	for cell in placement.cells:
 		_placements[cell] = placement
 	grid_updated.emit()
@@ -71,6 +71,15 @@ func get_part_at(coords: Vector2i) -> MechPart:
 	return placement.part if placement else null
 
 
+## Returns each placed part once, with the cells it covers. Treat the result as read-only.
+func get_placements() -> Array[Placement]:
+	var placements: Array[Placement] = []
+	for placement in _placements.values():
+		if placement not in placements:
+			placements.append(placement)
+	return placements
+
+
 ## Returns the parts orthogonally touching [param coords], each placement once.
 ## If a part covers [param coords], its whole footprint is checked and the part
 ## itself is excluded, so this answers "what is next to this part?".
@@ -91,7 +100,8 @@ func get_adjacent_parts(coords: Vector2i) -> Array[MechPart]:
 	return adjacent
 
 
-func _cells_for(part: MechPart, origin_coords: Vector2i) -> Array[Vector2i]:
+## Returns the cells [param part] would cover with its shape anchored at [param origin_coords].
+static func get_footprint(part: MechPart, origin_coords: Vector2i) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	for offset in part.grid_shape:
 		cells.append(origin_coords + offset)

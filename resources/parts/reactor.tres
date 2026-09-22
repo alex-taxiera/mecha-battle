@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="1_h0g7q"]
+
+[resource]
+script = ExtResource("1_h0g7q")
+id = "reactor"
+part_name = "Reactor"
+type = 1
+cost = 3
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1)])

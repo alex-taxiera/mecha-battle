@@ -1,0 +1,72 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/ui/ShopScreen.gd" id="1_2u7n2"]
+[ext_resource type="PackedScene" path="res://src/ui/MechGridUI.tscn" id="2_2ygms"]
+[ext_resource type="Script" path="res://src/ui/MechGridUI.gd" id="3_pgemp"]
+
+[node name="ShopScreen" type="Control" unique_id=274162144]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_2u7n2")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=822173180]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="Layout" type="HBoxContainer" parent="Margin" unique_id=1750249865]
+layout_mode = 2
+theme_override_constants/separation = 48
+
+[node name="MechColumn" type="VBoxContainer" parent="Margin/Layout" unique_id=1101074]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MechTitle" type="Label" parent="Margin/Layout/MechColumn" unique_id=950083085]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Your Mech"
+
+[node name="MechGridUI" type="Control" parent="Margin/Layout/MechColumn" unique_id=1982216774 instance=ExtResource("2_2ygms")]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("3_pgemp")
+
+[node name="ShopPanel" type="VBoxContainer" parent="Margin/Layout" unique_id=1753008455]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="ShopTitle" type="Label" parent="Margin/Layout/ShopPanel" unique_id=333729124]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Shop"
+
+[node name="GoldLabel" type="Label" parent="Margin/Layout/ShopPanel" unique_id=415201291]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9490196, 0.75686276, 0.30588236, 1)
+text = "Gold: 0"
+
+[node name="Hint" type="Label" parent="Margin/Layout/ShopPanel" unique_id=1825169020]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72156864, 0.7372549, 0.7764706, 1)
+text = "Drag a part onto your mech to buy it."
+
+[node name="Items" type="HFlowContainer" parent="Margin/Layout/ShopPanel" unique_id=1547967009]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12

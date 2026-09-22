@@ -159,6 +159,26 @@ func test_same_resource_placed_twice() -> void:
 	assert_object(grid.get_part_at(Vector2i(2, 1))).is_same(blueprint)
 
 
+func test_get_placements() -> void:
+	var grid := MechGridData.new()
+	var blueprint := _make_part(HORIZONTAL_2X1)
+	assert_bool(grid.place_part(blueprint, Vector2i(1, 1))).is_true() # (1, 1) (2, 1)
+	assert_bool(grid.place_part(blueprint, Vector2i(1, 2))).is_true() # (1, 2) (2, 2)
+
+	# One entry per placement, even when both share a MechPart, each with its own cells.
+	var placements := grid.get_placements()
+	assert_array(placements).has_size(2)
+	var covered: Array[Vector2i] = []
+	for placement in placements:
+		assert_object(placement.part).is_same(blueprint)
+		assert_array(placement.cells).has_size(2)
+		covered.append_array(placement.cells)
+	assert_array(covered).contains_exactly_in_any_order(Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2))
+
+	assert_object(grid.remove_part(Vector2i(1, 1))).is_same(blueprint)
+	assert_array(grid.get_placements()).has_size(1)
+
+
 func _make_part(shape: Array[Vector2i]) -> MechPart:
 	var part := MechPart.new()
 	part.grid_shape = shape

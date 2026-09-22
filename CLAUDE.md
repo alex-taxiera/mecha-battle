@@ -23,6 +23,18 @@ Run the tests headlessly from the project root using this command:
 - Hardcode expected values from `design_doc.md` instead of reading constants from the class under test.
 - `contains_exactly_in_any_order` and `contains_same_exactly_in_any_order` ignore duplicates. Chain `.has_size(n)` when the count matters.
 - Headless mode can't deliver InputEvents, so simulated mouse/keyboard input does nothing. Test UI by calling its handlers directly (e.g. `_can_drop_data` / `_drop_data`).
+- Nodes removed with `queue_free()` count as orphans (exit 101) until the frame ends. If a test triggers that, finish it with `await await_idle_frame()`.
+
+## Godot MCP Notes
+- `create_scene` names the root node `root`. Rename it with `manage_scene_structure`.
+- `add_node` takes an engine class or a `class_name` script but can't instance a `.tscn`. To instance one, add a plain node, then set its `scene_file_path` to the `.tscn` with `modify_scene_node`. The MCP also saves a redundant `type`/`script` on that node; that's harmless.
+- Property values: pass Vector2 as `{"x": .., "y": ..}`, Color as `"#rrggbb"`, and resources as `"res://..."` paths. Typed arrays can't be set.
+- Anchors: the scene root only needs `anchors_preset: 15`. Any other node outside a container needs `layout_mode: 1` before `anchors_preset`, or the preset silently does nothing.
+- `create_resource` only knows engine classes. Create custom-Resource `.tres` files (e.g. a `MechPart`) with a headless script that calls `ResourceSaver.save()`.
+- `run_project` injects an `McpInteractionServer` autoload and script into the project. `stop_project` removes them but leaves an empty `[autoload]` section in `project.godot`; delete it.
+- A script error in `game_eval` freezes the game at a `debug>` prompt. Call `stop_project`, then run it again.
+- `game_mouse_drag` can't finish a drag-and-drop, because Godot 4.7 aims the drop at the real OS cursor. To test drops in a running game, `push_input()` events into a standalone `SubViewport` (not inside a `SubViewportContainer`).
+- `game_screenshot` returns a stale frame while the game window is minimized.
 
 ## Rules
 1. Read the output of the test command. If it fails, fix the code and run it again.
