@@ -19,6 +19,7 @@ Run the tests headlessly from the project root using this command:
 
 ## Writing Tests
 - Game logic lives in `res://src/<area>/`; its tests go in `res://test/<area>/<ClassName>Test.gd` (GdUnit4 maps `/src/` to `/test/`).
+- Content (`.tres` parts, chassis, adjacency rules) lives in `res://resources/<kind>/`. Tests don't load it: they build data with `test/TestFixtures.gd`, pinned to the design doc and mockup, so tuning content never breaks a test.
 - Pair every "rejects X" assertion with a positive control that must succeed. Otherwise a stub that always returns false passes.
 - Hardcode expected values from `design_doc.md` instead of reading constants from the class under test.
 - `contains_exactly_in_any_order` and `contains_same_exactly_in_any_order` ignore duplicates. Chain `.has_size(n)` when the count matters.

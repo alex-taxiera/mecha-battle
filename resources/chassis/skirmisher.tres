@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MechChassis" format=3]
+
+[ext_resource type="Script" path="res://src/data/MechChassis.gd" id="1_dem8s"]
+
+[resource]
+script = ExtResource("1_dem8s")
+id = "skirmisher"
+chassis_name = "The Skirmisher"
+frame_name = "Cross frame"
+disabled_cells = Array[Vector2i]([Vector2i(0, 0), Vector2i(3, 0), Vector2i(0, 3), Vector2i(3, 3)])
+base_hp = 30

@@ -11,3 +11,39 @@ enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY }
 ## Cells this part covers, relative to a (0, 0) origin (x right, y down).
 ## For example, a vertical 1x2 is [code][Vector2i(0, 0), Vector2i(0, 1)][/code].
 @export var grid_shape: Array[Vector2i]
+@export_multiline var description: String
+
+@export_group("Stats")
+## Hull points this part adds.
+@export var hp: int
+## Energy this part generates each turn.
+@export var energy: int
+## Energy this part uses each turn.
+@export var energy_draw: int
+## Damage this part deals each volley.
+@export var damage: int
+
+
+## Returns [member grid_shape] turned [param turns] quarter-turns clockwise, shifted so its
+## top-left is (0, 0) and sorted row by row. Negative turns go counterclockwise.
+func get_shape(turns := 0) -> Array[Vector2i]:
+	var shape: Array[Vector2i] = []
+	for cell in grid_shape:
+		var turned := cell
+		for i in posmod(turns, 4):
+			turned = Vector2i(-turned.y, turned.x)
+		shape.append(turned)
+	if shape.is_empty():
+		return shape
+	var top_left := shape[0]
+	for cell in shape:
+		top_left = top_left.min(cell)
+	for i in shape.size():
+		shape[i] -= top_left
+	shape.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y or (a.y == b.y and a.x < b.x))
+	return shape
+
+
+## Returns whether a quarter-turn changes this part's footprint.
+func can_rotate() -> bool:
+	return get_shape(1) != get_shape()

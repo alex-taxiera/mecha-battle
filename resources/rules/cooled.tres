@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SynergyRule" format=3]
+
+[ext_resource type="Script" path="res://src/data/SynergyRule.gd" id="1_uhgpu"]
+
+[resource]
+script = ExtResource("1_uhgpu")
+id = "cooled"
+label = "Heatsink + Weapon"
+effect_text = "weapon dmg ×1.5"
+second_type = 3
+stat = 2
+op = 1
+amount = 1.5
+stacks = false

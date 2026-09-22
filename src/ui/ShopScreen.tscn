@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://src/ui/ShopScreen.gd" id="1_2u7n2"]
 [ext_resource type="PackedScene" path="res://src/ui/MechGridUI.tscn" id="2_2ygms"]
+[ext_resource type="Resource" path="res://resources/chassis/skirmisher.tres" id="2_ps511"]
 [ext_resource type="Script" path="res://src/ui/MechGridUI.gd" id="3_pgemp"]
 
 [node name="ShopScreen" type="Control" unique_id=274162144]
@@ -12,6 +13,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_2u7n2")
+chassis = ExtResource("2_ps511")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=822173180]
 layout_mode = 1

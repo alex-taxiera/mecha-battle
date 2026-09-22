@@ -6,11 +6,12 @@ extends Control
 const SHOP_ITEM_SCENE := preload("res://src/ui/ShopItem.tscn")
 const PARTS_DIR := "res://resources/parts"
 
+@export var chassis: MechChassis
 @export var starting_gold := 10
 ## Parts for sale. Left empty, the shop sells every MechPart in [constant PARTS_DIR].
 @export var catalog: Array[MechPart] = []
 
-var grid := MechGridData.new()
+var grid: MechGridData
 var shop: ShopData
 
 @onready var _grid_ui: MechGridUI = %MechGridUI
@@ -21,6 +22,7 @@ var shop: ShopData
 func _ready() -> void:
 	if catalog.is_empty():
 		catalog = _load_parts(PARTS_DIR)
+	grid = MechGridData.new(chassis)
 	shop = ShopData.new(starting_gold, catalog)
 	shop.changed.connect(_refresh)
 	_grid_ui.grid_data = grid

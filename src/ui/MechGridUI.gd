@@ -24,6 +24,7 @@ var grid_data: MechGridData:
 		grid_data = value
 		if grid_data:
 			grid_data.grid_updated.connect(queue_redraw)
+		update_minimum_size()
 		queue_redraw()
 
 # Cells the dragged part would cover at the hovered spot, and whether it fits there.
@@ -31,17 +32,14 @@ var _hover_cells: Array[Vector2i] = []
 var _hover_fits := false
 
 
-func _ready() -> void:
-	if grid_data == null:
-		grid_data = MechGridData.new()
-
-
 func _get_minimum_size() -> Vector2:
-	return Vector2(MechGridData.GRID_SIZE) * CELL_PITCH - Vector2(CELL_GAP, CELL_GAP)
+	if grid_data == null:
+		return Vector2.ZERO
+	return Vector2(grid_data.chassis.size) * CELL_PITCH - Vector2(CELL_GAP, CELL_GAP)
 
 
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
-	if not data is PartDragData:
+	if grid_data == null or not data is PartDragData:
 		return false
 	var drag: PartDragData = data
 	var origin := _origin_at(at_position, drag)
@@ -64,10 +62,13 @@ func _notification(what: int) -> void:
 
 
 func _draw() -> void:
-	for y in MechGridData.GRID_SIZE.y:
-		for x in MechGridData.GRID_SIZE.x:
+	if grid_data == null:
+		return
+	var chassis := grid_data.chassis
+	for y in chassis.size.y:
+		for x in chassis.size.x:
 			var cell := Vector2i(x, y)
-			var color := DISABLED_CELL_COLOR if cell in MechGridData.DISABLED_CELLS else CELL_COLOR
+			var color := CELL_COLOR if chassis.is_usable(cell) else DISABLED_CELL_COLOR
 			draw_rect(_cell_rect(cell), color)
 	var font := get_theme_default_font()
 	for placement in grid_data.get_placements():
@@ -77,7 +78,7 @@ func _draw() -> void:
 		draw_string(font, label_pos, part.part_name, HORIZONTAL_ALIGNMENT_LEFT, CELL_SIZE - 8, LABEL_FONT_SIZE, LABEL_COLOR)
 	var hover_color := FITS_COLOR if _hover_fits else BLOCKED_COLOR
 	for cell in _hover_cells:
-		if Rect2i(Vector2i.ZERO, MechGridData.GRID_SIZE).has_point(cell):
+		if chassis.contains(cell):
 			draw_rect(_cell_rect(cell), hover_color)
 
 

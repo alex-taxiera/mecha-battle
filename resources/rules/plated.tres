@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SynergyRule" format=3]
+
+[ext_resource type="Script" path="res://src/data/SynergyRule.gd" id="1_5fwas"]
+
+[resource]
+script = ExtResource("1_5fwas")
+id = "plated"
+label = "Laser + Laser"
+effect_text = "+4 HP each"
+first_type = 2
+second_type = 2
+target = 2
+amount = 4.0

@@ -3,6 +3,7 @@ extends GdUnitTestSuite
 
 const __source: String = "res://src/ui/MechGridUI.gd"
 const SCENE := preload("res://src/ui/MechGridUI.tscn")
+const Fixtures := preload("res://test/TestFixtures.gd")
 const VERTICAL_1X3: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)]
 
 var _grid: MechGridData
@@ -10,7 +11,7 @@ var _grid_ui: MechGridUI
 
 
 func before_test() -> void:
-	_grid = MechGridData.new()
+	_grid = MechGridData.new(Fixtures.cross_chassis())
 	_grid_ui = auto_free(SCENE.instantiate())
 	_grid_ui.grid_data = _grid
 	add_child(_grid_ui)

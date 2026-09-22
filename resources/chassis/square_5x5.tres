@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MechChassis" format=3]
+
+[ext_resource type="Script" path="res://src/data/MechChassis.gd" id="1_lvxu2"]
+
+[resource]
+script = ExtResource("1_lvxu2")
+id = "square_5x5"
+chassis_name = "Square 5×5"
+frame_name = "Square frame"
+size = Vector2i(5, 5)
+base_hp = 40
