@@ -94,6 +94,22 @@ func test_end_round_carries_gold_over_and_adds_income() -> void:
 	assert_int(_run.grid.get_used_cell_count()).is_equal(1) # the mech keeps its parts
 
 
+func test_records_each_fight() -> void:
+	assert_int(_run.wins).is_equal(0)
+	assert_int(_run.losses).is_equal(0)
+	assert_int(_run.draws).is_equal(0)
+	_run.record_fight(RunState.FightResult.WIN)
+	_run.record_fight(RunState.FightResult.WIN)
+	_run.record_fight(RunState.FightResult.LOSS)
+	_run.record_fight(RunState.FightResult.DRAW)
+	assert_int(_run.wins).is_equal(2)
+	assert_int(_run.losses).is_equal(1)
+	assert_int(_run.draws).is_equal(1)
+	assert_int(_changes).is_equal(4) # the shop redraws its record each time
+	# Recording a fight doesn't end the round; the shop does that next.
+	assert_int(_run.round_number).is_equal(1)
+
+
 func test_reroll_costs_gold_and_restocks() -> void:
 	assert_bool(_run.buy(_slot_of(_laser), Vector2i(1, 1))).is_true() # 10 -> 8
 	assert_bool(_run.reroll()).is_true()

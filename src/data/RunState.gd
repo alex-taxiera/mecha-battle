@@ -1,9 +1,12 @@
 class_name RunState
 extends RefCounted
-## One run's shop-phase state: gold, the shop's slots, the mech grid, and the round. Buying,
-## selling, and moving go through here so gold and the grid can't drift apart.
+## One run's state: gold, the shop's slots, the mech grid, the round, and the fight record.
+## Buying, selling, and moving go through here so gold and the grid can't drift apart.
 
-## Emitted after any change to the gold, the shop, the grid, or the round.
+## How a round's fight went for the player.
+enum FightResult { WIN, LOSS, DRAW }
+
+## Emitted after any change to the gold, the shop, the grid, the round, or the record.
 signal changed
 
 const SHOP_SIZE := 4
@@ -34,6 +37,10 @@ class Preview:
 
 
 var round_number := 1
+## The run's record so far. Nothing ends the run yet when these reach a limit.
+var wins := 0
+var losses := 0
+var draws := 0
 var gold: int
 ## Gold added at the start of each new round.
 var round_income: int
@@ -148,6 +155,18 @@ func reroll() -> bool:
 	_restock(false)
 	changed.emit()
 	return true
+
+
+## Counts a fight's [param result] in the run's record.
+func record_fight(result: FightResult) -> void:
+	match result:
+		FightResult.WIN:
+			wins += 1
+		FightResult.LOSS:
+			losses += 1
+		FightResult.DRAW:
+			draws += 1
+	changed.emit()
 
 
 ## Starts the next round: adds the round's income, restocks the shop for free, and ends the

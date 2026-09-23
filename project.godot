@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Mecha Battle"
-run/main_scene="res://src/ui/ShopScreen.tscn"
+run/main_scene="res://src/ui/Game.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

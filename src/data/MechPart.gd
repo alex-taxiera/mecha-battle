@@ -1,6 +1,7 @@
 class_name MechPart
 extends Resource
-## The blueprint for every item in the game.
+## The blueprint for every item in the game. Parts are shared Resources, so nothing that
+## changes during a fight is stored here: see [ActivePart].
 
 enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY }
 
@@ -17,11 +18,13 @@ enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY }
 ## Hull points this part adds.
 @export var hp: int
 ## Energy this part generates each turn.
-@export var energy: int
+@export var energy_gen: int
 ## Energy this part uses each turn.
-@export var energy_draw: int
+@export var energy_cost: int
 ## Damage this part deals each volley.
 @export var damage: int
+## Seconds between the part's activations in combat.
+@export var cooldown_max: float
 
 
 ## Returns [member grid_shape] turned [param turns] quarter-turns clockwise, shifted so its

@@ -28,7 +28,8 @@ Run the tests headlessly from the project root using this command:
 
 ## Godot MCP Notes
 - `create_scene` names the root node `root`. Rename it with `manage_scene_structure`.
-- `add_node` takes an engine class or a `class_name` script but can't instance a `.tscn`. To instance one, add a plain node, then set its `scene_file_path` to the `.tscn` with `modify_scene_node`. The MCP also saves a redundant `type`/`script` on that node; that's harmless.
+- `add_node` takes an engine class or a `class_name` script but can't instance a `.tscn`. To instance one, add a plain node, then set its `scene_file_path` to the `.tscn` with `modify_scene_node`. The MCP also saves a redundant `type` on that node; that's harmless.
+- Give that plain node everything it needs (e.g. `layout_mode: 3` and `anchors_preset: 15` for a full-screen Control) before setting `scene_file_path`, and don't `modify_scene_node` the instance afterward. A later modify saves copies of the instanced scene's own properties (`script`, `theme`, exports) as overrides, which then silently win over edits to the original `.tscn`. If that happens, remove the node and add it again.
 - Property values: pass Vector2 as `{"x": .., "y": ..}`, Color as `"#rrggbb"`, and resources as `"res://..."` paths. Typed arrays can't be set.
 - Anchors: the scene root only needs `anchors_preset: 15`. Any other node outside a container needs `layout_mode: 1` before `anchors_preset`, or the preset silently does nothing.
 - `create_resource` only knows engine classes. Create custom-Resource `.tres` files (e.g. a `MechPart`) with a headless script that calls `ResourceSaver.save()`.

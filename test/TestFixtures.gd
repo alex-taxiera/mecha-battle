@@ -22,7 +22,7 @@ static func open_chassis(size: Vector2i) -> MechChassis:
 # The mockup's parts. Shapes are (x, y): the gatling is 1x3 vertical, the reactor 2x1.
 
 static func gatling() -> MechPart:
-	return part("Twin Gatling", MechPart.PartType.WEAPON, [Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)], 4, {"damage": 8, "energy_draw": 3})
+	return part("Twin Gatling", MechPart.PartType.WEAPON, [Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)], 4, {"damage": 8, "energy_cost": 3})
 
 
 static func laser() -> MechPart:
@@ -30,7 +30,7 @@ static func laser() -> MechPart:
 
 
 static func reactor() -> MechPart:
-	return part("Micro-Reactor", MechPart.PartType.GENERATOR, [Vector2i(0, 0), Vector2i(1, 0)], 3, {"energy": 4, "hp": 5})
+	return part("Micro-Reactor", MechPart.PartType.GENERATOR, [Vector2i(0, 0), Vector2i(1, 0)], 3, {"energy_gen": 4, "hp": 5})
 
 
 ## X.
@@ -46,6 +46,8 @@ static func part(part_name: String, type: MechPart.PartType, shape: Array[Vector
 	result.grid_shape = shape
 	result.cost = cost
 	for stat in stats:
+		# set() ignores names MechPart doesn't have, which would quietly zero a stat.
+		assert(stat in result, "MechPart has no stat '%s'" % stat)
 		result.set(stat, stats[stat])
 	return result
 

@@ -2,7 +2,11 @@ class_name ShopScreen
 extends Control
 ## Root of the shop phase: the round and gold up top, the mech on the left, the parts shop on
 ## the right, and the mech's stats below. Drag parts from the shop onto the mech to buy them,
-## around the mech to move them, and back onto the shop to sell them.
+## around the mech to move them, and back onto the shop to sell them. Next round asks for the
+## round's fight; [method finish_round] records it and opens the next round's shop.
+
+## Emitted when the player is done shopping and wants this round's fight.
+signal fight_requested
 
 const SHOP_ITEM_SCENE := preload("res://src/ui/ShopItem.tscn")
 const PARTS_DIR := "res://resources/parts"
@@ -10,6 +14,11 @@ const RULES_DIR := "res://resources/rules"
 const TOAST_SECONDS := 1.9
 const GOOD_COLOR := Color(0.49, 0.88, 0.63)
 const BAD_COLOR := Color(0.94, 0.42, 0.42)
+const _RESULT_WORDS := {
+	RunState.FightResult.WIN: "Won",
+	RunState.FightResult.LOSS: "Lost",
+	RunState.FightResult.DRAW: "Drew",
+}
 
 @export var chassis: MechChassis
 @export var starting_gold := 10
@@ -25,6 +34,7 @@ var _stats: MechStats
 var _toast_timer: Timer
 
 @onready var _round_label: Label = %RoundLabel
+@onready var _record_label: Label = %RecordLabel
 @onready var _gold_label: Label = %GoldLabel
 @onready var _next_round_button: Button = %NextRoundButton
 @onready var _chassis_label: Label = %ChassisLabel
@@ -41,9 +51,9 @@ var _toast_timer: Timer
 
 func _ready() -> void:
 	if catalog.is_empty():
-		catalog.assign(_load_dir(PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
+		catalog.assign(load_dir(PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
 	if rules.is_empty():
-		rules.assign(_load_dir(RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
+		rules.assign(load_dir(RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
 	run = RunState.new(chassis, catalog, rules, starting_gold)
 	run.changed.connect(_refresh)
 	_grid_ui.run = run
@@ -107,6 +117,9 @@ func sell(_at_position: Vector2, data: Variant) -> void:
 func _refresh() -> void:
 	_stats = run.stats()
 	_round_label.text = "Hangar · Round %d" % run.round_number
+	_record_label.text = "Record: %d W · %d L" % [run.wins, run.losses]
+	if run.draws:
+		_record_label.text += " · %d D" % run.draws
 	_gold_label.text = "Gold: %d" % run.gold
 	var frame := run.grid.chassis
 	_chassis_label.text = "Chassis · %s" % frame.chassis_name
@@ -137,12 +150,23 @@ func _on_reroll_pressed() -> void:
 		show_toast("Not enough gold to reroll", false)
 
 
-func _on_next_round_pressed() -> void:
+## Records how the round's fight went, then starts the next round: income, a restock, and a
+## toast saying so.
+func finish_round(result: RunState.FightResult) -> void:
+	var fought := run.round_number
+	run.record_fight(result)
 	run.end_round()
-	show_toast("Round %d · +%dg income, shop restocked" % [run.round_number, run.round_income], true)
+	show_toast("%s round %d · +%dg income, shop restocked" % [_RESULT_WORDS[result], fought, run.round_income],
+		result != RunState.FightResult.LOSS)
 
 
-static func _load_dir(dir: String) -> Array[Resource]:
+func _on_next_round_pressed() -> void:
+	fight_requested.emit()
+
+
+## Loads every resource in [param dir], e.g. [constant PARTS_DIR]. Other screens use it to
+## load the same content the shop does.
+static func load_dir(dir: String) -> Array[Resource]:
 	var loaded: Array[Resource] = []
 	for file in ResourceLoader.list_directory(dir):
 		if not file.ends_with("/"):

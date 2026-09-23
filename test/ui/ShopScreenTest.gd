@@ -51,19 +51,44 @@ func test_dragging_a_shop_part_onto_the_grid_buys_it() -> void:
 	await await_idle_frame() # free the shop cards the refresh replaced
 
 
-func test_reroll_and_next_round_buttons() -> void:
+func test_reroll_button() -> void:
 	_button("RerollButton").pressed.emit()
 	assert_str(_text("GoldLabel")).is_equal("Gold: 9")
 	_screen.run.gold = 0
 	_button("RerollButton").pressed.emit()
 	assert_bool(_toast().visible).is_true()
 	assert_str(_toast().text).is_equal("Not enough gold to reroll")
-
-	_button("NextRoundButton").pressed.emit()
-	assert_str(_text("RoundLabel")).is_equal("Hangar · Round 2")
-	assert_str(_text("GoldLabel")).is_equal("Gold: 10") # the 0 left over plus 10 income
-	assert_str(_toast().text).is_equal("Round 2 · +10g income, shop restocked")
 	await await_idle_frame()
+
+
+func test_next_round_asks_for_the_fight() -> void:
+	var requests := [0]
+	_screen.fight_requested.connect(func() -> void: requests[0] += 1)
+	_button("NextRoundButton").pressed.emit()
+	assert_int(requests[0]).is_equal(1)
+	# The round only ends once the fight has been recorded.
+	assert_str(_text("RoundLabel")).is_equal("Hangar · Round 1")
+	assert_str(_text("GoldLabel")).is_equal("Gold: 10")
+
+
+func test_finishing_a_round_records_the_fight_and_opens_the_next_shop() -> void:
+	assert_str(_text("RecordLabel")).is_equal("Record: 0 W · 0 L")
+	_screen.run.gold = 3
+	_screen.finish_round(RunState.FightResult.WIN)
+	assert_str(_text("RecordLabel")).is_equal("Record: 1 W · 0 L")
+	assert_str(_text("RoundLabel")).is_equal("Hangar · Round 2")
+	assert_str(_text("GoldLabel")).is_equal("Gold: 13") # the 3 left over plus 10 income
+	assert_str(_toast().text).is_equal("Won round 1 · +10g income, shop restocked")
+	assert_that(_toast().get_theme_color("font_color")).is_equal(ShopScreen.GOOD_COLOR)
+	_screen.finish_round(RunState.FightResult.LOSS)
+	assert_str(_text("RecordLabel")).is_equal("Record: 1 W · 1 L")
+	assert_str(_toast().text).is_equal("Lost round 2 · +10g income, shop restocked")
+	assert_that(_toast().get_theme_color("font_color")).is_equal(ShopScreen.BAD_COLOR)
+	# Draws only show once there's been one.
+	_screen.finish_round(RunState.FightResult.DRAW)
+	assert_str(_text("RecordLabel")).is_equal("Record: 1 W · 1 L · 1 D")
+	assert_str(_toast().text).is_equal("Drew round 3 · +10g income, shop restocked")
+	await await_idle_frame() # free the shop cards the restocks replaced
 
 
 func test_dropping_an_installed_part_on_the_shop_sells_it() -> void:
@@ -87,7 +112,7 @@ func test_dropping_an_installed_part_on_the_shop_sells_it() -> void:
 
 func test_parts_from_earlier_rounds_sell_for_half() -> void:
 	assert_bool(_screen.run.buy(_slot_of(_gatling), Vector2i(1, 0))).is_true()
-	_button("NextRoundButton").pressed.emit()
+	_screen.finish_round(RunState.FightResult.WIN)
 	_screen.show_sell_zone(_grid_ui()._get_drag_data(_cell_center(Vector2i(1, 1))))
 	assert_str(_text("SellLabel")).is_equal("Sell for +2g")
 	assert_str(_text("SellNote")).is_equal("Half value: bought in an earlier round")

@@ -76,8 +76,8 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule]) -> MechStat
 		var part := placement.part
 		var numbers: PartStats = stats.part_stats[placement]
 		numbers.hp = _with_bonuses(part.hp, numbers, SynergyRule.Stat.HP)
-		numbers.energy = _with_bonuses(part.energy, numbers, SynergyRule.Stat.ENERGY)
-		numbers.energy_draw = part.energy_draw
+		numbers.energy = _with_bonuses(part.energy_gen, numbers, SynergyRule.Stat.ENERGY)
+		numbers.energy_draw = part.energy_cost
 		numbers.damage = _with_bonuses(part.damage, numbers, SynergyRule.Stat.DAMAGE)
 		stats.hp += numbers.hp
 		stats.energy_generated += numbers.energy
