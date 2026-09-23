@@ -16,8 +16,9 @@ const REACTOR_LEFT_ARM := Vector2i(-1, 1)
 # The Skirmisher's armed cross, 30 base HP, with no base energy so that only parts make energy.
 # Tests of chassis energy use _energized_chassis().
 var _chassis: MechChassis
-# What engines made by _engine() emit: each weapon_fired as [attacker, target, damage], each
-# meltdown as [mech, target, damage], each storm strike's damage, and each battle_ended's winner.
+# What engines made by _engine() emit: each weapon_fired as [attacker, target, damage, weapon],
+# each meltdown as [mech, target, damage], each storm strike's damage, and each battle_ended's
+# winner.
 var _shots: Array = []
 var _meltdowns: Array = []
 var _strikes: Array = []
@@ -122,7 +123,14 @@ func test_a_weapon_fires_once_it_is_ready_and_paid_for() -> void:
 	assert_int(attacker.current_energy).is_equal(5)
 	assert_int(dummy.current_health).is_equal(22)
 	assert_int(attacker.current_health).is_equal(35) # 30 + the reactor's 5, and nothing shot back
-	assert_float(_active_for(attacker, gatling).current_cooldown).is_equal(1.0)
+	var active := _active_for(attacker, gatling)
+	assert_float(active.current_cooldown).is_equal(1.0)
+	# The shot names the weapon that fired it, which counts it, as does its mech.
+	assert_object(_shots[0][3]).is_same(active)
+	assert_int(active.shots).is_equal(1)
+	assert_int(active.damage_dealt).is_equal(8)
+	assert_int(attacker.damage_dealt).is_equal(8)
+	assert_int(dummy.damage_dealt).is_equal(0)
 
 
 func test_weapons_can_spend_energy_generated_the_same_tick() -> void:
@@ -287,6 +295,25 @@ func test_storm_strikes_grow_exponentially() -> void:
 	assert_array(damages).is_equal([1, 2, 2, 3, 5, 8])
 
 
+func test_the_storm_countdown_runs_out_when_the_storm_starts() -> void:
+	# By default the storm starts at 20 seconds.
+	assert_float(_engine(_mech([]), _mech([])).get_storm_countdown()).is_equal(20.0)
+	# At 1 second here: half a second in, half a second is left.
+	var engine := _stormy_engine(_mech([]), _mech([]))
+	assert_float(engine.get_storm_countdown()).is_equal(1.0)
+	for i in 5:
+		engine.process_tick(0.1)
+	assert_float(engine.get_storm_countdown()).is_equal_approx(0.5, 1e-9)
+	assert_array(_strikes).is_empty()
+	# On the tick the first strike lands it reads 0, even with float error, and stays there.
+	for i in 5:
+		engine.process_tick(0.1)
+	assert_array(_strikes).has_size(1)
+	assert_float(engine.get_storm_countdown()).is_equal(0.0)
+	engine.process_tick(0.1)
+	assert_float(engine.get_storm_countdown()).is_equal(0.0)
+
+
 func test_each_chassis_adds_its_base_energy_every_turn() -> void:
 	var left := _mech([], [], _energized_chassis(3))
 	var right := _mech([], [], _energized_chassis(5))
@@ -349,11 +376,15 @@ func test_thick_plating_shrinks_every_hit_the_bastion_takes() -> void:
 	var bastion := _mech([], [], Fixtures.bastion()) # 450 HP
 	var gun := _peashooter()
 	gun.damage = 5
-	var engine := _engine(_mech([[gun, LEFT_ARM]]), bastion)
+	var gunner := _mech([[gun, LEFT_ARM]])
+	var engine := _engine(gunner, bastion)
 	for i in 10:
 		engine.process_tick(0.1)
 	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([3, 3])
 	assert_int(bastion.current_health).is_equal(444)
+	# The tallies count what got through.
+	assert_int(gunner.damage_dealt).is_equal(6)
+	assert_int(_active_for(gunner, gun).damage_dealt).is_equal(6)
 	# Storm strikes of 4 and 8 land as 2 and 6; the bare mech beside it takes them in full.
 	bastion = _mech([], [], Fixtures.bastion())
 	var bare := _mech([])
@@ -377,6 +408,11 @@ func test_overclock_fires_the_strikers_first_shot_twice() -> void:
 	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([8, 8])
 	assert_int(striker.current_energy).is_equal(37) # 40 - 3, paid once
 	assert_int(dummy.current_health).is_equal(14)
+	# Both shots are the gatling's, and both count.
+	var gatling: ActivePart = _shots[0][3]
+	assert_object(_shots[1][3]).is_same(gatling)
+	assert_int(gatling.shots).is_equal(2)
+	assert_int(striker.damage_dealt).is_equal(16)
 	for i in 10:
 		engine.process_tick(0.1)
 	assert_array(_shots).has_size(3)
@@ -425,6 +461,7 @@ func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
 	assert_object(_meltdowns[0][1]).is_same(target)
 	assert_int(_meltdowns[0][2]).is_equal(100)
 	assert_int(target.current_health).is_equal(60) # 200 - 5 × 8 - 100
+	assert_int(reactor.damage_dealt).is_equal(140) # the meltdown counts as well as the shots
 	assert_int(reactor.current_energy).is_equal(135) # 5 × (30 - 3)
 	assert_int(reactor.heat).is_equal(0)
 	assert_bool(reactor.is_shut_down()).is_true()
@@ -469,8 +506,8 @@ func _stormy_engine(left: BattleMech, right: BattleMech) -> CombatEngine:
 # A started engine, with what it emits recorded in _shots, _strikes, and _endings.
 func _engine(left: BattleMech, right: BattleMech) -> CombatEngine:
 	var engine := CombatEngine.new(left, right)
-	engine.weapon_fired.connect(func(attacker: BattleMech, target: BattleMech, damage: int) -> void:
-		_shots.append([attacker, target, damage]))
+	engine.weapon_fired.connect(func(attacker: BattleMech, weapon: ActivePart, target: BattleMech, damage: int) -> void:
+		_shots.append([attacker, target, damage, weapon]))
 	engine.storm_struck.connect(func(damage: int) -> void: _strikes.append(damage))
 	engine.meltdown.connect(func(mech: BattleMech, target: BattleMech, damage: int) -> void:
 		_meltdowns.append([mech, target, damage]))

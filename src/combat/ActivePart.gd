@@ -17,6 +17,11 @@ var cooling: int
 var current_cooldown: float
 ## Whether the part still works. Combat switches it off, e.g. when the part is knocked out.
 var is_active := true
+## The bay a weapon is mounted in, or null for a part on the grid.
+var hardpoint: Hardpoint
+## Shots the part has fired this fight, and the damage they did after the target's plating.
+var shots := 0
+var damage_dealt := 0
 
 
 ## [param numbers] are the part's stats on its grid, links applied; without them the part
@@ -34,3 +39,11 @@ func _init(p_part: MechPart, numbers: MechStats.PartStats = null) -> void:
 		damage = p_part.damage
 		energy_gen = p_part.energy_gen
 		energy_cost = p_part.energy_cost
+
+
+## Returns how far the part's cooldown has run, from 0 just after it activates to 1 when it's
+## ready. A part with no cooldown never activates, so it stays at 0.
+func get_charge() -> float:
+	if part.cooldown_max <= 0.0:
+		return 0.0
+	return clampf(1.0 - current_cooldown / part.cooldown_max, 0.0, 1.0)

@@ -13,6 +13,12 @@ extends Resource
 ## Cells the bay covers, relative to [member origin] (x right, y down). An arm is 1x3
 ## vertical: [code][Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)][/code].
 @export var shape: Array[Vector2i]
+## Where a mounted weapon's [member MechPart.battle_sprite] goes on its chassis's
+## [member MechChassis.battle_sprite]: the weapon sprite's top-left, in the chassis sprite's
+## pixels. It can hang off the chassis sprite's edges.
+@export var battle_anchor: Vector2i
+## Whether the mounted weapon is drawn behind the chassis sprite, shaded, like a far arm.
+@export var battle_behind := false
 
 
 ## Returns the cells the bay covers on its chassis.

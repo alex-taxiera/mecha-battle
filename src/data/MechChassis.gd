@@ -33,6 +33,9 @@ enum Passive {
 @export var base_energy := 3
 ## The weapon bays around the grid. Weapons only mount here, never on the grid.
 @export var hardpoints: Array[Hardpoint] = []
+## The frame in a fight: a 128x128 pixel sprite facing right, with its bays empty. Each mounted
+## weapon's own sprite goes at its bay's [member Hardpoint.battle_anchor].
+@export var battle_sprite: Texture2D
 
 @export_group("Passive")
 @export var passive := Passive.NONE

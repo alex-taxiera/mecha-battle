@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="MechChassis" format=3]
 
+[ext_resource type="Texture2D" path="res://assets/combat/reactor.png" id="1_4okba"]
 [ext_resource type="Script" path="res://src/data/MechChassis.gd" id="1_nuhbi"]
 [ext_resource type="Script" path="res://src/data/Hardpoint.gd" id="1_p50bv"]
 
@@ -9,6 +10,8 @@ id = "left_arm"
 hardpoint_name = "Left Arm"
 origin = Vector2i(-1, 1)
 shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+battle_anchor = Vector2i(88, 42)
+battle_behind = true
 
 [sub_resource type="Resource" id="Resource_32nhj"]
 script = ExtResource("1_p50bv")
@@ -16,6 +19,7 @@ id = "right_arm"
 hardpoint_name = "Right Arm"
 origin = Vector2i(5, 1)
 shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+battle_anchor = Vector2i(97, 59)
 
 [resource]
 script = ExtResource("1_nuhbi")
@@ -28,6 +32,7 @@ disabled_cells = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(3, 0)
 base_hp = 300
 base_energy = 30
 hardpoints = Array[ExtResource("1_p50bv")]([SubResource("Resource_4okba"), SubResource("Resource_32nhj")])
+battle_sprite = ExtResource("1_4okba")
 passive = 3
 passive_name = "Meltdown"
 passive_text = "When heat reaches 100%, deal massive damage and shut down for 3 seconds."

@@ -17,6 +17,23 @@ func test_wraps_a_part_ready_for_a_fight() -> void:
 	active.is_active = false
 	assert_float(active.current_cooldown).is_equal(0.5)
 	assert_float(gatling.cooldown_max).is_equal(1.5)
+	# A fresh part hasn't fired, and only BattleMech knows its bay.
+	assert_int(active.shots).is_equal(0)
+	assert_int(active.damage_dealt).is_equal(0)
+	assert_object(active.hardpoint).is_null()
+
+
+func test_charge_fills_as_the_cooldown_runs_out() -> void:
+	var gatling := Fixtures.gatling()
+	gatling.cooldown_max = 2.0
+	var active := ActivePart.new(gatling)
+	assert_float(active.get_charge()).is_equal(0.0)
+	active.current_cooldown = 0.5
+	assert_float(active.get_charge()).is_equal(0.75)
+	active.current_cooldown = 0.0
+	assert_float(active.get_charge()).is_equal(1.0)
+	# A part with no cooldown never activates, so it never charges.
+	assert_float(ActivePart.new(Fixtures.laser()).get_charge()).is_equal(0.0)
 
 
 func test_fights_with_its_own_numbers_or_its_linked_ones() -> void:

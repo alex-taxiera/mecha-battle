@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="MechPart" format=3]
 
 [ext_resource type="Script" path="res://src/data/MechPart.gd" id="1_gn5wf"]
+[ext_resource type="Texture2D" path="res://assets/combat/missile_pod.png" id="1_rwc1a"]
+[ext_resource type="Texture2D" path="res://assets/combat/missile.png" id="2_8m15p"]
 
 [resource]
 script = ExtResource("1_gn5wf")
@@ -9,6 +11,8 @@ part_name = "Missile Pod"
 cost = 6
 grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)])
 description = "Back mount. Fires every second: 30 dmg for 50 EN and 35 heat. Heatsink touching: ×1.5. Each reactor touching: +5."
+battle_sprite = ExtResource("1_rwc1a")
+projectile_sprite = ExtResource("2_8m15p")
 energy_cost = 50
 damage = 30
 cooldown_max = 1.0

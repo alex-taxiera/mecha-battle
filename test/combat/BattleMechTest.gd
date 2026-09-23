@@ -46,6 +46,15 @@ func test_thick_plating_takes_2_off_every_hit() -> void:
 	assert_int(bastion.current_health).is_equal(444)
 
 
+func test_damage_taken_can_be_asked_without_taking_the_hit() -> void:
+	var bastion := BattleMech.new(MechGridData.new(Fixtures.bastion())) # 450 HP, plating 2
+	assert_int(bastion.get_damage_taken(8)).is_equal(6)
+	assert_int(bastion.get_damage_taken(1)).is_equal(0)
+	assert_int(bastion.current_health).is_equal(450)
+	# Without plating, a hit lands in full.
+	assert_int(BattleMech.new(MechGridData.new(_chassis)).get_damage_taken(8)).is_equal(8)
+
+
 func test_max_hp_uses_the_rounds_chassis_hp() -> void:
 	var grid := _grid_with([[Fixtures.laser(), Vector2i(1, 1)]])
 	# Round 3: 30 × 1.15² = 39.675, rounded down, plus the laser's 12.
@@ -87,6 +96,56 @@ func test_makes_one_active_part_per_placed_part() -> void:
 		assert_bool(active.is_active).is_true()
 	assert_float(_active_for(mech, gatling).current_cooldown).is_equal(1.5)
 	assert_float(_active_for(mech, laser).current_cooldown).is_equal(0.0)
+
+
+func test_mounted_weapons_know_their_bay() -> void:
+	var gatling := Fixtures.gatling()
+	var pod := Fixtures.missile_pod()
+	var laser := Fixtures.laser()
+	# Gatling in the left arm, pod in the back bay over (1, 0) and (2, 0), laser on the grid.
+	var mech := BattleMech.new(_grid_with([[gatling, LEFT_ARM], [pod, Vector2i(1, -2)], [laser, Vector2i(1, 1)]]))
+	assert_str(_active_for(mech, gatling).hardpoint.hardpoint_name).is_equal("Left Arm")
+	assert_str(_active_for(mech, pod).hardpoint.hardpoint_name).is_equal("Back")
+	assert_object(_active_for(mech, laser).hardpoint).is_null()
+
+
+func test_a_weapon_is_starved_when_ready_but_unaffordable() -> void:
+	var gatling := _with_cooldown(Fixtures.gatling(), 1.0) # costs 3
+	var laser := Fixtures.laser()
+	var mech := BattleMech.new(_grid_with([[gatling, LEFT_ARM], [laser, Vector2i(1, 1)]]))
+	var gun := _active_for(mech, gatling)
+	gun.current_cooldown = 0.0
+	mech.current_energy = 2
+	assert_bool(mech.is_starved(gun)).is_true()
+	# Positive controls: with enough energy, or still cooling down, it isn't.
+	mech.current_energy = 3
+	assert_bool(mech.is_starved(gun)).is_false()
+	mech.current_energy = 0
+	gun.current_cooldown = 0.5
+	assert_bool(mech.is_starved(gun)).is_false()
+	# A shut-down mech's weapons are off, not starved, and only weapons starve.
+	gun.current_cooldown = 0.0
+	assert_bool(mech.is_starved(gun)).is_true()
+	mech.shutdown_left = 1.0
+	assert_bool(mech.is_starved(gun)).is_false()
+	mech.shutdown_left = 0.0
+	var plate := _active_for(mech, laser)
+	plate.energy_cost = 5
+	assert_bool(mech.is_starved(plate)).is_false()
+
+
+func test_the_top_weapon_did_the_most_damage() -> void:
+	var gatling := Fixtures.gatling()
+	var pod := Fixtures.missile_pod()
+	var mech := BattleMech.new(_grid_with([[gatling, LEFT_ARM], [pod, Vector2i(1, -2)], [Fixtures.laser(), Vector2i(1, 1)]]))
+	# Nothing has hit yet.
+	assert_object(mech.get_top_weapon()).is_null()
+	_active_for(mech, gatling).damage_dealt = 10
+	_active_for(mech, pod).damage_dealt = 14
+	assert_object(mech.get_top_weapon()).is_same(_active_for(mech, pod))
+	# A tie goes to the weapon placed first.
+	_active_for(mech, gatling).damage_dealt = 14
+	assert_object(mech.get_top_weapon()).is_same(_active_for(mech, gatling))
 
 
 func test_active_parts_fight_with_their_link_bonuses() -> void:

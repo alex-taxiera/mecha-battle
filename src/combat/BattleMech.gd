@@ -23,7 +23,10 @@ var heat := 0
 var shutdown_left := 0.0
 ## Whether the Striker's Overclock has been spent this fight.
 var overclock_spent := false
-## One per part on the grid, in the grid's placement order.
+## Damage the mech has done to its enemy this fight, from its weapons and meltdowns, after the
+## enemy's plating.
+var damage_dealt := 0
+## One per part on the grid, in the grid's placement order. A mounted weapon knows its bay.
 var active_parts: Array[ActivePart] = []
 
 
@@ -38,14 +41,23 @@ func _init(grid: MechGridData, rules: Array[SynergyRule] = [], round_number := 1
 	current_health = max_hp
 	base_energy = chassis.base_energy
 	for placement in grid.get_placements():
-		active_parts.append(ActivePart.new(placement.part, stats.part_stats[placement]))
+		var active := ActivePart.new(placement.part, stats.part_stats[placement])
+		active.hardpoint = chassis.get_hardpoint_at(placement.origin)
+		active_parts.append(active)
 
 
-## Takes a hit of [param amount] off [member current_health], stopping at 0. A THICK_PLATING
-## chassis takes [member MechChassis.plating] less, never below 0. Returns the damage taken.
-func take_damage(amount: int) -> int:
+## Returns what a hit of [param amount] would take off, without taking it: a THICK_PLATING
+## chassis takes [member MechChassis.plating] less, never below 0.
+func get_damage_taken(amount: int) -> int:
 	if chassis.passive == MechChassis.Passive.THICK_PLATING:
-		amount = maxi(0, amount - chassis.plating)
+		return maxi(0, amount - chassis.plating)
+	return amount
+
+
+## Takes a hit of [param amount] off [member current_health], stopping at 0, after plating (see
+## [method get_damage_taken]). Returns the damage taken.
+func take_damage(amount: int) -> int:
+	amount = get_damage_taken(amount)
 	current_health = maxi(0, current_health - amount)
 	return amount
 
@@ -58,3 +70,21 @@ func add_heat(amount: int) -> void:
 
 func is_shut_down() -> bool:
 	return shutdown_left > 0.0
+
+
+## Returns whether [param active] is a working weapon whose cooldown has run out but that the
+## mech can't pay to fire. A shut-down mech's weapons aren't starved, just off.
+func is_starved(active: ActivePart) -> bool:
+	return active.is_active and active.part.type == MechPart.PartType.WEAPON and active.current_cooldown == 0.0 \
+		and current_energy < active.energy_cost and not is_shut_down()
+
+
+## Returns the weapon that has done the most damage this fight, the first placed on a tie, or
+## null if none has done any.
+func get_top_weapon() -> ActivePart:
+	var top: ActivePart = null
+	for active in active_parts:
+		if active.part.type == MechPart.PartType.WEAPON and active.damage_dealt > 0 \
+				and (top == null or active.damage_dealt > top.damage_dealt):
+			top = active
+	return top

@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="MechPart" format=3]
 
+[ext_resource type="Texture2D" path="res://assets/combat/gatling.png" id="1_noll1"]
 [ext_resource type="Script" path="res://src/data/MechPart.gd" id="1_o5a2x"]
+[ext_resource type="Texture2D" path="res://assets/combat/bullet.png" id="2_v7b8y"]
 
 [resource]
 script = ExtResource("1_o5a2x")
@@ -9,6 +11,8 @@ part_name = "Twin Gatling"
 cost = 4
 grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
 description = "Arm mount. Fires every second: 12 dmg for 30 EN and 20 heat. Heatsink touching: ×1.5. Each reactor touching: +5."
+battle_sprite = ExtResource("1_noll1")
+projectile_sprite = ExtResource("2_v7b8y")
 energy_cost = 30
 damage = 12
 cooldown_max = 1.0

@@ -13,6 +13,12 @@ enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY }
 ## For example, a vertical 1x2 is [code][Vector2i(0, 0), Vector2i(0, 1)][/code].
 @export var grid_shape: Array[Vector2i]
 @export_multiline var description: String
+## A weapon in a fight: its pixel sprite facing right, drawn on its bay (see
+## [member Hardpoint.battle_anchor]).
+@export var battle_sprite: Texture2D
+## A weapon's shot in flight, facing right. It's tinted by the shooter's side, so it's drawn
+## light.
+@export var projectile_sprite: Texture2D
 
 @export_group("Stats")
 ## Hull points this part adds.

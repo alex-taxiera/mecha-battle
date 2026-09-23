@@ -11,9 +11,9 @@ extends RefCounted
 
 enum State { PRE_GAME, RUNNING, FINISHED }
 
-## Emitted after a weapon's shot has hit, so [param target]'s health already shows it.
+## Emitted after [param weapon]'s shot has hit, so [param target]'s health already shows it.
 ## [param damage] is what the target took, after any plating.
-signal weapon_fired(attacker: BattleMech, target: BattleMech, damage: int)
+signal weapon_fired(attacker: BattleMech, weapon: ActivePart, target: BattleMech, damage: int)
 ## Emitted when a MELTDOWN mech hits full heat and deals [param damage] to [param target].
 signal meltdown(mech: BattleMech, target: BattleMech, damage: int)
 ## Emitted each time the electrical storm hits both mechs for [param damage], before plating.
@@ -97,6 +97,12 @@ func get_storm_strike_damage(strike: int) -> int:
 	return roundi(storm_damage * pow(storm_growth, strike))
 
 
+## Returns the seconds left until the storm starts, or 0 once it's up.
+func get_storm_countdown() -> float:
+	var left := storm_start - elapsed
+	return left if left > TIME_EPSILON else 0.0
+
+
 func _enemy_of(mech: BattleMech) -> BattleMech:
 	return right if mech == left else left
 
@@ -159,7 +165,10 @@ func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> 
 func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> void:
 	attacker.add_heat(active.heat)
 	var taken := target.take_damage(active.damage)
-	weapon_fired.emit(attacker, target, taken)
+	active.shots += 1
+	active.damage_dealt += taken
+	attacker.damage_dealt += taken
+	weapon_fired.emit(attacker, active, target, taken)
 
 
 # A MELTDOWN mech at full heat hits its enemy, cools to 0, and shuts down.
@@ -169,6 +178,7 @@ func _check_meltdown(mech: BattleMech) -> void:
 		return
 	var target := _enemy_of(mech)
 	var taken := target.take_damage(chassis.meltdown_damage)
+	mech.damage_dealt += taken
 	mech.heat = 0
 	mech.shutdown_left = chassis.meltdown_shutdown
 	meltdown.emit(mech, target, taken)
