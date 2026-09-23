@@ -4,11 +4,14 @@ extends Resource
 ## changes during a fight is stored here: see [ActivePart].
 
 enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY }
+## How rarely the part turns up in loot: rarer parts come up less, except from elites and bosses.
+enum Rarity { COMMON, UNCOMMON, RARE }
 
 @export var id: String
 @export var part_name: String
 @export var type: PartType
 @export var cost: int
+@export var rarity := Rarity.COMMON
 ## Cells this part covers, relative to a (0, 0) origin (x right, y down).
 ## For example, a vertical 1x2 is [code][Vector2i(0, 0), Vector2i(0, 1)][/code].
 @export var grid_shape: Array[Vector2i]

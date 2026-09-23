@@ -37,12 +37,24 @@ layout_mode = 2
 theme_override_constants/separation = 24
 script = ExtResource("3_8xayf")
 
-[node name="Hint" type="Label" parent="Margin/Screen" unique_id=1116107059]
+[node name="Bar" type="HBoxContainer" parent="Margin/Screen" unique_id=886449573]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Hint" type="Label" parent="Margin/Screen/Bar" unique_id=1116107059]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.72156864, 0.7372549, 0.7764706, 1)
 text = "Pick your next stop."
+vertical_alignment = 1
+
+[node name="LoadoutButton" type="Button" parent="Margin/Screen/Bar" unique_id=1070685905]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+text = "Loadout"
 
 [node name="MapScroll" type="ScrollContainer" parent="Margin/Screen" unique_id=727532700]
 unique_name_in_owner = true

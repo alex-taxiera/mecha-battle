@@ -1,7 +1,7 @@
 class_name PartDragData
 extends RefCounted
-## What a part carries while it's dragged: bought from a shop slot, or an installed part being
-## moved around the grid or sold back to the shop.
+## What a part carries while it's dragged: bought from a shop slot, installed from the stash, or
+## an installed part being moved around the grid, stored in the stash, or sold back to the shop.
 
 var part: MechPart
 ## Quarter-turns clockwise the part is dragged at.
@@ -10,7 +10,9 @@ var rotation: int
 var grab_offset: Vector2i
 ## The shop slot the part is bought from, or -1 for an installed part.
 var slot_index := -1
-## A cell of the installed part being dragged, when [member slot_index] is -1.
+## The stash entry the part is installed from, or -1.
+var stash_index := -1
+## A cell of the installed part being dragged, when it comes from the grid.
 var from_cell: Vector2i
 
 
@@ -32,5 +34,23 @@ static func from_grid(p_from_cell: Vector2i, p_part: MechPart, p_rotation: int, 
 	return drag
 
 
+static func from_stash(p_stash_index: int, p_part: MechPart, p_rotation: int, p_grab_offset := Vector2i.ZERO) -> PartDragData:
+	var drag := PartDragData.new()
+	drag.stash_index = p_stash_index
+	drag.part = p_part
+	drag.rotation = p_rotation
+	drag.grab_offset = p_grab_offset
+	return drag
+
+
 func is_from_shop() -> bool:
 	return slot_index >= 0
+
+
+func is_from_stash() -> bool:
+	return stash_index >= 0
+
+
+## Returns whether the part is installed, dragged off the grid.
+func is_from_grid() -> bool:
+	return not is_from_shop() and not is_from_stash()

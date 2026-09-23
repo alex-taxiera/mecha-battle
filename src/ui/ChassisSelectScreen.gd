@@ -21,7 +21,7 @@ const PASSIVE_COLOR := Color(0.96, 0.83, 0.43)
 
 func _ready() -> void:
 	if options.is_empty():
-		var loaded := ShopScreen.load_dir(CHASSIS_DIR).filter(func(resource: Resource) -> bool: return resource is MechChassis)
+		var loaded := LoadoutScreen.load_dir(CHASSIS_DIR).filter(func(resource: Resource) -> bool: return resource is MechChassis)
 		loaded.sort_custom(_listed_before)
 		options.assign(loaded)
 	# Every preview gets the tallest layout's height, so the text under them lines up.

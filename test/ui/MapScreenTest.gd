@@ -44,6 +44,19 @@ func test_choosing_a_reachable_node_travels_there() -> void:
 	assert_str((_screen.get_node("%RunHud") as RunHud).floor_label.text).is_equal("Sector 1 of 2 · Floor 1")
 
 
+func test_the_loadout_button_asks_for_the_loadout() -> void:
+	var button: Button = _screen.get_node("%LoadoutButton")
+	assert_str(button.text).is_equal("Loadout")
+	var requests := [0]
+	_screen.loadout_requested.connect(func() -> void: requests[0] += 1)
+	button.pressed.emit()
+	assert_int(requests[0]).is_equal(1)
+	# It counts what's waiting in the stash.
+	_run.stash_part(Fixtures.laser())
+	_run.stash_part(Fixtures.laser())
+	assert_str(MapScreen.loadout_text(_run)).is_equal("Loadout · 2 in stash")
+
+
 func test_an_unreachable_node_is_refused() -> void:
 	var chosen: Array[MapNode] = []
 	_screen.node_chosen.connect(func(node: MapNode) -> void: chosen.append(node))

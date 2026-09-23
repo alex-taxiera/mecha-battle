@@ -59,6 +59,8 @@ var map: MapGraph
 var shop: ShopStock
 var fights_won := 0
 var outcome := Outcome.ONGOING
+## Rolls the run's loot, keeping its rare-part pity between fights.
+var loot := RewardRoller.new()
 
 # Parts bought at the open shop, which still sell back for their full cost.
 var _fresh: Array[MechPart] = []
@@ -174,6 +176,30 @@ func record_fight(result: FightResult, mech: BattleMech) -> void:
 	else:
 		outcome = Outcome.DEFEAT
 	changed.emit()
+
+## Rolls the loot for winning the fight at [param node] (by default the current node): gold from
+## the sector's range for the enemy's tier, added at once, and a draft of parts from the catalog
+## with that tier's odds. Take a part with [method take_reward_part].
+func roll_reward(node: MapNode = null) -> FightReward:
+	node = node if node else map.current
+	var reward := FightReward.new()
+	reward.tier = node.get_tier()
+	var loot_rng := rng.stream("loot")
+	reward.gold = RewardRoller.roll_gold(loot_rng, get_act().get_gold_range(reward.tier))
+	reward.parts = loot.draft_parts(loot_rng, catalog, RewardRoller.table_for(reward.tier))
+	gold += reward.gold
+	changed.emit()
+	return reward
+
+
+## Puts part [param index] of [param reward]'s draft in the stash, closing the draft. Returns
+## false, taking nothing, if the draft is closed or there's no such part.
+func take_reward_part(reward: FightReward, index: int) -> bool:
+	if not reward.is_draft_open() or index < 0 or index >= reward.parts.size():
+		return false
+	reward.taken = index
+	stash_part(reward.parts[index])
+	return true
 
 #endregion
 #region Map
@@ -325,10 +351,17 @@ func can_sell() -> bool:
 ## Returns what the part covering [param coords] sells for: its full cost if it was bought at
 ## this shop, otherwise half, rounded down. 0 if the cell is empty.
 func sell_value(coords: Vector2i) -> int:
-	var part := grid.get_part_at(coords)
-	if part == null:
-		return 0
-	return part.cost if part in _fresh else floori(part.cost / 2.0)
+	return _value_of(grid.get_part_at(coords))
+
+
+## Returns what stashed part [param index] sells for, as [method sell_value] does.
+func stash_sell_value(index: int) -> int:
+	return _value_of(stash[index].part) if index >= 0 and index < stash.size() else 0
+
+
+## Returns whether stashed part [param index] was bought at this shop.
+func is_stash_fresh(index: int) -> bool:
+	return index >= 0 and index < stash.size() and stash[index].part in _fresh
 
 
 ## Returns whether the part covering [param coords] was bought at this shop.
@@ -346,6 +379,20 @@ func sell(coords: Vector2i) -> int:
 	var part := grid.remove_part(coords)
 	if part == null:
 		return 0
+	gold += value
+	_fresh.erase(part)
+	changed.emit()
+	return value
+
+
+## Sells stashed part [param index] and returns the gold it brought in: 0, selling nothing,
+## without a shop or such a part.
+func sell_stashed(index: int) -> int:
+	if not can_sell() or index < 0 or index >= stash.size():
+		return 0
+	var value := stash_sell_value(index)
+	var part := stash[index].part
+	stash.remove_at(index)
 	gold += value
 	_fresh.erase(part)
 	changed.emit()
@@ -395,6 +442,12 @@ func preview_move(coords: Vector2i, new_origin: Vector2i) -> Preview:
 		hypothetical.move_part(coords, new_origin)
 		_fill_preview(preview, hypothetical)
 	return preview
+
+
+func _value_of(part: MechPart) -> int:
+	if part == null:
+		return 0
+	return part.cost if part in _fresh else floori(part.cost / 2.0)
 
 
 func _preview_place(part: MechPart, origin: Vector2i, rotation: int) -> Preview:

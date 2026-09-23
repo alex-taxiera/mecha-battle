@@ -134,6 +134,28 @@ func test_dropping_a_shop_part_buys_it() -> void:
 	await await_idle_frame()
 
 
+func test_dropping_a_stashed_part_installs_it() -> void:
+	_run.stash_part(_heatsink, 1) # turned once: XX over X.
+	var drag := PartDragData.from_stash(0, _run.stash[0].part, 1)
+	# At (2, 2) turned, it fits; upright it would have hit the corner.
+	assert_bool(_grid_ui._can_drop_data(_cell_center(Vector2i(2, 2)), drag)).is_true()
+	assert_str(_grid_ui.get_preview_text()).is_equal("Install")
+	assert_bool(_grid_ui._can_drop_data(_cell_center(Vector2i(3, 3)), drag)).is_false()
+	_grid_ui._drop_data(_cell_center(Vector2i(2, 2)), drag)
+	assert_object(_run.grid.get_part_at(Vector2i(3, 2))).is_not_null()
+	assert_array(_run.stash).is_empty()
+	assert_int(_run.gold).is_equal(10) # installing is free
+	assert_array(_messages).contains_exactly([["Installed L-Shaped Heatsink from the stash", true]])
+	await await_idle_frame()
+
+
+func test_dragging_a_stashed_weapon_lights_the_bays_it_fits() -> void:
+	_run.stash_part(_gatling)
+	_grid_ui.show_open_bays(PartDragData.from_stash(0, _run.stash[0].part, 0))
+	assert_array(_grid_ui.get_open_bays().map(func(bay: Hardpoint) -> String: return bay.id)) \
+		.contains_exactly_in_any_order(["left_arm", "right_arm"])
+
+
 func test_dragging_an_installed_part_moves_it() -> void:
 	assert_bool(_run.buy(_slot_of(_heatsink), Vector2i(1, 0))).is_true() # (1, 0), (1, 1), (2, 1); 10 -> 6
 	# Grabbed by its foot, the drag remembers the cell and the grab.

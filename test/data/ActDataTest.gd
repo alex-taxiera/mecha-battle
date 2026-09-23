@@ -29,3 +29,10 @@ func test_enemy_hp_scales_with_the_sector_and_floor() -> void:
 	var act := Fixtures.act(1.5, 0.1)
 	assert_float(act.get_enemy_hp_scale(0)).is_equal_approx(1.5, 0.0001)
 	assert_float(act.get_enemy_hp_scale(4)).is_equal_approx(2.1, 0.0001) # 1.5 × 1.4
+
+
+func test_gold_by_tier() -> void:
+	var act := ActData.new()
+	assert_that(act.get_gold_range(EnemyLoadout.Tier.NORMAL)).is_equal(Vector2i(8, 12))
+	assert_that(act.get_gold_range(EnemyLoadout.Tier.ELITE)).is_equal(Vector2i(18, 25))
+	assert_that(act.get_gold_range(EnemyLoadout.Tier.BOSS)).is_equal(Vector2i(35, 45))

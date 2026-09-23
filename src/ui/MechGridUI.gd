@@ -1,8 +1,9 @@
 class_name MechGridUI
 extends Control
 ## Draws a run's mech grid, with its hardpoint bays around it, and takes parts dragged onto it:
-## bought from the shop or moved around. It never decides what fits or what anything is worth:
-## it asks the [RunState] and draws the answer. Parts carry no text; hovering one pops up its
+## bought from the shop, installed from the stash, or moved around. It never decides what fits
+## or what anything is worth: it asks the [RunState] and draws the answer. Parts carry no text;
+## hovering one pops up its
 ## [PartInfo]. A weapon dragged over any cell of a bay snaps into that bay.
 
 ## Emitted when a drag's hover changes: the stats the drop would give, or null when nothing
@@ -110,6 +111,8 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 		_drag_origin = origin
 		if drag.is_from_shop():
 			_preview = run.preview_buy(drag.slot_index, origin)
+		elif drag.is_from_stash():
+			_preview = run.preview_install(drag.stash_index, origin)
 		else:
 			_preview = run.preview_move(drag.from_cell, origin)
 		preview_changed.emit(_preview.stats if _accepts(_preview) else null)
@@ -125,6 +128,10 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 	if drag.is_from_shop():
 		if run.buy(drag.slot_index, origin):
 			message.emit("Installed %s · -%dg" % [drag.part.part_name, drag.part.cost], true)
+			_flash(first_cell)
+	elif drag.is_from_stash():
+		if run.install(drag.stash_index, origin):
+			message.emit("Installed %s from the stash" % drag.part.part_name, true)
 			_flash(first_cell)
 	elif run.move(drag.from_cell, origin):
 		_flash(first_cell)
@@ -214,7 +221,9 @@ func get_preview_text() -> String:
 		return _FIT_REASONS[_preview.fit]
 	if not _preview.affordable:
 		return "Not enough gold (need %dg)" % _drag.part.cost
-	return "Install · -%dg" % _drag.part.cost if _drag.is_from_shop() else "Move here"
+	if _drag.is_from_shop():
+		return "Install · -%dg" % _drag.part.cost
+	return "Install" if _drag.is_from_stash() else "Move here"
 
 
 ## Returns the open edges currently lit: around a droppable hover, else the part under the
@@ -229,7 +238,7 @@ func show_open_bays(drag: Variant) -> void:
 	_open_bays.clear()
 	if run and drag is PartDragData and drag.part.type == MechPart.PartType.WEAPON:
 		var moving: MechGridData.Placement = null
-		if not drag.is_from_shop():
+		if drag.is_from_grid():
 			moving = run.grid.get_placement_at(drag.from_cell)
 		_open_bays = run.grid.get_open_hardpoints(drag.part, moving)
 	queue_redraw()

@@ -1,15 +1,16 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://src/ui/ShopScreen.gd" id="1_2u7n2"]
 [ext_resource type="Theme" path="res://resources/ui/theme.tres" id="1_8v2hw"]
 [ext_resource type="PackedScene" path="res://src/ui/MechGridUI.tscn" id="2_2ygms"]
-[ext_resource type="Resource" path="res://resources/chassis/bastion.tres" id="3_8v2hw"]
+[ext_resource type="Script" path="res://src/ui/LoadoutScreen.gd" id="2_jxqmt"]
+[ext_resource type="Resource" path="res://resources/chassis/bastion.tres" id="3_7cph4"]
 [ext_resource type="Script" path="res://src/ui/MechGridUI.gd" id="3_pgemp"]
 [ext_resource type="StyleBox" path="res://resources/ui/sell_zone.tres" id="5_u45px"]
 [ext_resource type="Script" path="res://src/ui/StatsPanel.gd" id="6_w88x5"]
 [ext_resource type="StyleBox" path="res://resources/ui/toast.tres" id="7_4ysvq"]
+[ext_resource type="Script" path="res://src/ui/StashPanel.gd" id="7_x1nh6"]
 
-[node name="ShopScreen" type="Control" unique_id=274162144]
+[node name="LoadoutScreen" type="Control" unique_id=274162144]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,8 +18,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_8v2hw")
-script = ExtResource("1_2u7n2")
-chassis = ExtResource("3_8v2hw")
+script = ExtResource("2_jxqmt")
+chassis = ExtResource("3_7cph4")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=822173180]
 layout_mode = 1
@@ -53,9 +54,10 @@ theme_override_colors/font_color = Color(0.6039216, 0.6313726, 0.6627451, 1)
 text = "Sector 1 · Floor 1"
 
 [node name="ScreenTitle" type="Label" parent="Margin/Screen/Header/Titles" unique_id=167263394]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "Scrap Shop"
+text = "Loadout"
 
 [node name="RecordLabel" type="Label" parent="Margin/Screen/Header" unique_id=709328033]
 unique_name_in_owner = true
@@ -115,70 +117,76 @@ theme_override_colors/font_color = Color(0.7882353, 0.80784315, 0.8392157, 1)
 text = "Passive"
 autowrap_mode = 3
 
-[node name="ShopArea" type="PanelContainer" parent="Margin/Screen/Layout" unique_id=1768936590]
+[node name="SideColumn" type="VBoxContainer" parent="Margin/Screen/Layout" unique_id=1261931041]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="ShopArea" type="PanelContainer" parent="Margin/Screen/Layout/SideColumn" unique_id=1768936590]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ShopMargin" type="MarginContainer" parent="Margin/Screen/Layout/ShopArea" unique_id=1289355748]
+[node name="ShopMargin" type="MarginContainer" parent="Margin/Screen/Layout/SideColumn/ShopArea" unique_id=1289355748]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="ShopPanel" type="VBoxContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin" unique_id=1753008455]
+[node name="ShopPanel" type="VBoxContainer" parent="Margin/Screen/Layout/SideColumn/ShopArea/ShopMargin" unique_id=1753008455]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="ShopHeader" type="HBoxContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel" unique_id=870020486]
+[node name="ShopHeader" type="HBoxContainer" parent="Margin/Screen/Layout/SideColumn/ShopArea/ShopMargin/ShopPanel" unique_id=870020486]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ShopTitles" type="VBoxContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader" unique_id=1105305024]
+[node name="ShopTitles" type="VBoxContainer" parent="Margin/Screen/Layout/SideColumn/ShopArea/ShopMargin/ShopPanel/ShopHeader" unique_id=1105305024]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="ShopTitle" type="Label" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader/ShopTitles" unique_id=333729124]
+[node name="ShopTitle" type="Label" parent="Margin/Screen/Layout/SideColumn/ShopArea/ShopMargin/ShopPanel/ShopHeader/ShopTitles" unique_id=333729124]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Parts Shop"
 
-[node name="Hint" type="Label" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader/ShopTitles" unique_id=1825169020]
+[node name="Hint" type="Label" parent="Margin/Screen/Layout/SideColumn/ShopArea/ShopMargin/ShopPanel/ShopHeader/ShopTitles" unique_id=1825169020]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.72156864, 0.7372549, 0.7764706, 1)
-text = "Drag a part onto the chassis to buy it. Weapons mount on the hardpoints around it. Drag installed parts back here to sell."
+text = "Drag a part onto the chassis to buy it. Weapons mount on the hardpoints around it. Drag parts from the mech or the stash back here to sell."
 autowrap_mode = 3
 
-[node name="RerollButton" type="Button" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader" unique_id=1789523966]
+[node name="RerollButton" type="Button" parent="Margin/Screen/Layout/SideColumn/ShopArea/ShopMargin/ShopPanel/ShopHeader" unique_id=1789523966]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 size_flags_vertical = 4
 text = "Reroll · 1g"
 
-[node name="Slots" type="GridContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel" unique_id=1779311612]
+[node name="Slots" type="GridContainer" parent="Margin/Screen/Layout/SideColumn/ShopArea/ShopMargin/ShopPanel" unique_id=1779311612]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
-columns = 2
+columns = 4
 
-[node name="SellZone" type="PanelContainer" parent="Margin/Screen/Layout/ShopArea" unique_id=1513445550]
+[node name="SellZone" type="PanelContainer" parent="Margin/Screen/Layout/SideColumn/ShopArea" unique_id=1513445550]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_styles/panel = ExtResource("5_u45px")
 
-[node name="SellBox" type="VBoxContainer" parent="Margin/Screen/Layout/ShopArea/SellZone" unique_id=1929444792]
+[node name="SellBox" type="VBoxContainer" parent="Margin/Screen/Layout/SideColumn/ShopArea/SellZone" unique_id=1929444792]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="SellLabel" type="Label" parent="Margin/Screen/Layout/ShopArea/SellZone/SellBox" unique_id=156074168]
+[node name="SellLabel" type="Label" parent="Margin/Screen/Layout/SideColumn/ShopArea/SellZone/SellBox" unique_id=156074168]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
@@ -186,11 +194,18 @@ theme_override_colors/font_color = Color(0.9411765, 0.7058824, 0.23529412, 1)
 text = "Sell for +0g"
 horizontal_alignment = 1
 
-[node name="SellNote" type="Label" parent="Margin/Screen/Layout/ShopArea/SellZone/SellBox" unique_id=1682129567]
+[node name="SellNote" type="Label" parent="Margin/Screen/Layout/SideColumn/ShopArea/SellZone/SellBox" unique_id=1682129567]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Refund note"
 horizontal_alignment = 1
+
+[node name="StashPanel" type="PanelContainer" parent="Margin/Screen/Layout/SideColumn" unique_id=154555113]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("7_x1nh6")
 
 [node name="StatsPanel" type="HBoxContainer" parent="Margin/Screen" unique_id=1173145273]
 unique_name_in_owner = true

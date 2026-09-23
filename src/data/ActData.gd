@@ -37,6 +37,12 @@ extends Resource
 ## How much enemy HP grows each floor up the map: 0.03 is +3% of the sector's a floor.
 @export var enemy_hp_per_floor := 0.03
 
+@export_group("Loot")
+## Gold a won fight drops, from x to y, by the enemy's tier.
+@export var battle_gold := Vector2i(8, 12)
+@export var elite_gold := Vector2i(18, 25)
+@export var boss_gold := Vector2i(35, 45)
+
 
 ## Returns the weight of each [enum MapNode.Type] that can be rolled for a node.
 func get_node_weights() -> Dictionary[MapNode.Type, int]:
@@ -52,6 +58,16 @@ func get_node_weights() -> Dictionary[MapNode.Type, int]:
 ## Returns the sector's enemies of [param tier].
 func get_enemies(tier: EnemyLoadout.Tier) -> Array[EnemyLoadout]:
 	return enemies.filter(func(enemy: EnemyLoadout) -> bool: return enemy.tier == tier)
+
+
+## Returns the gold range, x to y, for beating an enemy of [param tier].
+func get_gold_range(tier: EnemyLoadout.Tier) -> Vector2i:
+	match tier:
+		EnemyLoadout.Tier.ELITE:
+			return elite_gold
+		EnemyLoadout.Tier.BOSS:
+			return boss_gold
+	return battle_gold
 
 
 ## Returns how much an enemy's HP is scaled on floor [param floor_index] (0 is the bottom).

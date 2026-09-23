@@ -1,13 +1,14 @@
 class_name Game
 extends Node
 ## Plays runs. The player picks a frame, then climbs each sector's map to its boss one stop at a
-## time: fights play on the combat screen, Scrap Shops open the shop, and stops that aren't built
-## yet show a placeholder. The mech's damage carries from fight to fight; when it goes down, or
-## the last sector's boss does, the run's end shows, and after it a new run starts.
+## time: fights play on the combat screen and drop loot, Scrap Shops open the shop, and stops
+## that aren't built yet show a placeholder. From the map, the Loadout rearranges the mech and its
+## stash. The mech's damage carries from fight to fight; when it goes down, or the last sector's
+## boss does, the run's end shows, and after it a new run starts.
 
 const CHASSIS_SELECT_SCENE := preload("res://src/ui/ChassisSelectScreen.tscn")
 const MAP_SCENE := preload("res://src/ui/MapScreen.tscn")
-const SHOP_SCENE := preload("res://src/ui/ShopScreen.tscn")
+const LOADOUT_SCENE := preload("res://src/ui/LoadoutScreen.tscn")
 const COMBAT_SCENE := preload("res://src/ui/CombatScreen.tscn")
 const ACTS_DIR := "res://resources/acts"
 const CLEAR_COLOR := Color("#5fd38a")
@@ -38,11 +39,11 @@ var _player: BattleMech
 
 func _ready() -> void:
 	if catalog.is_empty():
-		catalog.assign(ShopScreen.load_dir(ShopScreen.PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
+		catalog.assign(LoadoutScreen.load_dir(LoadoutScreen.PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
 	if rules.is_empty():
-		rules.assign(ShopScreen.load_dir(ShopScreen.RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
+		rules.assign(LoadoutScreen.load_dir(LoadoutScreen.RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
 	if acts.is_empty():
-		var loaded := ShopScreen.load_dir(ACTS_DIR).filter(func(resource: Resource) -> bool: return resource is ActData)
+		var loaded := LoadoutScreen.load_dir(ACTS_DIR).filter(func(resource: Resource) -> bool: return resource is ActData)
 		loaded.sort_custom(func(a: ActData, b: ActData) -> bool: return a.id < b.id)
 		acts.assign(loaded)
 	chassis_select = %ChassisSelectScreen
@@ -56,6 +57,7 @@ func show_map() -> void:
 	var map: MapScreen = MAP_SCENE.instantiate()
 	map.run = run
 	map.node_chosen.connect(_enter, CONNECT_DEFERRED)
+	map.loadout_requested.connect(_open_loadout, CONNECT_DEFERRED)
 	_show(map)
 
 
@@ -98,7 +100,14 @@ func _end_fight(winner: BattleMech) -> void:
 	combat = null
 	if run.is_over():
 		_show_end()
-	elif run.map.is_at_boss():
+		return
+	var loot := RewardScreen.new(run, run.roll_reward())
+	loot.finished.connect(_after_loot, CONNECT_DEFERRED)
+	_show(loot)
+
+
+func _after_loot() -> void:
+	if run.map.is_at_boss():
 		_clear_sector()
 	else:
 		show_map()
@@ -122,10 +131,18 @@ func _clear_sector() -> void:
 
 func _open_shop() -> void:
 	run.open_shop()
-	var shop: ShopScreen = SHOP_SCENE.instantiate()
+	var shop: LoadoutScreen = LOADOUT_SCENE.instantiate()
 	shop.run = run
 	shop.leave_requested.connect(_leave_shop, CONNECT_DEFERRED)
 	_show(shop)
+
+
+# The Loadout between stops: the mech and stash, no shop.
+func _open_loadout() -> void:
+	var loadout: LoadoutScreen = LOADOUT_SCENE.instantiate()
+	loadout.run = run
+	loadout.leave_requested.connect(show_map, CONNECT_DEFERRED)
+	_show(loadout)
 
 
 func _leave_shop() -> void:

@@ -1,11 +1,13 @@
-class_name ShopScreen
+class_name LoadoutScreen
 extends Control
-## Root of the shop phase: the round and gold up top, the mech on the left, the parts shop on
-## the right, and the mech's stats below. Drag parts from the shop onto the mech to buy them
-## (weapons onto the hardpoints around its grid), around the mech to move them, and back onto
-## the shop to sell them. Leave shop emits [signal leave_requested].
+## Where the player works on their mech: the run up top, the mech on the left, the stash on the
+## right, and the mech's stats below. Drag parts around the mech to move them, from the stash
+## onto it to install them, and off it onto the stash to store them. At a Scrap Shop (while the
+## run has one open) the shop sits above the stash: drag its parts onto the mech to buy them, and
+## parts from the mech or the stash onto it to sell them. The leave button emits
+## [signal leave_requested].
 
-## Emitted when the player is done shopping.
+## Emitted when the player is done here.
 signal leave_requested
 
 const SHOP_ITEM_SCENE := preload("res://src/ui/ShopItem.tscn")
@@ -23,8 +25,8 @@ const BAD_COLOR := Color(0.94, 0.42, 0.42)
 ## Adjacency rules. Left empty, every SynergyRule in [constant RULES_DIR] applies.
 @export var rules: Array[SynergyRule] = []
 
-## The run to shop in, set before the screen enters the tree. Left unset, the screen starts
-## its own run on [member chassis].
+## The run to work on, set before the screen enters the tree; it shows the shop if the run has
+## one open. Left unset, the screen starts its own run on [member chassis], with a shop open.
 var run: RunState
 
 # The run's current stats, refreshed on every change.
@@ -32,6 +34,7 @@ var _stats: MechStats
 var _toast_timer: Timer
 
 @onready var _round_label: Label = %RoundLabel
+@onready var _screen_title: Label = %ScreenTitle
 @onready var _record_label: Label = %RecordLabel
 @onready var _gold_label: Label = %GoldLabel
 @onready var _leave_button: Button = %LeaveButton
@@ -39,6 +42,8 @@ var _toast_timer: Timer
 @onready var _chassis_info: Label = %ChassisInfo
 @onready var _passive_label: Label = %PassiveLabel
 @onready var _grid_ui: MechGridUI = %MechGridUI
+@onready var _shop_area: Control = %ShopArea
+@onready var _stash_panel: StashPanel = %StashPanel
 @onready var _reroll_button: Button = %RerollButton
 @onready var _slots: Container = %Slots
 @onready var _sell_zone: Control = %SellZone
@@ -55,12 +60,13 @@ func _ready() -> void:
 		if rules.is_empty():
 			rules.assign(load_dir(RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
 		run = RunState.new(chassis, catalog, rules, starting_gold)
-	if run.shop == null:
 		run.open_shop()
 	run.changed.connect(_refresh)
 	_grid_ui.run = run
 	_grid_ui.preview_changed.connect(_on_preview_changed)
 	_grid_ui.message.connect(show_toast)
+	_stash_panel.run = run
+	_stash_panel.message.connect(show_toast)
 	_reroll_button.pressed.connect(_on_reroll_pressed)
 	_leave_button.pressed.connect(leave_requested.emit)
 	_sell_zone.set_drag_forwarding(Callable(), can_sell, sell)
@@ -79,7 +85,7 @@ func _notification(what: int) -> void:
 		return
 	if what == NOTIFICATION_DRAG_BEGIN:
 		var drag: Variant = get_viewport().gui_get_drag_data()
-		if drag is PartDragData and not drag.is_from_shop():
+		if drag is PartDragData and not drag.is_from_shop() and run.can_sell():
 			show_sell_zone(drag)
 	elif what == NOTIFICATION_DRAG_END:
 		_sell_zone.hide()
@@ -93,32 +99,39 @@ func show_toast(text: String, good: bool) -> void:
 	_toast_timer.start(TOAST_SECONDS)
 
 
-## Covers the shop with a drop zone that sells the installed part being dragged.
+## Covers the shop with a drop zone that sells the part being dragged, from the mech or the stash.
 func show_sell_zone(drag: PartDragData) -> void:
-	_sell_label.text = "Sell for +%dg" % run.sell_value(drag.from_cell)
-	if run.is_fresh(drag.from_cell):
+	var value := run.stash_sell_value(drag.stash_index) if drag.is_from_stash() else run.sell_value(drag.from_cell)
+	var fresh := run.is_stash_fresh(drag.stash_index) if drag.is_from_stash() else run.is_fresh(drag.from_cell)
+	_sell_label.text = "Sell for +%dg" % value
+	if fresh:
 		_sell_note.text = "Full refund: bought at this shop"
 	else:
 		_sell_note.text = "Half value: bought earlier"
 	_sell_zone.show()
 
 
-## Returns whether [param data] is an installed part that can be sold by dropping it here.
+## Returns whether [param data] is a part from the mech or the stash that can be sold by dropping
+## it here: only at a shop.
 func can_sell(_at_position: Vector2, data: Variant) -> bool:
-	return data is PartDragData and not data.is_from_shop()
+	return data is PartDragData and not data.is_from_shop() and run.can_sell()
 
 
-## Sells the installed part being dropped on the shop.
+## Sells the part being dropped on the shop.
 func sell(_at_position: Vector2, data: Variant) -> void:
 	var drag: PartDragData = data
-	var gained := run.sell(drag.from_cell)
+	var gained := run.sell_stashed(drag.stash_index) if drag.is_from_stash() else run.sell(drag.from_cell)
 	_sell_zone.hide()
 	show_toast("Sold %s · +%dg" % [drag.part.part_name, gained], true)
 
 
 func _refresh() -> void:
 	_stats = run.stats()
-	_round_label.text = "Sector %d · Floor %d" % [run.act_index + 1, run.get_floor_number()] if run.get_act() else "Hangar"
+	_round_label.text = "Sector %d · Floor %d" % [run.act_index + 1, run.get_floor_number()] if run.get_act() else "Run"
+	var shopping := run.shop != null
+	_screen_title.text = "Scrap Shop" if shopping else "Loadout"
+	_leave_button.text = "Leave shop" if shopping else "Back to map"
+	_shop_area.visible = shopping
 	_record_label.text = "Hull: %d / %d HP · %d won" % [run.get_current_hp(), run.get_max_hp(), run.fights_won]
 	_gold_label.text = "Gold: %d" % run.gold
 	var frame := run.grid.chassis

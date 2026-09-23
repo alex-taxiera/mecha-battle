@@ -1,15 +1,15 @@
-class_name ShopScreenTest
+class_name LoadoutScreenTest
 extends GdUnitTestSuite
 
-const __source: String = "res://src/ui/ShopScreen.gd"
-const SCENE := preload("res://src/ui/ShopScreen.tscn")
+const __source: String = "res://src/ui/LoadoutScreen.gd"
+const SCENE := preload("res://src/ui/LoadoutScreen.tscn")
 const Fixtures := preload("res://test/TestFixtures.gd")
 
 var _gatling: MechPart  # 1x3 vertical arm weapon, 4 gold
 var _laser: MechPart    # 1x1, 2 gold
 var _reactor: MechPart  # 2x1, 3 gold
 var _heatsink: MechPart # L, 4 gold
-var _screen: ShopScreen
+var _screen: LoadoutScreen
 
 
 func before_test() -> void:
@@ -25,7 +25,10 @@ func before_test() -> void:
 
 
 func test_shows_the_hull_gold_chassis_and_shop() -> void:
-	assert_str(_text("RoundLabel")).is_equal("Hangar") # a run without sectors
+	assert_str(_text("RoundLabel")).is_equal("Run") # a run without sectors
+	assert_str(_text("ScreenTitle")).is_equal("Scrap Shop") # a run of its own opens a shop
+	assert_bool(_screen.get_node("%ShopArea").visible).is_true()
+	assert_str(_button("LeaveButton").text).is_equal("Leave shop")
 	assert_str(_text("RecordLabel")).is_equal("Hull: 30 / 30 HP · 0 won")
 	assert_str(_text("GoldLabel")).is_equal("Gold: 10")
 	assert_str(_text("ChassisLabel")).is_equal("Chassis · The Skirmisher")
@@ -38,7 +41,7 @@ func test_shows_the_hull_gold_chassis_and_shop() -> void:
 func test_shows_the_chassis_passive_under_the_grid() -> void:
 	# The cross fixture has no passive, so there's nothing to show.
 	assert_bool((_screen.get_node("%PassiveLabel") as Label).visible).is_false()
-	var screen: ShopScreen = auto_free(SCENE.instantiate())
+	var screen: LoadoutScreen = auto_free(SCENE.instantiate())
 	screen.chassis = Fixtures.bastion()
 	screen.catalog = [_gatling, _laser, _reactor, _heatsink]
 	screen.rules = Fixtures.rules()
@@ -92,15 +95,55 @@ func test_shops_in_a_given_run() -> void:
 	var acts: Array[ActData] = [Fixtures.act()]
 	var run := RunState.new(Fixtures.armed_cross(), [_laser], Fixtures.rules(), 25, RunRng.new(3), acts)
 	assert_bool(run.travel(run.get_reachable()[0])).is_true()
-	var screen: ShopScreen = auto_free(SCENE.instantiate())
+	run.open_shop()
+	var screen: LoadoutScreen = auto_free(SCENE.instantiate())
 	screen.run = run
 	add_child(screen)
 	assert_object(screen.run).is_same(run)
-	assert_object(run.shop).is_not_null() # opened for it
 	assert_str((screen.get_node("%GoldLabel") as Label).text).is_equal("Gold: 25")
 	assert_str((screen.get_node("%RoundLabel") as Label).text).is_equal("Sector 1 · Floor 1")
 	assert_array(screen.find_children("*", "", true, false).filter(func(node: Node) -> bool: return node is ShopItem)) \
 		.has_size(ShopStock.SIZE)
+
+
+func test_away_from_a_shop_it_shows_the_mech_and_stash_only() -> void:
+	var run := RunState.new(Fixtures.armed_cross(), [_laser], Fixtures.rules(), 25)
+	run.stash_part(_heatsink)
+	var screen: LoadoutScreen = auto_free(SCENE.instantiate())
+	screen.run = run
+	add_child(screen)
+	assert_object(run.shop).is_null() # it opens none of its own
+	assert_str((screen.get_node("%ScreenTitle") as Label).text).is_equal("Loadout")
+	assert_str((screen.get_node("%LeaveButton") as Button).text).is_equal("Back to map")
+	assert_bool((screen.get_node("%ShopArea") as Control).visible).is_false()
+	var stash: StashPanel = screen.get_node("%StashPanel")
+	assert_object(stash.run).is_same(run)
+	assert_array(stash.get_items()).has_size(1)
+	# Nothing sells away from a shop, from the mech or the stash.
+	var from_stash := stash.get_items()[0]._get_drag_data(Vector2.ZERO) as PartDragData
+	assert_bool(screen.can_sell(Vector2.ZERO, from_stash)).is_false()
+	# Installing from the stash goes through the grid.
+	var grid: MechGridUI = screen.get_node("%MechGridUI")
+	assert_bool(grid._can_drop_data(grid.cell_center(Vector2i(1, 1)), from_stash)).is_true()
+	grid._drop_data(grid.cell_center(Vector2i(1, 1)), from_stash)
+	assert_array(run.stash).is_empty()
+	assert_str((screen.get_node("%ChassisInfo") as Label).text).is_equal("Cross frame · 3 / 12 slots · 0 / 3 hardpoints")
+	await await_idle_frame()
+
+
+func test_stashed_parts_sell_at_the_shop() -> void:
+	_screen.run.stash_part(_heatsink) # 4 gold, half back
+	var stash: StashPanel = _screen.get_node("%StashPanel")
+	var drag := stash.get_items()[0]._get_drag_data(Vector2.ZERO) as PartDragData
+	assert_bool(_screen.can_sell(Vector2.ZERO, drag)).is_true()
+	_screen.show_sell_zone(drag)
+	assert_str(_text("SellLabel")).is_equal("Sell for +2g")
+	assert_str(_text("SellNote")).is_equal("Half value: bought earlier")
+	_screen.sell(Vector2.ZERO, drag)
+	assert_array(_screen.run.stash).is_empty()
+	assert_str(_text("GoldLabel")).is_equal("Gold: 12")
+	assert_str(_toast().text).is_equal("Sold L-Shaped Heatsink · +2g")
+	await await_idle_frame()
 
 
 func test_dropping_an_installed_part_on_the_shop_sells_it() -> void:
@@ -159,10 +202,10 @@ func test_a_part_is_held_by_the_cell_it_was_grabbed_by() -> void:
 
 
 func test_loads_parts_and_rules_from_their_folders_by_default() -> void:
-	var screen: ShopScreen = auto_free(SCENE.instantiate())
+	var screen: LoadoutScreen = auto_free(SCENE.instantiate())
 	add_child(screen)
-	var part_files := _tres_in(ShopScreen.PARTS_DIR)
-	var rule_files := _tres_in(ShopScreen.RULES_DIR)
+	var part_files := _tres_in(LoadoutScreen.PARTS_DIR)
+	var rule_files := _tres_in(LoadoutScreen.RULES_DIR)
 	assert_bool(part_files.is_empty() or rule_files.is_empty()).is_false()
 	assert_array(screen.catalog).has_size(part_files.size())
 	assert_array(screen.rules).has_size(rule_files.size())

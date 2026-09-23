@@ -52,7 +52,7 @@ const KO_RECOVER_TIME := 0.4
 ## The chassis the demo mechs are built on.
 @export var chassis: MechChassis
 ## Adjacency rules for the demo mechs. Left empty, every SynergyRule in
-## [constant ShopScreen.RULES_DIR] applies.
+## [constant LoadoutScreen.RULES_DIR] applies.
 @export var rules: Array[SynergyRule] = []
 ## Prints each tick's health and energy, and the result, to the output.
 @export var print_ticks := true
@@ -103,7 +103,7 @@ var _big_shake: PhantomCameraNoiseEmitter2D
 func _ready() -> void:
 	if engine == null:
 		if rules.is_empty():
-			rules.assign(ShopScreen.load_dir(ShopScreen.RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
+			rules.assign(LoadoutScreen.load_dir(LoadoutScreen.RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
 		setup(build_mech(chassis, DEMO_PLAYER, rules), make_dummy(rules))
 	_tick_timer.timeout.connect(_on_tick_timer_timeout)
 	_result_timer.timeout.connect(_show_result)
@@ -251,11 +251,11 @@ func result_rows() -> Array:
 
 
 ## Returns a mech built on [param p_chassis] from [param lineup], [part id, origin] pairs of
-## part files in [constant ShopScreen.PARTS_DIR], fighting with [param p_rules]' link bonuses.
+## part files in [constant LoadoutScreen.PARTS_DIR], fighting with [param p_rules]' link bonuses.
 static func build_mech(p_chassis: MechChassis, lineup: Array, p_rules: Array[SynergyRule]) -> BattleMech:
 	var grid := MechGridData.new(p_chassis)
 	for entry in lineup:
-		var part: MechPart = load(ShopScreen.PARTS_DIR.path_join("%s.tres" % entry[0]))
+		var part: MechPart = load(LoadoutScreen.PARTS_DIR.path_join("%s.tres" % entry[0]))
 		if not grid.place_part(part, entry[1]):
 			push_error("CombatScreen: can't place %s at %s" % [entry[0], entry[1]])
 	return BattleMech.new(grid, p_rules)

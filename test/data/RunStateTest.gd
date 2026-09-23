@@ -411,6 +411,71 @@ func test_next_act_repairs_half_the_damage_then_ends_in_victory() -> void:
 	assert_int(run.outcome).is_equal(RunState.Outcome.VICTORY)
 
 
+func test_a_won_fight_drops_gold_and_a_draft() -> void:
+	var run := _loot_run()
+	var gold_before := run.gold
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	var reward := run.roll_reward()
+	assert_int(reward.tier).is_equal(EnemyLoadout.Tier.NORMAL)
+	# The fixture sector drops 8-12 gold for a battle, added at once.
+	assert_int(reward.gold).is_between(8, 12)
+	assert_int(run.gold).is_equal(gold_before + reward.gold)
+	# Three different parts from the run's catalog.
+	assert_array(reward.parts).has_size(3)
+	for part in reward.parts:
+		assert_bool(part in run.catalog).is_true()
+	assert_bool(reward.is_draft_open()).is_true()
+	# Elites and bosses drop more.
+	assert_int(run.roll_reward(MapNode.new(6, 0, MapNode.Type.ELITE)).gold).is_between(18, 25)
+	assert_int(run.roll_reward(run.map.boss).gold).is_between(35, 45)
+
+
+func test_taking_a_drafted_part_stashes_it_and_closes_the_draft() -> void:
+	var run := _loot_run()
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	var reward := run.roll_reward()
+	assert_bool(run.take_reward_part(reward, 5)).is_false() # no such part
+	assert_array(run.stash).is_empty()
+	assert_bool(run.take_reward_part(reward, 1)).is_true()
+	assert_array(run.stash).has_size(1)
+	assert_str(run.stash[0].part.part_name).is_equal(reward.parts[1].part_name)
+	assert_object(run.stash[0].part).is_not_same(reward.parts[1]) # the run's own copy
+	assert_int(reward.taken).is_equal(1)
+	assert_bool(reward.is_draft_open()).is_false()
+	# Only one per draft.
+	assert_bool(run.take_reward_part(reward, 0)).is_false()
+	assert_array(run.stash).has_size(1)
+
+
+func test_rare_pity_carries_between_fights() -> void:
+	var run := _loot_run()
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	# The fixture catalog is all common, so every draft raises the pity for the next.
+	run.roll_reward()
+	assert_float(run.loot.rare_pity).is_equal(4.5)
+	run.roll_reward()
+	assert_float(run.loot.rare_pity).is_equal(9.0)
+
+
+func test_stashed_parts_sell_at_a_shop() -> void:
+	_run.stash_part(_heatsink) # 4 gold, not bought here: half
+	assert_int(_run.stash_sell_value(0)).is_equal(2)
+	assert_bool(_run.is_stash_fresh(0)).is_false()
+	assert_int(_run.sell_stashed(3)).is_equal(0) # no such part
+	assert_int(_run.sell_stashed(0)).is_equal(2)
+	assert_array(_run.stash).is_empty()
+	assert_int(_run.gold).is_equal(12)
+	# A part bought here and stored in the stash still sells back in full.
+	assert_bool(_run.buy(_slot_of(_laser), Vector2i(1, 1))).is_true() # 12 -> 10
+	assert_bool(_run.unequip(Vector2i(1, 1))).is_true()
+	assert_bool(_run.is_stash_fresh(0)).is_true()
+	assert_int(_run.stash_sell_value(0)).is_equal(2)
+	# Away from a shop, nothing sells.
+	_run.close_shop()
+	assert_int(_run.sell_stashed(0)).is_equal(0)
+	assert_array(_run.stash).has_size(1)
+
+
 func test_a_sector_can_lay_out_its_own_map() -> void:
 	# A generator that makes just a boss, standing in for a sector's own layout.
 	var script := GDScript.new()
@@ -450,6 +515,12 @@ func _sector_run(act_count: int, rng_seed := 1) -> RunState:
 	for i in act_count:
 		acts.append(Fixtures.act(1.5, 0.1))
 	return RunState.new(Fixtures.cross_chassis(), [], [], 10, RunRng.new(rng_seed), acts)
+
+
+# A run through one fixture sector, with the four fixture parts (all common) to loot.
+func _loot_run() -> RunState:
+	var acts: Array[ActData] = [Fixtures.act()]
+	return RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink], [], 10, RunRng.new(3), acts)
 
 
 # Each node's id, type, and links, to compare two maps.

@@ -8,6 +8,7 @@ Parts of the run code are adapted from [Slay-The-Robot](https://github.com/Desir
 
 - `src/run/RunRng.gd`: `data/prototype/PlayerData.gd` (`get_player_rng`) and `autoload/Random.gd` (`shuffle_array`, `shuffle_slice_array`, `get_weighted_selection`)
 - `src/run/MapGenerator.gd`: `scripts/actions/world_generation_actions/ActionGenerateAct.gd` (the floor lattice and boss hookup)
+- `src/run/RewardRoller.gd`: `autoload/Random.gd` (`generate_rarity_weighted_card_draft`, `CARD_DRAFT_RARITY_WEIGHTS`) and the rare-card modifier in `data/prototype/PlayerData.gd`
 
 ```
 MIT License

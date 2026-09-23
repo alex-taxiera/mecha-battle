@@ -9,6 +9,7 @@ script = ExtResource("1_o5a2x")
 id = "gatling"
 part_name = "Twin Gatling"
 cost = 4
+rarity = 1
 grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
 description = "Arm mount. Fires every half second: 6 dmg for 15 EN and 10 heat. Heatsink touching: ×1.5. Each reactor touching: +5."
 battle_sprite = ExtResource("1_noll1")

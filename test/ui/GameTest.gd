@@ -49,9 +49,10 @@ func test_a_battle_fights_the_sectors_enemy_then_returns_to_the_map() -> void:
 	assert_int(node.enemy.tier).is_equal(EnemyLoadout.Tier.NORMAL)
 	assert_str(combat.engine.right.mech_name).is_equal(node.enemy.enemy_name)
 	await _finish_fight()
-	# Won, and back on the map one floor up.
+	# Won: the loot, then back on the map one floor up.
 	assert_int(run.fights_won).is_equal(1)
 	assert_object(_game.combat).is_null()
+	await _collect_loot()
 	assert_object(_map_screen()).is_not_null()
 	assert_array(_map_screen().get_view().reachable).contains_same_exactly(node.next)
 	await await_idle_frame() # free the combat screen
@@ -74,6 +75,7 @@ func test_the_hulls_damage_carries_into_and_out_of_fights() -> void:
 	assert_int(player.current_health).is_equal(37)
 	await _finish_fight()
 	assert_bool(run.is_over()).is_false()
+	await _collect_loot()
 	assert_int(run.hull_damage).is_equal(42 - player.current_health)
 	assert_int(run.hull_damage).is_greater(5) # the enemy landed hits
 	await await_idle_frame()
@@ -108,6 +110,8 @@ func test_beating_a_sectors_boss_moves_to_the_next_sector() -> void:
 	assert_str((_game.combat.get_node("%RoundBadge") as RoundBadge).get_text()).is_equal("SECTOR 1 · FLOOR 13  0W  BOSS")
 	assert_str(_game.combat.engine.right.mech_name).is_equal("Boss")
 	await _finish_fight()
+	assert_str((_game.screen as RewardScreen).title_label.text).is_equal("BOSS SALVAGE")
+	await _collect_loot()
 	assert_int(run.act_index).is_equal(1)
 	var cleared := _message()
 	assert_str(cleared.title_label.text).is_equal("SECTOR CLEARED")
@@ -126,10 +130,43 @@ func test_beating_the_last_boss_wins_the_run() -> void:
 	_stand_below_the_boss()
 	await _go(run.map.boss)
 	await _finish_fight()
+	await _collect_loot()
 	assert_int(run.outcome).is_equal(RunState.Outcome.VICTORY)
 	var end := _message()
 	assert_str(end.title_label.text).is_equal("RUN COMPLETE")
 	assert_str(end.body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1")
+	await await_idle_frame()
+
+
+func test_fights_drop_loot_for_the_stash_and_the_loadout_installs_it() -> void:
+	await _choose(_armed())
+	var run := _game.run
+	await _go(run.get_reachable()[0])
+	await _finish_fight()
+	var loot := _game.screen as RewardScreen
+	assert_object(loot).is_not_null()
+	assert_int(run.gold).is_equal(20 + loot.reward.gold)
+	assert_int(loot.reward.gold).is_between(8, 12)
+	assert_array(loot.reward.parts).has_size(3)
+	# Three of the four catalog parts, so at least two grid parts (not the gun).
+	var grid_part := loot.reward.parts.find_custom(func(part: MechPart) -> bool: return part.type != MechPart.PartType.WEAPON)
+	assert_int(grid_part).is_not_equal(-1)
+	await _collect_loot(grid_part)
+	assert_array(run.stash).has_size(1)
+	# From the map, the Loadout: mech and stash, no shop.
+	assert_str((_map_screen().get_node("%LoadoutButton") as Button).text).is_equal("Loadout · 1 in stash")
+	(_map_screen().get_node("%LoadoutButton") as Button).pressed.emit()
+	await await_idle_frame()
+	var loadout := _game.screen as LoadoutScreen
+	assert_object(loadout).is_not_null()
+	assert_object(run.shop).is_null()
+	assert_bool(run.install(0, Vector2i(1, 1))).is_true()
+	(loadout.get_node("%LeaveButton") as Button).pressed.emit()
+	await await_idle_frame()
+	# Back on the map, where it was.
+	assert_array(_map_screen().get_view().reachable).contains_same_exactly(run.map.current.next)
+	assert_int(run.grid.get_used_cell_count()).is_greater(0)
+	assert_array(run.stash).is_empty()
 	await await_idle_frame()
 
 
@@ -139,7 +176,7 @@ func test_a_shop_opens_the_scrap_shop_in_the_run() -> void:
 	var node: MapNode = run.get_reachable()[0]
 	node.type = MapNode.Type.SHOP
 	await _go(node)
-	var shop := _game.screen as ShopScreen
+	var shop := _game.screen as LoadoutScreen
 	assert_object(shop).is_not_null()
 	assert_object(shop.run).is_same(run)
 	assert_object(run.shop).is_not_null()
@@ -222,6 +259,17 @@ func _finish_fight() -> void:
 	(combat.get_node("%ResultTimer") as Timer).timeout.emit()
 	assert_bool(combat.result_panel.visible).append_failure_message("the result panel didn't come up").is_true()
 	combat.result_panel.return_button.pressed.emit()
+	await await_idle_frame()
+
+
+# On the loot screen after a win: takes draft part [param take] if it's 0 or more, presses the
+# button, and waits for the next screen.
+func _collect_loot(take := -1) -> void:
+	var loot := _game.screen as RewardScreen
+	assert_object(loot).append_failure_message("a won fight didn't show its loot").is_not_null()
+	if take >= 0:
+		assert_bool(loot.take(take)).is_true()
+	loot.done_button.pressed.emit()
 	await await_idle_frame()
 
 
