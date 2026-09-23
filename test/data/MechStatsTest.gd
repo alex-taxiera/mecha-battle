@@ -196,6 +196,27 @@ func test_parts_count_as_often_as_they_act_in_a_turn() -> void:
 	assert_float(MechStats.activations_per_turn(Fixtures.laser())).is_equal(1.0)
 
 
+func test_heat_is_made_at_each_weapons_cadence_and_vented_by_heatsinks() -> void:
+	# A gatling firing every half second at 10 heat a shot draws 6 energy a turn against the
+	# chassis's 3: at half power it fires half as often, making 10 heat a turn, not 20.
+	var gatling := Fixtures.gatling()
+	gatling.cooldown_max = 0.5
+	gatling.heat = 10
+	_place(gatling, LEFT_ARM)
+	var heatsink := Fixtures.heatsink()
+	heatsink.cooling = 15
+	_place(heatsink, Vector2i(2, 3))
+	var stats := _stats()
+	assert_int(stats.heat_made).is_equal(10)
+	assert_int(stats.heat_vented).is_equal(15)
+	assert_int(stats.get_net_heat()).is_equal(-5)
+	# Fully powered by a reactor out of reach, it makes all 20 and outruns the heatsink.
+	_place(Fixtures.reactor(), Vector2i(4, 1))
+	stats = _stats()
+	assert_int(stats.heat_made).is_equal(20)
+	assert_int(stats.get_net_heat()).is_equal(5)
+
+
 func test_the_chassis_hp_grows_with_the_round() -> void:
 	_place(Fixtures.laser(), Vector2i(2, 2)) # +12 HP, which doesn't grow
 	var first := MechStats.calculate(_grid, _rules)

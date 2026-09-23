@@ -466,49 +466,75 @@ func test_shots_heat_their_mech_and_heatsinks_vent_it() -> void:
 
 func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
 	# The Reactor's left-arm gatling fires once a second on its 30 energy a turn, banking 27 a
-	# turn, and makes 20 heat a shot: the 5th shot, at 5 seconds, fills it.
-	var reactor := _mech([[_hot_gun(), REACTOR_LEFT_ARM]], [], Fixtures.reactor_frame())
+	# turn, and makes 50 heat a shot: the 2nd shot, at 2 seconds, fills it.
+	var reactor := _mech([[_scorching_gun(), REACTOR_LEFT_ARM]], [], Fixtures.reactor_frame())
 	var target := _tough_dummy() # 200 HP
 	var engine := _engine(reactor, target)
-	for i in 50:
+	for i in 20:
 		engine.process_tick(0.1)
-	assert_array(_shots).has_size(5)
+	assert_array(_shots).has_size(2)
 	assert_array(_meltdowns).has_size(1)
 	assert_object(_meltdowns[0][0]).is_same(reactor)
 	assert_object(_meltdowns[0][1]).is_same(target)
 	assert_int(_meltdowns[0][2]).is_equal(100)
-	assert_int(target.current_health).is_equal(60) # 200 - 5 × 8 - 100
-	assert_int(reactor.damage_dealt).is_equal(140) # the meltdown counts as well as the shots
-	assert_int(reactor.current_energy).is_equal(135) # 5 × (30 - 3)
+	assert_int(target.current_health).is_equal(84) # 200 - 2 × 8 - 100
+	assert_int(reactor.damage_dealt).is_equal(116) # the meltdown counts as well as the shots
+	assert_int(reactor.current_energy).is_equal(54) # 2 × (30 - 3)
 	assert_int(reactor.heat).is_equal(0)
 	assert_bool(reactor.is_shut_down()).is_true()
 	# Shut down for 3 seconds: no shots, and no chassis energy flows in.
 	for i in 29:
 		engine.process_tick(0.1)
-	assert_array(_shots).has_size(5)
-	assert_int(reactor.current_energy).is_equal(135)
+	assert_array(_shots).has_size(2)
+	assert_int(reactor.current_energy).is_equal(54)
 	assert_bool(reactor.is_shut_down()).is_true()
-	# At 8 seconds it's back: its energy flows again, 3 a tick, and the gatling's frozen
-	# cooldown resumes, so it fires at 8.9 seconds.
+	# At 5 seconds it's back: its energy flows again, 3 a tick, and the gatling's frozen
+	# cooldown resumes, so it fires at 5.9 seconds.
 	engine.process_tick(0.1)
 	assert_bool(reactor.is_shut_down()).is_false()
-	assert_int(reactor.current_energy).is_equal(138)
+	assert_int(reactor.current_energy).is_equal(57)
 	for i in 8:
 		engine.process_tick(0.1)
-	assert_array(_shots).has_size(5)
+	assert_array(_shots).has_size(2)
 	engine.process_tick(0.1)
-	assert_array(_shots).has_size(6)
+	assert_array(_shots).has_size(3)
 
 
 func test_only_the_reactor_melts_down() -> void:
-	# The same hot gatling on a plain chassis fills to 100 heat and stays there, firing on.
+	# A gatling making 20 heat a shot on a plain chassis fills to 100 heat and stays there,
+	# firing on, slower and slower: at 1, 2, and 3 seconds, then at 60 heat every 1.3 seconds
+	# (80% speed), at 80 every 1.7 (60%), and at 100 every 2 (half speed).
 	var mech := _mech([[_hot_gun(), LEFT_ARM]], [], _energized_chassis(3))
 	var engine := _engine(mech, _tough_dummy())
 	for i in 100:
 		engine.process_tick(0.1)
 	assert_int(mech.heat).is_equal(100)
 	assert_array(_meltdowns).is_empty()
-	assert_array(_shots).has_size(10)
+	assert_array(_shots).has_size(7)
+
+
+func test_heat_slows_weapons_but_not_generators() -> void:
+	# A gun it can't pay for, so its cooldown runs down in peace, beside a reactor.
+	var gun := _on_cooldown(Fixtures.gatling(), 1.0)
+	gun.energy_cost = 1000
+	var reactor := _reactor(1.0)
+	var hot := _mech([[gun, LEFT_ARM], [reactor, Vector2i(2, 1)]])
+	hot.heat = 100
+	var engine := _engine(hot, _mech([]))
+	for i in 10:
+		engine.process_tick(0.1)
+	# At full heat the gun's cooldown runs at half speed; the reactor's doesn't slow.
+	assert_float(_active_for(hot, gun).current_cooldown).is_equal_approx(0.5, 1e-6)
+	assert_int(hot.current_energy).is_equal(4)
+	# Positive control: at the throttle line, the gun cools down at full speed.
+	var gun_2 := _on_cooldown(Fixtures.gatling(), 1.0)
+	gun_2.energy_cost = 1000
+	var warm := _mech([[gun_2, LEFT_ARM]])
+	warm.heat = BattleMech.THROTTLE_HEAT
+	engine = _engine(warm, _mech([]))
+	for i in 5:
+		engine.process_tick(0.1)
+	assert_float(_active_for(warm, gun_2).current_cooldown).is_equal_approx(0.5, 1e-6)
 
 
 # A started engine whose storm starts at 1 second with strikes of 1, 2, 4, 8...
@@ -567,6 +593,13 @@ func _peashooter() -> MechPart:
 func _hot_gun() -> MechPart:
 	var gatling := _on_cooldown(Fixtures.gatling(), 1.0)
 	gatling.heat = 20
+	return gatling
+
+
+# A gatling firing every second that makes 50 heat a shot: two fill a mech.
+func _scorching_gun() -> MechPart:
+	var gatling := _on_cooldown(Fixtures.gatling(), 1.0)
+	gatling.heat = 50
 	return gatling
 
 

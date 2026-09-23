@@ -39,6 +39,10 @@ var energy_generated := 0
 var energy_drawn := 0
 ## Damage a turn: each weapon's damage times how often it fires, scaled by [member power].
 var damage := 0
+## Heat a turn: made by each weapon at its cadence, scaled by [member power] like damage, and
+## vented by the heatsinks.
+var heat_made := 0
+var heat_vented := 0
 ## Share of the weapons' energy draw that's covered, 0-1.
 var power := 1.0
 var links: Array[Link] = []
@@ -48,6 +52,12 @@ var part_stats: Dictionary[MechGridData.Placement, PartStats] = {}
 
 func get_net_energy() -> int:
 	return energy_generated - energy_drawn
+
+
+## Returns the heat a turn the heatsinks can't keep up with; above 0, the mech runs hot and its
+## weapons slow down in a long fight.
+func get_net_heat() -> int:
+	return heat_made - heat_vented
 
 
 ## Returns how many times [param part] acts in a turn of combat: a turn's length over its
@@ -90,6 +100,7 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], round_numbe
 	var generated := 0.0
 	var drawn := 0.0
 	var raw_damage := 0.0
+	var raw_heat := 0.0
 	for placement: MechGridData.Placement in stats.part_stats:
 		var part := placement.part
 		var numbers: PartStats = stats.part_stats[placement]
@@ -104,11 +115,14 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], round_numbe
 		generated += numbers.energy * rate
 		drawn += numbers.energy_draw * rate
 		raw_damage += numbers.damage * rate
+		raw_heat += numbers.heat * rate
+		stats.heat_vented += numbers.cooling
 	stats.energy_generated = grid.chassis.base_energy + roundi(generated)
 	stats.energy_drawn = roundi(drawn)
 	if stats.energy_drawn > 0:
 		stats.power = minf(1.0, float(stats.energy_generated) / stats.energy_drawn)
 	stats.damage = roundi(raw_damage * stats.power)
+	stats.heat_made = roundi(raw_heat * stats.power)
 	return stats
 
 

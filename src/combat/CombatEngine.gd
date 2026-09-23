@@ -4,7 +4,8 @@ extends RefCounted
 ## flows in and its heatsinks vent heat a little every tick, at their per-turn rates, and every
 ## working part's cooldown counts down. A generator whose cooldown runs out adds its energy to its mech; then a weapon whose
 ## cooldown has run out fires at the other mech, if its own mech can pay for the shot, and
-## heats its mech up. Chassis passives change this: Thick Plating shrinks every hit taken,
+## heats its mech up. A hot mech's weapons cool down slower (thermal throttling). Chassis
+## passives change this: Thick Plating shrinks every hit taken,
 ## Overclock doubles the first shot, and Meltdown turns full heat into a big hit and a
 ## shutdown. A fight that runs long brings the electrical storm, a sudden death that drains both
 ## mechs harder and harder. The fight ends on the tick a mech's health reaches 0.
@@ -142,11 +143,13 @@ func _tick_flow(mech: BattleMech, delta: float) -> void:
 	mech.add_heat(-vent)
 
 
-# Counts a working part's cooldown down, and runs a generator whose cooldown ran out.
+# Counts a working part's cooldown down, and runs a generator whose cooldown ran out. Weapons
+# count down at their mech's fire rate, so heat slows them.
 func _tick_part(mech: BattleMech, active: ActivePart, delta: float) -> void:
 	if not active.is_active:
 		return
-	active.current_cooldown = maxf(0.0, active.current_cooldown - delta)
+	var rate := mech.get_fire_rate() if active.part.type == MechPart.PartType.WEAPON else 1.0
+	active.current_cooldown = maxf(0.0, active.current_cooldown - delta * rate)
 	if active.current_cooldown <= TIME_EPSILON:
 		active.current_cooldown = 0.0
 	if _is_ready(active, MechPart.PartType.GENERATOR):

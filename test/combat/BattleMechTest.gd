@@ -75,6 +75,16 @@ func test_heat_stays_between_empty_and_full() -> void:
 	assert_int(mech.heat).is_equal(0)
 
 
+func test_heat_past_the_throttle_line_slows_the_fire_rate() -> void:
+	var mech := BattleMech.new(MechGridData.new(_chassis))
+	var rates := []
+	for heat in [0, 50, 75, 100]:
+		mech.heat = heat
+		rates.append(mech.get_fire_rate())
+	# Full speed up to 50 heat, then evenly down to half at 100.
+	assert_array(rates).is_equal([1.0, 1.0, 0.75, 0.5])
+
+
 func test_hp_link_bonuses_count_when_given_the_rules() -> void:
 	# Two touching lasers: 30 + 12 + 12, plus Plated's +4 each.
 	var grid := _grid_with([[Fixtures.laser(), Vector2i(1, 1)], [Fixtures.laser(), Vector2i(2, 1)]])

@@ -1,7 +1,7 @@
 class_name StatsPanel
 extends HBoxContainer
-## The stats row under the grid: HP, energy, and damage, each with the change a hovered drop
-## would make, then the active links and the adjacency rules.
+## The stats row under the grid: HP, energy, damage, and heat, each with the change a hovered
+## drop would make, then the active links and the adjacency rules.
 
 const UP_COLOR := Color(0.49, 0.88, 0.63)
 const DOWN_COLOR := Color(0.94, 0.42, 0.42)
@@ -20,6 +20,7 @@ class StatBox:
 var hp: StatBox
 var energy: StatBox
 var damage: StatBox
+var heat: StatBox
 
 var _links: VBoxContainer
 var _rules: VBoxContainer
@@ -32,6 +33,7 @@ func _init() -> void:
 	hp = _add_stat_box("Hull HP", Color(0.5, 0.65, 0.86))
 	energy = _add_stat_box("Energy / turn", Color(0.65, 0.55, 0.94))
 	damage = _add_stat_box("Damage / turn", Color(0.93, 0.43, 0.32))
+	heat = _add_stat_box("Heat / turn", Color(1.0, 0.54, 0.24))
 	_links = _add_list_box("Active links", true)
 	_rules = _add_list_box("Adjacency rules", false)
 
@@ -52,6 +54,11 @@ func show_stats(current: MechStats, preview: MechStats) -> void:
 	energy.value.add_theme_color_override("font_color", DOWN_COLOR if current.get_net_energy() < 0 else TEXT_COLOR)
 	_set_stat(damage, str(current.damage), current.damage, preview.damage if preview else current.damage, _power_text(current))
 	damage.note.add_theme_color_override("font_color", DOWN_COLOR if current.energy_drawn and current.power < 1.0 else NOTE_COLOR)
+	# More heat is worse: a rise shows red.
+	_set_stat(heat, _signed(current.get_net_heat()), current.get_net_heat(),
+		preview.get_net_heat() if preview else current.get_net_heat(),
+		"%d made · %d vented" % [current.heat_made, current.heat_vented], false)
+	heat.value.add_theme_color_override("font_color", DOWN_COLOR if current.get_net_heat() > 0 else TEXT_COLOR)
 	if current != _links_from:
 		_links_from = current
 		_show_links(current)
@@ -90,16 +97,18 @@ func _show_links(current: MechStats) -> void:
 		_links.add_child(hint)
 		return
 	for rule: SynergyRule in counts:
-		var row := _rule_row(rule.color, "%s → %s" % [rule.label, rule.effect_text], "×%d" % counts[rule])
+		var row := _rule_row(rule.color, "%s → %s" % [rule.label, rule.effect_text], "×%d" % counts[rule], true)
 		_links.add_child(row)
 
 
-func _set_stat(box: StatBox, text: String, now: int, then: int, note: String) -> void:
+# Shows a stat and the change a preview would make: green for better, red for worse, where
+# better is higher unless [param higher_is_better] is false.
+func _set_stat(box: StatBox, text: String, now: int, then: int, note: String, higher_is_better := true) -> void:
 	box.value.text = text
 	var change := then - now
 	box.delta.visible = change != 0
 	box.delta.text = _signed(change)
-	box.delta.add_theme_color_override("font_color", UP_COLOR if change > 0 else DOWN_COLOR)
+	box.delta.add_theme_color_override("font_color", UP_COLOR if (change > 0) == higher_is_better else DOWN_COLOR)
 	box.note.text = note
 
 
@@ -113,7 +122,7 @@ func _power_text(stats: MechStats) -> String:
 
 func _add_stat_box(title: String, title_color: Color) -> StatBox:
 	var column := _add_panel(false)
-	column.custom_minimum_size.x = 170
+	column.custom_minimum_size.x = 150
 	column.add_child(_label(title.to_upper(), 12, title_color))
 	var box := StatBox.new()
 	var row := HBoxContainer.new()
@@ -153,7 +162,9 @@ func _add_panel(expand: bool) -> VBoxContainer:
 	return column
 
 
-func _rule_row(color: Color, text: String, detail: String) -> HBoxContainer:
+# A colored dot, [param text], and [param detail] at the end. With [param wraps], the text wraps
+# to fit instead of widening the row.
+func _rule_row(color: Color, text: String, detail: String, wraps := false) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	var dot := ColorRect.new()
 	dot.color = color
@@ -162,6 +173,8 @@ func _rule_row(color: Color, text: String, detail: String) -> HBoxContainer:
 	row.add_child(dot)
 	var label := _label(text, 13, TEXT_COLOR)
 	label.size_flags_horizontal = SIZE_EXPAND_FILL
+	if wraps:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(label)
 	row.add_child(_label(detail, 13, NOTE_COLOR))
 	return row

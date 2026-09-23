@@ -18,18 +18,35 @@ func test_energy_fills_toward_100_and_shows_the_real_bank() -> void:
 	assert_float(gauges.energy.get_fraction()).is_equal(1.0)
 
 
+func test_heat_reddens_as_it_slows_the_weapons() -> void:
+	var gauges: MechGauges = auto_free(MechGauges.new())
+	var mech := _mech()
+	# The tick marks where throttling starts.
+	assert_float(gauges.heat.mark).is_equal(0.5)
+	mech.heat = 50
+	gauges.refresh(mech)
+	assert_that(gauges.heat.fill_color).is_equal(CombatColors.HEAT)
+	assert_str(gauges.heat.get_text()).is_equal("50")
+	# At 80 the weapons run at 70%: the fill is 60% of the way to red.
+	mech.heat = 80
+	gauges.refresh(mech)
+	assert_that(gauges.heat.fill_color).is_equal(CombatColors.HEAT.lerp(CombatColors.DANGER, 0.6))
+	assert_bool(gauges.heat.hot).is_false()
+	mech.heat = 100
+	gauges.refresh(mech)
+	assert_that(gauges.heat.fill_color).is_equal(CombatColors.DANGER)
+
+
 func test_heat_runs_hot_above_80_or_while_shut_down() -> void:
 	var gauges: MechGauges = auto_free(MechGauges.new())
 	var mech := _mech()
 	mech.heat = 80
 	gauges.refresh(mech)
 	assert_bool(gauges.heat.hot).is_false()
-	assert_that(gauges.heat.fill_color).is_equal(CombatColors.HEAT)
-	assert_str(gauges.heat.get_text()).is_equal("80")
+	assert_that(gauges.heat.tag_color).is_equal(CombatColors.HEAT)
 	mech.heat = 81
 	gauges.refresh(mech)
 	assert_bool(gauges.heat.hot).is_true()
-	assert_that(gauges.heat.fill_color).is_equal(CombatColors.DANGER)
 	assert_that(gauges.heat.tag_color).is_equal(CombatColors.DANGER)
 	# Shut down, it's cold but hot-tagged, and says so.
 	mech.heat = 0

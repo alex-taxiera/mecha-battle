@@ -4,8 +4,12 @@ extends RefCounted
 ## parts are only read: everything that changes during combat lives here and in the
 ## [ActivePart]s.
 
-## Full heat. Only a MELTDOWN chassis does anything when it gets there.
+## Full heat. A MELTDOWN chassis melts down when it gets there.
 const MAX_HEAT := 100
+## Thermal throttling: above this much heat, a mech's weapons cool down slower, down to
+## MIN_FIRE_RATE of normal speed at full heat.
+const THROTTLE_HEAT := 50
+const MIN_FIRE_RATE := 0.5
 
 ## The frame, for its passive. Only read.
 var chassis: MechChassis
@@ -16,7 +20,8 @@ var current_health: int
 var current_energy := 0
 ## Energy the chassis adds every turn, on top of what generators make.
 var base_energy: int
-## Heat built up by firing, from 0 to [constant MAX_HEAT]. Heatsinks vent it each turn.
+## Heat built up by firing, from 0 to [constant MAX_HEAT]. Heatsinks vent it each turn. Above
+## [constant THROTTLE_HEAT] it slows the mech's weapons (see [method get_fire_rate]).
 var heat := 0
 ## Seconds left in a Meltdown shutdown. While it's above 0, none of the mech's parts act and
 ## its chassis adds no energy.
@@ -70,6 +75,13 @@ func add_heat(amount: int) -> void:
 
 func is_shut_down() -> bool:
 	return shutdown_left > 0.0
+
+
+## Returns how fast the mech's weapons cool down, as a share of normal speed: 1 up to
+## [constant THROTTLE_HEAT] heat, falling evenly to [constant MIN_FIRE_RATE] at full heat.
+func get_fire_rate() -> float:
+	var over := clampf(float(heat - THROTTLE_HEAT) / (MAX_HEAT - THROTTLE_HEAT), 0.0, 1.0)
+	return lerpf(1.0, MIN_FIRE_RATE, over)
 
 
 ## Returns whether [param active] is a working weapon whose cooldown has run out but that the

@@ -34,6 +34,11 @@ var shown := 0.0:
 		queue_redraw()
 ## Shown instead of the number when set.
 var note := ""
+## A tick on the track at this share of it, e.g. where heat starts to throttle; none below 0.
+var mark := -1.0:
+	set(p_mark):
+		mark = p_mark
+		queue_redraw()
 var hot := false:
 	set(p_hot):
 		if p_hot == hot:
@@ -103,6 +108,9 @@ func _draw() -> void:
 	CombatDraw.text(self, CombatDraw.PIXEL_BOLD_FONT, tag, label, FONT_SIZE, CombatColors.NIGHT, 0, HORIZONTAL_ALIGNMENT_CENTER)
 	draw_rect(track, CombatColors.TRACK)
 	CombatDraw.glossy(self, CombatDraw.fill_rect(track, _fraction_of(shown)), fill_color, 2.0)
+	if mark >= 0.0:
+		var x := roundf(track.position.x + track.size.x * mark)
+		draw_rect(Rect2(x - 1.0, track.position.y, 2.0, track.size.y), Color(CombatColors.NIGHT, 0.8))
 	var text_rect := Rect2(track.position, track.size - Vector2(5, 0))
 	var text := note if note != "" else str(roundi(shown))
 	CombatDraw.text(self, CombatDraw.PIXEL_FONT, text_rect, text, FONT_SIZE, CombatColors.INK, 1, HORIZONTAL_ALIGNMENT_RIGHT)

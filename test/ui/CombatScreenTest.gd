@@ -125,10 +125,10 @@ func test_the_record_line_counts_this_fight() -> void:
 
 
 func test_the_readout_shows_heat_and_shutdowns() -> void:
-	# A gatling in a Reactor's left arm making 20 heat a shot, against a 200 HP target.
+	# A gatling in a Reactor's left arm making 50 heat a shot, against a 200 HP target.
 	var gatling := Fixtures.gatling()
 	gatling.cooldown_max = 1.0
-	gatling.heat = 20
+	gatling.heat = 50
 	var grid := MechGridData.new(Fixtures.reactor_frame())
 	assert_bool(grid.place_part(gatling, Vector2i(-1, 1))).is_true()
 	var target_chassis := Fixtures.cross_chassis()
@@ -136,16 +136,16 @@ func test_the_readout_shows_heat_and_shutdowns() -> void:
 	var screen := _screen(BattleMech.new(grid), BattleMech.new(MechGridData.new(target_chassis)))
 	var timer: Timer = screen.get_node("%TickTimer")
 	var heat: GaugeBar = (screen.get_node("%LeftGauges") as MechGauges).heat
-	for i in 40:
-		timer.timeout.emit()
-	# The Reactor banks 27 of its 30 energy a turn.
-	assert_str(screen.status_line()).is_equal("[ 4.0s] Left HP 300/300 EN 108 HEAT 80 | Right HP 168/200 EN 12 HEAT 0")
-	assert_str(heat.get_text()).is_equal("80")
-	assert_bool(heat.hot).is_false()
-	# The 5th shot fills it: 100 damage, and the Reactor shuts down.
 	for i in 10:
 		timer.timeout.emit()
-	assert_str(screen.status_line()).is_equal("[ 5.0s] Left HP 300/300 EN 135 HEAT 0 OFF | Right HP 60/200 EN 15 HEAT 0")
+	# The Reactor banks 27 of its 30 energy a turn.
+	assert_str(screen.status_line()).is_equal("[ 1.0s] Left HP 300/300 EN 27 HEAT 50 | Right HP 192/200 EN 3 HEAT 0")
+	assert_str(heat.get_text()).is_equal("50")
+	assert_bool(heat.hot).is_false()
+	# The 2nd shot fills it: 100 damage, and the Reactor shuts down.
+	for i in 10:
+		timer.timeout.emit()
+	assert_str(screen.status_line()).is_equal("[ 2.0s] Left HP 300/300 EN 54 HEAT 0 OFF | Right HP 84/200 EN 6 HEAT 0")
 	assert_str(heat.get_text()).is_equal("OFFLINE")
 	assert_bool(heat.hot).is_true()
 	# The meltdown pops up on its target and shakes the camera hard; the Reactor counts down.
