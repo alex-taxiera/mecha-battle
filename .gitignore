@@ -7,6 +7,11 @@
 /reports/
 addons/gdUnit4/GdUnitRunner.cfg
 
+# Copies of a GDExtension library the Windows editor makes while it has it loaded
+# (e.g. addons/godot-git-plugin/windows/~libgit_plugin....dll), and their temp files
+~*.dll
+*.TMP
+
 # Claude Code personal settings
 .claude/settings.local.json
 

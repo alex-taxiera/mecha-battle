@@ -35,7 +35,7 @@ Run the tests headlessly from the project root using this command:
 - `create_resource` only knows engine classes. Create custom-Resource `.tres` files (e.g. a `MechPart`) with a headless script that calls `ResourceSaver.save()`.
 - `manage_theme_resource` snake-cases item keys (`TooltipPanel` becomes `_tooltip_panel`) and saves resource values as `null`. Build `Theme` resources with a `ResourceSaver` script too, using `theme.set_stylebox(...)` and friends.
 - Headless MCP tools (`create_resource`, `modify_scene_node`, ...) fail with "Failed to listen on port 9090" while `run_project` is active, because they load its injected autoload. Stop the game first.
-- `run_project` injects an `McpInteractionServer` autoload and script into the project. `stop_project` removes them but leaves an empty `[autoload]` section in `project.godot`; delete it.
+- `run_project` injects an `McpInteractionServer` autoload and script into the project. `stop_project` removes them but leaves stray whitespace in `project.godot`'s `[autoload]` section; check `git diff project.godot` afterwards and put the section back as it was.
 - A script error in `game_eval` freezes the game at a `debug>` prompt. Call `stop_project`, then run it again.
 - `game_mouse_drag` can't finish a drag-and-drop, because Godot 4.7 aims the drop at the real OS cursor. To test drops in a running game, `push_input()` events into a standalone `SubViewport` (not inside a `SubViewportContainer`).
 - `game_mouse_move` doesn't move the game's mouse either; hover needs the harness too. Motion events reach controls only after the SubViewport gets `notification(Node.NOTIFICATION_VP_MOUSE_ENTER)`, and its tooltips and popups only show in its texture with `gui_embed_subwindows = true`.
@@ -44,8 +44,9 @@ Run the tests headlessly from the project root using this command:
 
 ## Addons
 - `addons/phantom_camera/` (Phantom Camera 0.11.0.3) is vendored for dynamic camera effects later: following and framing, tweened moves between shots, and shake from noise emitters (e.g. combat hits). Use it for camera work instead of hand-tweening a `Camera2D`/`Camera3D`.
-- It isn't enabled yet. Enable it when first used, from the editor's Plugins tab, which also adds its `PhantomCameraManager` autoload. Adding it to `[editor_plugins]` in `project.godot` by hand skips that autoload; add `PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"` under `[autoload]` too.
+- It's enabled, with its `PhantomCameraManager` autoload. Enabling it from the editor's Plugins tab adds that autoload; adding it to `[editor_plugins]` by hand doesn't.
 - Setup: the scene's `Camera2D`/`Camera3D` gets a `PhantomCameraHost` child, and `PhantomCamera2D`/`PhantomCamera3D` nodes drive it by priority.
+- `addons/godot-git-plugin/` (Godot Git Plugin 3.2.1) is the editor's version-control integration, turned on under `[editor]` in `project.godot`. While the Windows editor has it loaded, it keeps `~`-prefixed copies of its DLL beside the original; `.gitignore` leaves those out.
 - Don't edit files under `addons/`. To update an addon, replace its folder.
 
 ## Rules
