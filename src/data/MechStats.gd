@@ -1,9 +1,11 @@
 class_name MechStats
 extends RefCounted
-## A mech's totals for a grid: HP, energy, and damage after adjacency bonuses. Build one with
+## A mech's totals for a grid: HP, energy, and damage after adjacency bonuses. Energy and
+## damage are per turn, counting each part as often as it acts in one (see
+## [method activations_per_turn]); a part's own numbers are per activation. Build one with
 ## [method calculate]; it's a snapshot and doesn't follow later grid changes.
 
-## One placed part's numbers after its bonuses.
+## One placed part's numbers after its bonuses, each time it acts.
 class PartStats:
 	var hp := 0
 	var energy := 0
@@ -32,9 +34,10 @@ class Link:
 var hp := 0
 ## The chassis's share of [member hp], grown for the round.
 var base_hp := 0
+## Energy a turn: the chassis's, plus its generators' and its weapons' at their cadence.
 var energy_generated := 0
 var energy_drawn := 0
-## Damage per volley, after scaling by [member power].
+## Damage a turn: each weapon's damage times how often it fires, scaled by [member power].
 var damage := 0
 ## Share of the weapons' energy draw that's covered, 0-1.
 var power := 1.0
@@ -45,6 +48,13 @@ var part_stats: Dictionary[MechGridData.Placement, PartStats] = {}
 
 func get_net_energy() -> int:
 	return energy_generated - energy_drawn
+
+
+## Returns how many times [param part] acts in a turn of combat: a turn's length over its
+## cooldown, e.g. 2 for a weapon that fires every half second. A part with no cooldown counts
+## once.
+static func activations_per_turn(part: MechPart) -> float:
+	return CombatEngine.TURN_SECONDS / part.cooldown_max if part.cooldown_max > 0.0 else 1.0
 
 
 ## Returns how many links each rule has made.
@@ -77,8 +87,9 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], round_numbe
 
 	stats.base_hp = grid.chassis.get_base_hp(round_number)
 	stats.hp = stats.base_hp
-	stats.energy_generated = grid.chassis.base_energy
-	var raw_damage := 0
+	var generated := 0.0
+	var drawn := 0.0
+	var raw_damage := 0.0
 	for placement: MechGridData.Placement in stats.part_stats:
 		var part := placement.part
 		var numbers: PartStats = stats.part_stats[placement]
@@ -89,9 +100,12 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], round_numbe
 		numbers.heat = part.heat
 		numbers.cooling = part.cooling
 		stats.hp += numbers.hp
-		stats.energy_generated += numbers.energy
-		stats.energy_drawn += numbers.energy_draw
-		raw_damage += numbers.damage
+		var rate := activations_per_turn(part)
+		generated += numbers.energy * rate
+		drawn += numbers.energy_draw * rate
+		raw_damage += numbers.damage * rate
+	stats.energy_generated = grid.chassis.base_energy + roundi(generated)
+	stats.energy_drawn = roundi(drawn)
 	if stats.energy_drawn > 0:
 		stats.power = minf(1.0, float(stats.energy_generated) / stats.energy_drawn)
 	stats.damage = roundi(raw_damage * stats.power)

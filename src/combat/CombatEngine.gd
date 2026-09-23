@@ -1,8 +1,8 @@
 class_name CombatEngine
 extends RefCounted
-## Runs a fight between two [BattleMech]s, one tick at a time. Each chassis adds its base
-## energy once a turn and its heatsinks vent heat, and every working part's cooldown counts
-## down. A generator whose cooldown runs out adds its energy to its mech; then a weapon whose
+## Runs a fight between two [BattleMech]s, one tick at a time. Each chassis's base energy
+## flows in and its heatsinks vent heat a little every tick, at their per-turn rates, and every
+## working part's cooldown counts down. A generator whose cooldown runs out adds its energy to its mech; then a weapon whose
 ## cooldown has run out fires at the other mech, if its own mech can pay for the shot, and
 ## heats its mech up. Chassis passives change this: Thick Plating shrinks every hit taken,
 ## Overclock doubles the first shot, and Meltdown turns full heat into a big hit and a
@@ -25,8 +25,9 @@ signal battle_ended(winner: BattleMech)
 ## Times this close count as reached. Adding or subtracting a delta like 0.1 leaves float error
 ## behind (1.0 minus ten 0.1s is about 1.4e-16, not 0), which would delay things by a tick.
 const TIME_EPSILON := 1e-6
-## Seconds in a turn. The shop counts energy per turn; in a fight each chassis adds its base
-## energy once a turn, so a part that acts every second does what the shop says it does.
+## Seconds in a turn. The shop counts energy per turn; in a fight each chassis's base energy
+## and each heatsink's cooling arrive over a turn at that rate, so a fight does what the shop
+## says it does.
 const TURN_SECONDS := 1.0
 
 var left: BattleMech
@@ -47,8 +48,8 @@ var storm_interval := 2
 var storm_damage := 1.0
 var storm_growth := 1.25
 
-# Seconds left in the current turn.
-var _turn_left := TURN_SECONDS
+# Each mech's energy and venting built up this far but not yet whole: mech -> [energy, vent].
+var _carry := {}
 # Ticks since the storm started, and strikes it has made.
 var _storm_ticks := 0
 var _storm_strikes := 0
@@ -57,6 +58,7 @@ var _storm_strikes := 0
 func _init(p_left: BattleMech, p_right: BattleMech) -> void:
 	left = p_left
 	right = p_right
+	_carry = {left: [0.0, 0.0], right: [0.0, 0.0]}
 
 
 ## Starts the fight. Only a fight that hasn't started yet can start.
@@ -66,7 +68,8 @@ func start() -> void:
 
 
 ## Advances a running fight by [param delta] seconds. Shutdowns count down first. Then both
-## mechs' chassis energy, venting, cooldowns, and generators, so neither side's weapons act
+## mechs' chassis energy and venting for [param delta], cooldowns, and generators, so neither
+## side's weapons act
 ## before the other has charged; then the left mech's weapons fire, then the right's; then
 ## any mech at full heat melts down, and the storm strikes if it's up. A shut-down mech does
 ## none of this. A tick's damage lands together: a mech that goes down still fires back that
@@ -77,7 +80,8 @@ func process_tick(delta: float) -> void:
 	elapsed += delta
 	for mech: BattleMech in [left, right]:
 		_tick_shutdown(mech, delta)
-	_tick_turn(delta)
+	for mech: BattleMech in [left, right]:
+		_tick_flow(mech, delta)
 	for mech: BattleMech in [left, right]:
 		if not mech.is_shut_down():
 			for active in mech.active_parts:
@@ -99,8 +103,8 @@ func get_storm_strike_damage(strike: int) -> int:
 
 ## Returns the seconds left until the storm starts, or 0 once it's up.
 func get_storm_countdown() -> float:
-	var left := storm_start - elapsed
-	return left if left > TIME_EPSILON else 0.0
+	var remaining := storm_start - elapsed
+	return remaining if remaining > TIME_EPSILON else 0.0
 
 
 func _enemy_of(mech: BattleMech) -> BattleMech:
@@ -116,22 +120,26 @@ func _tick_shutdown(mech: BattleMech, delta: float) -> void:
 		mech.shutdown_left = 0.0
 
 
-# At the end of each turn, every running chassis adds its base energy and its working
-# heatsinks vent their cooling.
-func _tick_turn(delta: float) -> void:
-	_turn_left = maxf(0.0, _turn_left - delta)
-	if _turn_left > TIME_EPSILON:
+# A running chassis's base energy flows in and its working heatsinks vent, [param delta]'s
+# share of a turn's worth. Energy and heat are whole numbers, so the fractions carry over to
+# the next tick: 3 energy a turn arrives as +1 at 0.4, 0.7, and 1.0 seconds.
+func _tick_flow(mech: BattleMech, delta: float) -> void:
+	if mech.is_shut_down():
 		return
-	for mech: BattleMech in [left, right]:
-		if mech.is_shut_down():
-			continue
-		mech.current_energy += mech.base_energy
-		var cooling := 0
-		for active in mech.active_parts:
-			if active.is_active:
-				cooling += active.cooling
-		mech.add_heat(-cooling)
-	_turn_left = TURN_SECONDS
+	var share := delta / TURN_SECONDS
+	var cooling := 0
+	for active in mech.active_parts:
+		if active.is_active:
+			cooling += active.cooling
+	var carry: Array = _carry[mech]
+	carry[0] += mech.base_energy * share
+	carry[1] += cooling * share
+	var energy := floori(carry[0] + TIME_EPSILON)
+	var vent := floori(carry[1] + TIME_EPSILON)
+	carry[0] -= energy
+	carry[1] -= vent
+	mech.current_energy += energy
+	mech.add_heat(-vent)
 
 
 # Counts a working part's cooldown down, and runs a generator whose cooldown ran out.

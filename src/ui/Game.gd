@@ -44,11 +44,11 @@ func _start_run(chassis: MechChassis) -> void:
 
 
 # The player's build, as it is when they press Next round, fights on the left. Both mechs' chassis
-# HP is grown for the round.
+# HP is grown for the round, and the fight shows the run's round and record.
 func _start_fight() -> void:
 	_player = BattleMech.new(shop.run.grid, shop.run.rules, shop.run.round_number)
 	combat = COMBAT_SCENE.instantiate()
-	combat.setup(_player, make_opponent.call())
+	combat.setup(_player, make_opponent.call(), shop.run)
 	combat.finished.connect(_end_fight, CONNECT_DEFERRED)
 	remove_child(shop)
 	add_child(combat)

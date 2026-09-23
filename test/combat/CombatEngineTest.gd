@@ -314,17 +314,34 @@ func test_the_storm_countdown_runs_out_when_the_storm_starts() -> void:
 	assert_float(engine.get_storm_countdown()).is_equal(0.0)
 
 
-func test_each_chassis_adds_its_base_energy_every_turn() -> void:
+func test_each_chassis_s_energy_flows_in_every_tick() -> void:
 	var left := _mech([], [], _energized_chassis(3))
-	var right := _mech([], [], _energized_chassis(5))
+	var right := _mech([], [], _energized_chassis(40))
 	var engine := _engine(left, right)
 	var energy_per_tick := []
+	var big_per_tick := []
 	for i in 20:
 		engine.process_tick(0.1)
 		energy_per_tick.append(left.current_energy)
-	# At the end of each 1-second turn.
-	assert_array(energy_per_tick).is_equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 6])
-	assert_int(right.current_energy).is_equal(10)
+		big_per_tick.append(right.current_energy)
+	# 3 a turn arrives a whole point at a time as its share builds up: at 0.4, 0.7, and 1.0
+	# seconds, and again each turn after.
+	assert_array(energy_per_tick).is_equal([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6])
+	# 40 a turn is 4 a tick.
+	assert_array(big_per_tick.slice(0, 5)).is_equal([4, 8, 12, 16, 20])
+	assert_int(right.current_energy).is_equal(80)
+
+
+func test_heatsinks_vent_every_tick() -> void:
+	# A heatsink venting 10 a turn takes 1 heat off every tick, down to 0.
+	var mech := _mech([[_venting_sink(), Vector2i(1, 1)]])
+	mech.heat = 7
+	var engine := _engine(mech, _mech([]))
+	var heat_per_tick := []
+	for i in 9:
+		engine.process_tick(0.1)
+		heat_per_tick.append(mech.heat)
+	assert_array(heat_per_tick).is_equal([6, 5, 4, 3, 2, 1, 0, 0, 0])
 
 
 func test_a_weapon_can_run_on_chassis_energy_alone() -> void:
@@ -465,17 +482,17 @@ func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
 	assert_int(reactor.current_energy).is_equal(135) # 5 × (30 - 3)
 	assert_int(reactor.heat).is_equal(0)
 	assert_bool(reactor.is_shut_down()).is_true()
-	# Shut down for 3 seconds: no shots and no chassis energy, even at 6 and 7 seconds.
+	# Shut down for 3 seconds: no shots, and no chassis energy flows in.
 	for i in 29:
 		engine.process_tick(0.1)
 	assert_array(_shots).has_size(5)
 	assert_int(reactor.current_energy).is_equal(135)
 	assert_bool(reactor.is_shut_down()).is_true()
-	# At 8 seconds it's back: the turn's energy arrives, and the gatling's frozen cooldown
-	# resumes, so it fires at 8.9 seconds.
+	# At 8 seconds it's back: its energy flows again, 3 a tick, and the gatling's frozen
+	# cooldown resumes, so it fires at 8.9 seconds.
 	engine.process_tick(0.1)
 	assert_bool(reactor.is_shut_down()).is_false()
-	assert_int(reactor.current_energy).is_equal(165)
+	assert_int(reactor.current_energy).is_equal(138)
 	for i in 8:
 		engine.process_tick(0.1)
 	assert_array(_shots).has_size(5)

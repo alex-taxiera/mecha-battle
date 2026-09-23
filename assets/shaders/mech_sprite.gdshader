@@ -10,7 +10,8 @@ uniform float desaturate : hint_range(0.0, 1.0) = 0.0;
 uniform float brightness : hint_range(0.0, 1.0) = 1.0;
 
 void fragment() {
-	vec4 c = texture(TEXTURE, UV) * COLOR;
+	// COLOR already holds the texture's color, times the modulate.
+	vec4 c = COLOR;
 	float grey = dot(c.rgb, vec3(0.299, 0.587, 0.114));
 	c.rgb = mix(c.rgb, vec3(grey), desaturate) * brightness;
 	c.rgb = mix(c.rgb, vec3(1.0), flash);

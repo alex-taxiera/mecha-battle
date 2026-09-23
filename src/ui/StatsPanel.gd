@@ -31,7 +31,7 @@ func _init() -> void:
 	add_theme_constant_override("separation", 12)
 	hp = _add_stat_box("Hull HP", Color(0.5, 0.65, 0.86))
 	energy = _add_stat_box("Energy / turn", Color(0.65, 0.55, 0.94))
-	damage = _add_stat_box("Damage / volley", Color(0.93, 0.43, 0.32))
+	damage = _add_stat_box("Damage / turn", Color(0.93, 0.43, 0.32))
 	_links = _add_list_box("Active links", true)
 	_rules = _add_list_box("Adjacency rules", false)
 

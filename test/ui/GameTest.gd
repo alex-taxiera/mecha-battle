@@ -54,6 +54,8 @@ func test_next_round_fights_the_players_build_then_returns_to_the_shop() -> void
 	assert_array(player.active_parts).has_size(2)
 	var gun: ActivePart = player.active_parts.filter(func(active: ActivePart) -> bool: return active.part == run.grid.get_part_at(Vector2i(-1, 2)))[0]
 	assert_int(gun.damage).is_equal(12)
+	# The fight knows its run, for the round and record it shows.
+	assert_object(_game.combat.run).is_same(run)
 
 	await _finish_fight()
 	assert_object(_game.combat).is_null()
@@ -124,7 +126,8 @@ func _press_next_round() -> void:
 	(_game.combat.get_node("%TickTimer") as Timer).stop()
 
 
-# Ticks the fight to its end, skips the result pause, and waits for the switch to the shop.
+# Ticks the fight to its end, skips the pause before the result panel, presses its Return to
+# Shop button, and waits for the switch to the shop.
 func _finish_fight() -> void:
 	var combat := _game.combat
 	var ticks := 0
@@ -133,6 +136,8 @@ func _finish_fight() -> void:
 		ticks += 1
 	assert_int(combat.engine.state).append_failure_message("the fight never ended").is_equal(CombatEngine.State.FINISHED)
 	(combat.get_node("%ResultTimer") as Timer).timeout.emit()
+	assert_bool(combat.result_panel.visible).append_failure_message("the result panel didn't come up").is_true()
+	combat.result_panel.return_button.pressed.emit()
 	await await_idle_frame()
 
 

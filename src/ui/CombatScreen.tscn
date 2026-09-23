@@ -1,15 +1,35 @@
 [gd_scene format=3]
 
+[ext_resource type="Theme" path="res://resources/ui/combat_theme.tres" id="1_jwx3s"]
 [ext_resource type="Script" path="res://src/ui/CombatScreen.gd" id="1_qhxs3"]
 [ext_resource type="Resource" path="res://resources/chassis/bastion.tres" id="2_adm1t"]
+[ext_resource type="Texture2D" path="res://assets/combat/arena.png" id="4_m2nnd"]
+[ext_resource type="Script" path="res://src/ui/combat/WeaponTags.gd" id="5_ai6fr"]
+[ext_resource type="Script" path="res://src/ui/combat/FighterView.gd" id="6_15kyt"]
+[ext_resource type="Script" path="res://src/ui/combat/MechGauges.gd" id="7_sbe3w"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="8_oslx1"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_2d.gd" id="9_41rmm"]
+[ext_resource type="Script" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="10_8h31a"]
+[ext_resource type="Script" path="res://src/ui/combat/RoundBadge.gd" id="11_8h31a"]
+[ext_resource type="Script" path="res://src/ui/combat/HpBar.gd" id="12_brono"]
+[ext_resource type="Script" path="res://src/ui/combat/StormTimer.gd" id="13_7j30b"]
+[ext_resource type="Script" path="res://src/ui/combat/ResultPanel.gd" id="14_oiwih"]
+
+[sub_resource type="Resource" id="Resource_brono"]
+script = ExtResource("10_8h31a")
+
+[sub_resource type="Resource" id="Resource_41rmm"]
+script = ExtResource("10_8h31a")
 
 [node name="CombatScreen" type="Control" unique_id=586340065]
+texture_filter = 1
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("1_jwx3s")
 script = ExtResource("1_qhxs3")
 chassis = ExtResource("2_adm1t")
 
@@ -19,17 +39,205 @@ wait_time = 0.1
 
 [node name="ResultTimer" type="Timer" parent="." unique_id=67242364]
 unique_name_in_owner = true
-wait_time = 2.0
+wait_time = 0.8
 one_shot = true
 
-[node name="StatusLabel" type="Label" parent="." unique_id=281377950]
-unique_name_in_owner = true
+[node name="Letterbox" type="ColorRect" parent="." unique_id=189262412]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 1
-vertical_alignment = 1
+mouse_filter = 2
+color = Color(0.043137256, 0.047058824, 0.06666667, 1)
+
+[node name="Stage" type="Control" parent="." unique_id=1595973345]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -640.0
+offset_top = -410.0
+offset_right = 640.0
+offset_bottom = 410.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Arena" type="TextureRect" parent="Stage" unique_id=1240387255]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_m2nnd")
+expand_mode = 1
+
+[node name="LeftWeapons" type="VBoxContainer" parent="Stage" unique_id=1990030231]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 29.0
+offset_top = 356.0
+offset_right = 229.0
+offset_bottom = 356.0
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("5_ai6fr")
+
+[node name="RightWeapons" type="VBoxContainer" parent="Stage" unique_id=1271841634]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1051.0
+offset_top = 356.0
+offset_right = 1251.0
+offset_bottom = 356.0
+mouse_filter = 2
+theme_override_constants/separation = 10
+script = ExtResource("5_ai6fr")
+
+[node name="LeftFighter" type="Control" parent="Stage" unique_id=1118138307]
+unique_name_in_owner = true
+anchors_preset = 0
+offset_left = 246.0
+offset_top = 334.0
+offset_right = 502.0
+offset_bottom = 590.0
+mouse_filter = 2
+script = ExtResource("6_15kyt")
+
+[node name="RightFighter" type="Control" parent="Stage" unique_id=1967438192]
+unique_name_in_owner = true
+anchors_preset = 0
+offset_left = 778.0
+offset_top = 334.0
+offset_right = 1034.0
+offset_bottom = 590.0
+mouse_filter = 2
+script = ExtResource("6_15kyt")
+
+[node name="LeftGauges" type="VBoxContainer" parent="Stage" unique_id=1101079481]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 254.0
+offset_top = 628.0
+offset_right = 494.0
+offset_bottom = 688.0
+mouse_filter = 2
+theme_override_constants/separation = 12
+script = ExtResource("7_sbe3w")
+
+[node name="RightGauges" type="VBoxContainer" parent="Stage" unique_id=167091485]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 786.0
+offset_top = 628.0
+offset_right = 1026.0
+offset_bottom = 688.0
+mouse_filter = 2
+theme_override_constants/separation = 12
+script = ExtResource("7_sbe3w")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=2102363248]
+
+[node name="PhantomCameraHost" type="Node" parent="Camera2D" unique_id=978951315]
+script = ExtResource("8_oslx1")
+
+[node name="MainPCam" type="Node2D" parent="." unique_id=2146908932]
+unique_name_in_owner = true
+script = ExtResource("9_41rmm")
+priority = 10
+tween_resource = SubResource("Resource_brono")
+tween_on_load = false
+
+[node name="KoPCam" type="Node2D" parent="." unique_id=32998579]
+unique_name_in_owner = true
+script = ExtResource("9_41rmm")
+tween_resource = SubResource("Resource_41rmm")
+tween_on_load = false
+
+[node name="Hud" type="CanvasLayer" parent="." unique_id=1405584371]
+
+[node name="HudRoot" type="Control" parent="Hud" unique_id=1511827064]
+texture_filter = 1
+layout_mode = 3
+anchors_preset = 13
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -640.0
+offset_right = 640.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("1_jwx3s")
+
+[node name="RoundBadge" type="Control" parent="Hud/HudRoot" unique_id=2004687484]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 14.0
+offset_right = 344.0
+offset_bottom = 42.0
+mouse_filter = 2
+script = ExtResource("11_8h31a")
+
+[node name="LeftHp" type="Control" parent="Hud/HudRoot" unique_id=1952718555]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+offset_left = 40.0
+offset_top = 60.0
+offset_right = 536.0
+offset_bottom = 145.0
+mouse_filter = 2
+script = ExtResource("12_brono")
+
+[node name="RightHp" type="Control" parent="Hud/HudRoot" unique_id=387310487]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -536.0
+offset_top = 60.0
+offset_right = -40.0
+offset_bottom = 145.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("12_brono")
+
+[node name="StormTimer" type="Control" parent="Hud/HudRoot" unique_id=1797717495]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -140.0
+offset_top = 84.0
+offset_right = 140.0
+offset_bottom = 148.0
+grow_horizontal = 2
+mouse_filter = 2
+script = ExtResource("13_7j30b")
+
+[node name="ModalLayer" type="CanvasLayer" parent="." unique_id=136546932]
+layer = 2
+
+[node name="ResultPanel" type="Control" parent="ModalLayer" unique_id=766679614]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_jwx3s")
+script = ExtResource("14_oiwih")

@@ -22,6 +22,7 @@ func test_the_timer_ticks_the_fight_every_tenth_of_a_second() -> void:
 	assert_float(screen.engine.elapsed).is_equal_approx(1.0, 1e-9)
 	assert_str(screen.status_line()).is_equal("[ 1.0s] Left HP 30/30 EN 0 HEAT 0 | Right HP 22/30 EN 3 HEAT 0")
 	assert_str(screen.result_line()).is_empty()
+	assert_str(screen.result_title()).is_empty()
 
 
 func test_the_timer_stops_when_the_fight_ends() -> void:
@@ -33,25 +34,92 @@ func test_the_timer_stops_when_the_fight_ends() -> void:
 	assert_str(screen.result_line()).is_equal("Left wins with 30/30 HP left")
 
 
-func test_shows_the_fight_and_reports_the_winner_after_a_pause() -> void:
+func test_the_hud_shows_both_mechs() -> void:
+	var screen := _screen(_gunner(), _bare())
+	var left_hp: HpBar = screen.get_node("%LeftHp")
+	var right_hp: HpBar = screen.get_node("%RightHp")
+	assert_str(left_hp.mech_name).is_equal("THE SKIRMISHER")
+	assert_str(left_hp.owner_text).is_equal("PLAYER")
+	assert_bool(left_hp.mirrored).is_false()
+	assert_str(right_hp.owner_text).is_equal("OPPONENT")
+	assert_bool(right_hp.mirrored).is_true()
+	assert_str(right_hp.get_text()).is_equal("30/30")
+	# The first shot lands at 1 second, and the bars follow each tick.
+	for i in 10:
+		screen.get_node("%TickTimer").timeout.emit()
+	assert_str(right_hp.get_text()).is_equal("22/30")
+	assert_str(left_hp.get_text()).is_equal("30/30")
+	assert_str((screen.get_node("%StormTimer") as StormTimer).get_text()).is_equal("19")
+	# Each side's weapons get a tag: the gunner's gatling, and nothing for the bare mech.
+	var tags := (screen.get_node("%LeftWeapons") as WeaponTags).get_tags()
+	assert_array(tags).has_size(1)
+	assert_str(tags[0].weapon_name).is_equal("Twin Gatling")
+	assert_str(tags[0].slot_name).is_equal("Left Arm")
+	assert_array((screen.get_node("%RightWeapons") as WeaponTags).get_tags()).is_empty()
+	var right_gauges: MechGauges = screen.get_node("%RightGauges")
+	assert_str(right_gauges.energy.get_text()).is_equal("3")
+
+
+func test_the_result_panel_comes_up_after_a_pause_and_returns_the_winner() -> void:
 	var gunner := _gunner()
 	var screen := _screen(gunner, _bare())
-	assert_str(screen.get_status_text()).is_equal("[ 0.0s] Left HP 30/30 EN 0 HEAT 0 | Right HP 30/30 EN 0 HEAT 0")
 	var winners := []
 	screen.finished.connect(func(winner: BattleMech) -> void: winners.append(winner))
 	_tick_until_over(screen)
-	# The bare mech banks its 3 chassis energy a turn with nothing to spend it on.
-	assert_str(screen.get_status_text()) \
-		.is_equal("[ 4.0s] Left HP 30/30 EN 0 HEAT 0 | Right HP 0/30 EN 12 HEAT 0\nLeft wins with 30/30 HP left")
-	# The result stays up for 2 seconds before the screen reports it.
+	# The panel waits a moment, so the last hit can land.
 	var result_timer: Timer = screen.get_node("%ResultTimer")
-	assert_float(result_timer.wait_time).is_equal(2.0)
+	assert_float(result_timer.wait_time).is_equal(0.8)
 	assert_bool(result_timer.one_shot).is_true()
 	assert_bool(result_timer.is_stopped()).is_false()
-	assert_array(winners).is_empty()
+	assert_bool(screen.result_panel.visible).is_false()
 	result_timer.timeout.emit()
+	assert_bool(screen.result_panel.visible).is_true()
+	assert_str(screen.result_panel.title_label.text).is_equal("VICTORY")
+	# Four 8-damage shots in 4 seconds, all from the gatling.
+	assert_array(screen.result_panel.get_rows()).is_equal([
+		["Battle duration", "4.0s"], ["Total damage dealt", "32 DMG"], ["MVP weapon", "Twin Gatling · 32 DMG"]])
+	# The screen reports the winner only once the player leaves.
+	assert_array(winners).is_empty()
+	screen.result_panel.return_button.pressed.emit()
 	assert_array(winners).has_size(1)
 	assert_object(winners[0]).is_same(gunner)
+
+
+func test_a_loss_is_a_defeat() -> void:
+	var screen := _screen(_bare(), _gunner())
+	_tick_until_over(screen)
+	assert_str(screen.result_title()).is_equal("DEFEAT")
+	# The bare mech never fired.
+	assert_array(screen.result_rows()).is_equal([
+		["Battle duration", "4.0s"], ["Total damage dealt", "0 DMG"], ["MVP weapon", "—"]])
+
+
+func test_a_draw_says_so() -> void:
+	var screen := _screen(_gunner(), _gunner())
+	var winners := []
+	screen.finished.connect(func(winner: BattleMech) -> void: winners.append(winner))
+	_tick_until_over(screen)
+	assert_str(screen.result_line()).is_equal("Draw: both mechs went down together")
+	assert_str(screen.result_title()).is_equal("DRAW")
+	screen.get_node("%ResultTimer").timeout.emit()
+	screen.result_panel.return_button.pressed.emit()
+	assert_array(winners).has_size(1)
+	assert_object(winners[0]).is_null()
+
+
+func test_the_record_line_counts_this_fight() -> void:
+	var run := RunState.new(Fixtures.armed_cross(), [], [])
+	run.round_number = 3
+	run.wins = 2
+	run.losses = 1
+	var screen := _screen(_gunner(), _bare(), run)
+	assert_str((screen.get_node("%RoundBadge") as RoundBadge).get_text()).is_equal("ROUND 3  2W 1L")
+	_tick_until_over(screen)
+	assert_str(screen.record_line()).is_equal("ROUND 3 · WINS 3 · LOSSES 1")
+	# A draw shows the draws. Outside a run, it's round 1 with only this fight.
+	var draw := _screen(_gunner(), _gunner())
+	_tick_until_over(draw)
+	assert_str(draw.record_line()).is_equal("ROUND 1 · WINS 0 · LOSSES 0 · DRAWS 1")
 
 
 func test_the_readout_shows_heat_and_shutdowns() -> void:
@@ -65,25 +133,32 @@ func test_the_readout_shows_heat_and_shutdowns() -> void:
 	target_chassis.base_hp = 200
 	var screen := _screen(BattleMech.new(grid), BattleMech.new(MechGridData.new(target_chassis)))
 	var timer: Timer = screen.get_node("%TickTimer")
+	var heat: GaugeBar = (screen.get_node("%LeftGauges") as MechGauges).heat
 	for i in 40:
 		timer.timeout.emit()
 	# The Reactor banks 27 of its 30 energy a turn.
 	assert_str(screen.status_line()).is_equal("[ 4.0s] Left HP 300/300 EN 108 HEAT 80 | Right HP 168/200 EN 12 HEAT 0")
+	assert_str(heat.get_text()).is_equal("80")
+	assert_bool(heat.hot).is_false()
 	# The 5th shot fills it: 100 damage, and the Reactor shuts down.
 	for i in 10:
 		timer.timeout.emit()
 	assert_str(screen.status_line()).is_equal("[ 5.0s] Left HP 300/300 EN 135 HEAT 0 OFF | Right HP 60/200 EN 15 HEAT 0")
+	assert_str(heat.get_text()).is_equal("OFFLINE")
+	assert_bool(heat.hot).is_true()
+	var tag: WeaponTag = (screen.get_node("%LeftWeapons") as WeaponTags).get_tags()[0]
+	assert_int(tag.state).is_equal(WeaponTag.State.OFFLINE)
 
 
-func test_a_draw_says_so() -> void:
-	var screen := _screen(_gunner(), _gunner())
-	var winners := []
-	screen.finished.connect(func(winner: BattleMech) -> void: winners.append(winner))
-	_tick_until_over(screen)
-	assert_str(screen.result_line()).is_equal("Draw: both mechs went down together")
-	screen.get_node("%ResultTimer").timeout.emit()
-	assert_array(winners).has_size(1)
-	assert_object(winners[0]).is_null()
+func test_leaving_resets_the_view() -> void:
+	var screen := _screen(_gunner(), _bare())
+	get_viewport().canvas_transform = Transform2D(0.0, Vector2(12, -7))
+	remove_child(screen)
+	assert_that(get_viewport().canvas_transform).is_equal(Transform2D.IDENTITY)
+	# Positive control: the transform does take other values.
+	get_viewport().canvas_transform = Transform2D(0.0, Vector2(3, 3))
+	assert_that(get_viewport().canvas_transform).is_not_equal(Transform2D.IDENTITY)
+	get_viewport().canvas_transform = Transform2D.IDENTITY
 
 
 func test_fights_the_demo_builds_by_default() -> void:
@@ -103,10 +178,10 @@ func test_built_mechs_grow_with_the_round() -> void:
 	assert_int(CombatScreen.build_mech(Fixtures.cross_chassis(), [], []).max_hp).is_equal(30)
 
 
-func _screen(left: BattleMech, right: BattleMech) -> CombatScreen:
+func _screen(left: BattleMech, right: BattleMech, run: RunState = null) -> CombatScreen:
 	var screen: CombatScreen = auto_free(SCENE.instantiate())
 	screen.print_ticks = false
-	screen.setup(left, right)
+	screen.setup(left, right, run)
 	add_child(screen)
 	return screen
 

@@ -174,6 +174,28 @@ func test_underpowered_weapons_lose_damage() -> void:
 	assert_int(stats.damage).is_equal(16)
 
 
+func test_parts_count_as_often_as_they_act_in_a_turn() -> void:
+	# A gatling firing every half second counts twice a turn; a reactor pulsing every 2 seconds,
+	# half. Their own numbers stay per activation.
+	var gatling := Fixtures.gatling() # 8 damage for 3 energy
+	gatling.cooldown_max = 0.5
+	var reactor := Fixtures.reactor() # +4 energy
+	reactor.cooldown_max = 2.0
+	var gun := _place(gatling, LEFT_ARM)
+	_place(reactor, Vector2i(3, 3))
+	var stats := _stats()
+	assert_int(stats.energy_drawn).is_equal(6)
+	assert_int(stats.energy_generated).is_equal(3 + 2)
+	assert_int(stats.damage).is_equal(13) # 16 a turn at 5/6 power: 13.3, rounded
+	assert_int(stats.part_stats[gun].damage).is_equal(8)
+	assert_int(stats.part_stats[gun].energy_draw).is_equal(3)
+	# Positive control: at a 1-second cooldown, a part counts once, like one with none.
+	assert_float(MechStats.activations_per_turn(gatling)).is_equal(2.0)
+	gatling.cooldown_max = 1.0
+	assert_float(MechStats.activations_per_turn(gatling)).is_equal(1.0)
+	assert_float(MechStats.activations_per_turn(Fixtures.laser())).is_equal(1.0)
+
+
 func test_the_chassis_hp_grows_with_the_round() -> void:
 	_place(Fixtures.laser(), Vector2i(2, 2)) # +12 HP, which doesn't grow
 	var first := MechStats.calculate(_grid, _rules)
