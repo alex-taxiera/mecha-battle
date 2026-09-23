@@ -155,12 +155,14 @@ func get_enemy(node: MapNode = null) -> EnemyLoadout:
 	return node.enemy
 
 
-## Returns the enemy's mech for the fight at [param node] (by default the current node), its HP
-## scaled for the sector and how far up the map the node is.
+## Returns the enemy's mech for the fight at [param node] (by default the current node), named
+## for the enemy, its HP scaled for the sector and how far up the map the node is.
 func make_enemy_mech(node: MapNode = null) -> BattleMech:
 	node = node if node else map.current
 	var enemy := get_enemy(node)
-	return BattleMech.new(enemy.build_grid(), rules, get_act().get_enemy_hp_scale(node.floor_index) * enemy.hp_scale)
+	var mech := BattleMech.new(enemy.build_grid(), rules, get_act().get_enemy_hp_scale(node.floor_index) * enemy.hp_scale)
+	mech.mech_name = enemy.enemy_name
+	return mech
 
 
 ## Records how a fight went, given the player's [param mech] as the fight left it: its damage

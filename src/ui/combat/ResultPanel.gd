@@ -1,7 +1,7 @@
 class_name ResultPanel
 extends Control
 ## The end of a fight, after the mockup's result modal: VICTORY, DEFEAT, or DRAW over the dimmed
-## stage, the round and record, the fight's numbers, and a button back to the shop.
+## stage, where the run stands, the fight's numbers, and a button to carry on.
 
 signal return_pressed
 
@@ -46,7 +46,7 @@ func _init() -> void:
 	stats.add_theme_stylebox_override("panel", _stats_style())
 	stats.add_child(_rows)
 	_column.add_child(stats)
-	return_button.text = "RETURN TO SHOP"
+	return_button.text = "CONTINUE"
 	return_button.size_flags_horizontal = SIZE_SHRINK_CENTER
 	_style_button(return_button)
 	return_button.pressed.connect(return_pressed.emit)

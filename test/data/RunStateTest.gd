@@ -377,8 +377,10 @@ func test_fights_pick_the_sectors_enemy_of_the_nodes_tier() -> void:
 	# Picked once, then kept on the node.
 	assert_object(run.get_enemy()).is_same(enemy)
 	assert_object(node.enemy).is_same(enemy)
-	# Its HP is scaled for the sector and the floor: 30 × 1.5 on floor 0.
-	assert_int(run.make_enemy_mech().max_hp).is_equal(45)
+	# Its HP is scaled for the sector and the floor: 30 × 1.5 on floor 0. It goes by its name.
+	var mech := run.make_enemy_mech()
+	assert_int(mech.max_hp).is_equal(45)
+	assert_str(mech.mech_name).is_equal(enemy.enemy_name)
 	# Two floors up, +10% a floor: 30 × 1.5 × 1.2.
 	assert_int(run.make_enemy_mech(MapNode.new(2, 0)).max_hp).is_equal(54)
 	# An elite comes from the elites, and the boss was picked with the map, from the bosses.

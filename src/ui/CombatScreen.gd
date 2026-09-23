@@ -309,12 +309,12 @@ func _bind() -> void:
 		(side[2] as FighterView).setup(mech, left)
 		(side[3] as WeaponTags).bind(mech, CombatColors.accent(left), not left)
 		var hp: HpBar = side[4]
-		hp.mech_name = mech.chassis.chassis_name.to_upper()
+		hp.mech_name = mech.mech_name.to_upper()
 		hp.owner_text = side[5]
 		hp.accent = CombatColors.accent(left)
 		hp.mirrored = not left
 	if run:
-		_round_badge.set_progress(_sector(), run.get_floor_number(), run.fights_won)
+		_round_badge.set_progress(_sector(), run.get_floor_number(), run.fights_won, _tier_tag())
 	_set_smoothing(TICK)
 	_show_playback()
 	_refresh()
@@ -521,6 +521,14 @@ func _weapons_of(mech: BattleMech) -> WeaponTags:
 func _mech_status(side: String, mech: BattleMech) -> String:
 	var status := "%s HP %d/%d EN %d HEAT %d" % [side, mech.current_health, mech.max_hp, mech.current_energy, mech.heat]
 	return status + " OFF" if mech.is_shut_down() else status
+
+
+# "ELITE" or "BOSS" for those fights on the map, otherwise "".
+func _tier_tag() -> String:
+	var node := run.map.current if run and run.map else null
+	if node == null or node.type not in [MapNode.Type.ELITE, MapNode.Type.BOSS]:
+		return ""
+	return MapNode.Type.keys()[node.type]
 
 
 # The run's sector, counting from 1; 1 outside a run.

@@ -3,11 +3,10 @@ extends Control
 ## Root of the shop phase: the round and gold up top, the mech on the left, the parts shop on
 ## the right, and the mech's stats below. Drag parts from the shop onto the mech to buy them
 ## (weapons onto the hardpoints around its grid), around the mech to move them, and back onto
-## the shop to sell them. Next round asks for a fight; [method finish_round] restocks the shop
-## afterwards.
+## the shop to sell them. Leave shop emits [signal leave_requested].
 
-## Emitted when the player is done shopping and wants this round's fight.
-signal fight_requested
+## Emitted when the player is done shopping.
+signal leave_requested
 
 const SHOP_ITEM_SCENE := preload("res://src/ui/ShopItem.tscn")
 const PARTS_DIR := "res://resources/parts"
@@ -15,21 +14,17 @@ const RULES_DIR := "res://resources/rules"
 const TOAST_SECONDS := 1.9
 const GOOD_COLOR := Color(0.49, 0.88, 0.63)
 const BAD_COLOR := Color(0.94, 0.42, 0.42)
-const _RESULT_WORDS := {
-	RunState.FightResult.WIN: "Won",
-	RunState.FightResult.LOSS: "Lost",
-	RunState.FightResult.DRAW: "Drew",
-}
 
 @export var chassis: MechChassis
+## Gold for the run this screen starts when it isn't given one.
 @export var starting_gold := 10
-## Gold added after each fight. A stand-in until fights drop loot.
-@export var income := 10
 ## Parts for sale. Left empty, the shop sells every MechPart in [constant PARTS_DIR].
 @export var catalog: Array[MechPart] = []
 ## Adjacency rules. Left empty, every SynergyRule in [constant RULES_DIR] applies.
 @export var rules: Array[SynergyRule] = []
 
+## The run to shop in, set before the screen enters the tree. Left unset, the screen starts
+## its own run on [member chassis].
 var run: RunState
 
 # The run's current stats, refreshed on every change.
@@ -39,7 +34,7 @@ var _toast_timer: Timer
 @onready var _round_label: Label = %RoundLabel
 @onready var _record_label: Label = %RecordLabel
 @onready var _gold_label: Label = %GoldLabel
-@onready var _next_round_button: Button = %NextRoundButton
+@onready var _leave_button: Button = %LeaveButton
 @onready var _chassis_label: Label = %ChassisLabel
 @onready var _chassis_info: Label = %ChassisInfo
 @onready var _passive_label: Label = %PassiveLabel
@@ -54,18 +49,20 @@ var _toast_timer: Timer
 
 
 func _ready() -> void:
-	if catalog.is_empty():
-		catalog.assign(load_dir(PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
-	if rules.is_empty():
-		rules.assign(load_dir(RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
-	run = RunState.new(chassis, catalog, rules, starting_gold)
-	run.open_shop()
+	if run == null:
+		if catalog.is_empty():
+			catalog.assign(load_dir(PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
+		if rules.is_empty():
+			rules.assign(load_dir(RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
+		run = RunState.new(chassis, catalog, rules, starting_gold)
+	if run.shop == null:
+		run.open_shop()
 	run.changed.connect(_refresh)
 	_grid_ui.run = run
 	_grid_ui.preview_changed.connect(_on_preview_changed)
 	_grid_ui.message.connect(show_toast)
 	_reroll_button.pressed.connect(_on_reroll_pressed)
-	_next_round_button.pressed.connect(_on_next_round_pressed)
+	_leave_button.pressed.connect(leave_requested.emit)
 	_sell_zone.set_drag_forwarding(Callable(), can_sell, sell)
 	_sell_zone.hide()
 	_stats_panel.show_rules(run.rules)
@@ -121,7 +118,7 @@ func sell(_at_position: Vector2, data: Variant) -> void:
 
 func _refresh() -> void:
 	_stats = run.stats()
-	_round_label.text = "Hangar"
+	_round_label.text = "Sector %d · Floor %d" % [run.act_index + 1, run.get_floor_number()] if run.get_act() else "Hangar"
 	_record_label.text = "Hull: %d / %d HP · %d won" % [run.get_current_hp(), run.get_max_hp(), run.fights_won]
 	_gold_label.text = "Gold: %d" % run.gold
 	var frame := run.grid.chassis
@@ -134,8 +131,12 @@ func _refresh() -> void:
 	for item in _slots.get_children():
 		_slots.remove_child(item)
 		item.queue_free()
-	for i in run.shop.slots.size():
-		var slot := run.shop.slots[i]
+	# The shop closes as the player leaves, just before the screen goes.
+	var slots: Array[ShopStock.Slot] = []
+	if run.shop:
+		slots = run.shop.slots
+	for i in slots.size():
+		var slot := slots[i]
 		var item: ShopItem = SHOP_ITEM_SCENE.instantiate()
 		item.slot_index = i
 		item.part = slot.part
@@ -154,18 +155,6 @@ func _on_preview_changed(preview: MechStats) -> void:
 func _on_reroll_pressed() -> void:
 	if not run.reroll():
 		show_toast("Not enough gold to reroll", false)
-
-
-## Opens the shop again after a fight: [member income] gold, a restock, and a toast saying so.
-func finish_round(result: RunState.FightResult) -> void:
-	run.gold += income
-	run.open_shop()
-	show_toast("%s the fight · +%dg, shop restocked" % [_RESULT_WORDS[result], income],
-		result != RunState.FightResult.LOSS)
-
-
-func _on_next_round_pressed() -> void:
-	fight_requested.emit()
 
 
 ## Loads every resource in [param dir], e.g. [constant PARTS_DIR]. Other screens use it to

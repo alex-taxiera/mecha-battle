@@ -68,6 +68,8 @@ func test_max_hp_scales_and_health_can_start_lower() -> void:
 	assert_int(BattleMech.new(grid, [], 1.0, 20).current_health).is_equal(20)
 	assert_int(BattleMech.new(grid, [], 1.0, 99).current_health).is_equal(42)
 	assert_int(BattleMech.new(grid, [], 1.0, 0).current_health).is_equal(0)
+	# It goes by its chassis's name unless told otherwise.
+	assert_str(mech.mech_name).is_equal("The Skirmisher")
 
 
 func test_heat_stays_between_empty_and_full() -> void:

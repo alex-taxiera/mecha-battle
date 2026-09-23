@@ -1,56 +1,90 @@
 class_name Game
 extends Node
-## Plays a run: the player picks a chassis, then shops, and each round fights with their
-## build and returns to the shop for the next round. One ShopScreen lives for the whole run
-## and holds its [RunState]; it steps out of the tree while a fight plays.
+## Plays runs. The player picks a frame, then climbs each sector's map to its boss one stop at a
+## time: fights play on the combat screen, Scrap Shops open the shop, and stops that aren't built
+## yet show a placeholder. The mech's damage carries from fight to fight; when it goes down, or
+## the last sector's boss does, the run's end shows, and after it a new run starts.
 
+const CHASSIS_SELECT_SCENE := preload("res://src/ui/ChassisSelectScreen.tscn")
+const MAP_SCENE := preload("res://src/ui/MapScreen.tscn")
 const SHOP_SCENE := preload("res://src/ui/ShopScreen.tscn")
 const COMBAT_SCENE := preload("res://src/ui/CombatScreen.tscn")
+const ACTS_DIR := "res://resources/acts"
+const CLEAR_COLOR := Color("#5fd38a")
+const LOSS_COLOR := Color("#ff4d4d")
 
-## Parts and adjacency rules for the run's shop. Left empty, the shop loads its folders.
+## Gold a run starts with.
+@export var start_gold := 20
+## Parts the run can offer, adjacency rules, and sectors in order. Left empty, they're loaded
+## from their folders (sectors in id order).
 var catalog: Array[MechPart] = []
 var rules: Array[SynergyRule] = []
-## Builds the mech the player fights each round. Left unset, it's the combat screen's dummy.
-var make_opponent: Callable
-## The run's shop, once a chassis is chosen.
-var shop: ShopScreen
-## The fight playing now, or null while the player is shopping.
+var acts: Array[ActData] = []
+## The seed for new runs; below 0, each run gets a random one.
+var run_seed := -1
+
+## The run being played, once a frame is chosen.
+var run: RunState
+## The screen showing now.
+var screen: Node
+## The frame select screen, while it's showing.
+var chassis_select: ChassisSelectScreen
+## The fight playing now, or null.
 var combat: CombatScreen
 
 # The player's mech in the current fight.
 var _player: BattleMech
 
-@onready var chassis_select: ChassisSelectScreen = %ChassisSelectScreen
-
 
 func _ready() -> void:
-	# Deferred, so a screen isn't taken out of the tree while it's still emitting.
+	if catalog.is_empty():
+		catalog.assign(ShopScreen.load_dir(ShopScreen.PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
+	if rules.is_empty():
+		rules.assign(ShopScreen.load_dir(ShopScreen.RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
+	if acts.is_empty():
+		var loaded := ShopScreen.load_dir(ACTS_DIR).filter(func(resource: Resource) -> bool: return resource is ActData)
+		loaded.sort_custom(func(a: ActData, b: ActData) -> bool: return a.id < b.id)
+		acts.assign(loaded)
+	chassis_select = %ChassisSelectScreen
+	screen = chassis_select
+	# Every swap is deferred, so a screen isn't taken out of the tree while it's still emitting.
 	chassis_select.chassis_chosen.connect(_start_run, CONNECT_DEFERRED)
 
 
+## Shows the current sector's map.
+func show_map() -> void:
+	var map: MapScreen = MAP_SCENE.instantiate()
+	map.run = run
+	map.node_chosen.connect(_enter, CONNECT_DEFERRED)
+	_show(map)
+
+
 func _start_run(chassis: MechChassis) -> void:
-	shop = SHOP_SCENE.instantiate()
-	shop.chassis = chassis
-	shop.catalog.assign(catalog)
-	shop.rules.assign(rules)
-	shop.fight_requested.connect(_start_fight, CONNECT_DEFERRED)
-	remove_child(chassis_select)
-	chassis_select.queue_free()
 	chassis_select = null
-	add_child(shop)
-	if not make_opponent.is_valid():
-		make_opponent = func() -> BattleMech: return CombatScreen.make_dummy(shop.run.rules)
+	run = RunState.new(chassis, catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts)
+	show_map()
 
 
-# The player's build, as it is when they press Next round, fights on the left at the hull's
-# current HP.
+# Opens what's at [param node], which the player has just traveled to.
+func _enter(node: MapNode) -> void:
+	match node.type:
+		MapNode.Type.BATTLE, MapNode.Type.ELITE, MapNode.Type.BOSS:
+			_start_fight()
+		MapNode.Type.SHOP:
+			_open_shop()
+		MapNode.Type.HANGAR:
+			_placeholder("Hangar / Refit Bay", "The refit crew isn't here yet. Repairs and upgrades are coming soon.")
+		MapNode.Type.EVENT:
+			_placeholder("Unknown Signal", "Nothing answers. Events are coming soon.")
+
+
+# The player's build, as it stands, at the hull's current HP, against the node's enemy.
 func _start_fight() -> void:
-	_player = shop.run.make_player_mech()
+	_player = run.make_player_mech()
 	combat = COMBAT_SCENE.instantiate()
-	combat.setup(_player, make_opponent.call(), shop.run)
+	combat.setup(_player, run.make_enemy_mech(), run)
 	combat.finished.connect(_end_fight, CONNECT_DEFERRED)
-	remove_child(shop)
-	add_child(combat)
+	_show(combat)
 
 
 func _end_fight(winner: BattleMech) -> void:
@@ -59,10 +93,83 @@ func _end_fight(winner: BattleMech) -> void:
 		result = RunState.FightResult.WIN
 	elif winner != null:
 		result = RunState.FightResult.LOSS
-	remove_child(combat)
-	combat.queue_free()
-	combat = null
-	add_child(shop)
-	shop.run.record_fight(result, _player)
+	run.record_fight(result, _player)
 	_player = null
-	shop.finish_round(result)
+	combat = null
+	if run.is_over():
+		_show_end()
+	elif run.map.is_at_boss():
+		_clear_sector()
+	else:
+		show_map()
+
+
+# The boss is down: on to the next sector, or the run is won.
+func _clear_sector() -> void:
+	var boss := run.map.boss.enemy.enemy_name if run.map.boss.enemy else "The boss"
+	var cleared := run.get_act().sector_name
+	run.next_act()
+	if run.is_over():
+		_show_end()
+		return
+	var message := MessageScreen.new("SECTOR CLEARED", CLEAR_COLOR, PackedStringArray([
+		"%s is down. %s is behind you." % [boss, cleared],
+		"Half your hull damage is repaired on the way to %s." % run.get_act().sector_name,
+	]), "Onward", run)
+	message.confirmed.connect(show_map, CONNECT_DEFERRED)
+	_show(message)
+
+
+func _open_shop() -> void:
+	run.open_shop()
+	var shop: ShopScreen = SHOP_SCENE.instantiate()
+	shop.run = run
+	shop.leave_requested.connect(_leave_shop, CONNECT_DEFERRED)
+	_show(shop)
+
+
+func _leave_shop() -> void:
+	run.close_shop()
+	show_map()
+
+
+func _placeholder(title: String, text: String) -> void:
+	var message := MessageScreen.new(title, MessageScreen.TEXT_COLOR, PackedStringArray([text]), "Continue", run)
+	message.confirmed.connect(show_map, CONNECT_DEFERRED)
+	_show(message)
+
+
+func _show_end() -> void:
+	var won := run.outcome == RunState.Outcome.VICTORY
+	var message := MessageScreen.new("RUN COMPLETE" if won else "MECH DESTROYED", CLEAR_COLOR if won else LOSS_COLOR,
+		end_lines(run), "New run")
+	message.confirmed.connect(_new_run, CONNECT_DEFERRED)
+	_show(message)
+
+
+## Returns the run's summary for its end screen, e.g. "The Bastion", "Fell in Sector 2 ·
+## Floor 7", "Fights won: 9".
+static func end_lines(p_run: RunState) -> PackedStringArray:
+	var lines := PackedStringArray([p_run.grid.chassis.chassis_name])
+	if p_run.outcome == RunState.Outcome.VICTORY:
+		lines.append("Cleared all %d sectors" % p_run.acts.size())
+	else:
+		lines.append("Fell in Sector %d · Floor %d" % [p_run.act_index + 1, p_run.get_floor_number()])
+	lines.append("Fights won: %d" % p_run.fights_won)
+	return lines
+
+
+func _new_run() -> void:
+	run = null
+	chassis_select = CHASSIS_SELECT_SCENE.instantiate()
+	chassis_select.chassis_chosen.connect(_start_run, CONNECT_DEFERRED)
+	_show(chassis_select)
+
+
+# Replaces the screen showing with [param next].
+func _show(next: Node) -> void:
+	if screen:
+		remove_child(screen)
+		screen.queue_free()
+	screen = next
+	add_child(next)

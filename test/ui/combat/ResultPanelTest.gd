@@ -27,4 +27,4 @@ func test_the_button_asks_to_return() -> void:
 	panel.return_pressed.connect(func() -> void: presses.append(true))
 	panel.return_button.pressed.emit()
 	assert_array(presses).has_size(1)
-	assert_str(panel.return_button.text).is_equal("RETURN TO SHOP")
+	assert_str(panel.return_button.text).is_equal("CONTINUE")

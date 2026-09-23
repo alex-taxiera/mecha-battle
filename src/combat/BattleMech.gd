@@ -13,6 +13,8 @@ const MIN_FIRE_RATE := 0.5
 
 ## The frame, for its passive. Only read.
 var chassis: MechChassis
+## What the fight calls the mech: its chassis's name, or an enemy's own.
+var mech_name: String
 ## Hull points at full health: the chassis's base HP plus every part's HP, times any HP scale.
 var max_hp: int
 var current_health: int
@@ -43,6 +45,7 @@ var active_parts: Array[ActivePart] = []
 func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, start_health := -1) -> void:
 	var stats := MechStats.calculate(grid, rules)
 	chassis = grid.chassis
+	mech_name = chassis.chassis_name
 	max_hp = roundi(stats.hp * hp_scale)
 	current_health = max_hp if start_health < 0 else clampi(start_health, 0, max_hp)
 	base_energy = chassis.base_energy

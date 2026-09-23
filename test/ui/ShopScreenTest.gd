@@ -25,7 +25,7 @@ func before_test() -> void:
 
 
 func test_shows_the_hull_gold_chassis_and_shop() -> void:
-	assert_str(_text("RoundLabel")).is_equal("Hangar")
+	assert_str(_text("RoundLabel")).is_equal("Hangar") # a run without sectors
 	assert_str(_text("RecordLabel")).is_equal("Hull: 30 / 30 HP · 0 won")
 	assert_str(_text("GoldLabel")).is_equal("Gold: 10")
 	assert_str(_text("ChassisLabel")).is_equal("Chassis · The Skirmisher")
@@ -80,30 +80,27 @@ func test_reroll_button() -> void:
 	await await_idle_frame()
 
 
-func test_next_round_asks_for_the_fight() -> void:
+func test_leave_asks_to_leave() -> void:
 	var requests := [0]
-	_screen.fight_requested.connect(func() -> void: requests[0] += 1)
-	_button("NextRoundButton").pressed.emit()
+	_screen.leave_requested.connect(func() -> void: requests[0] += 1)
+	_button("LeaveButton").pressed.emit()
 	assert_int(requests[0]).is_equal(1)
-	# Nothing changes until the fight is over.
 	assert_str(_text("GoldLabel")).is_equal("Gold: 10")
 
 
-func test_finishing_a_fight_pays_income_and_restocks_the_shop() -> void:
-	assert_bool(_screen.run.buy(_slot_of(_laser), Vector2i(1, 1))).is_true() # 10 -> 8
-	_screen.run.gold = 3
-	_screen.finish_round(RunState.FightResult.WIN)
-	assert_str(_text("GoldLabel")).is_equal("Gold: 13") # the 3 left over plus 10 income
-	assert_str(_toast().text).is_equal("Won the fight · +10g, shop restocked")
-	assert_that(_toast().get_theme_color("font_color")).is_equal(ShopScreen.GOOD_COLOR)
-	for item in _items():
-		assert_bool(item.sold).is_false()
-	_screen.finish_round(RunState.FightResult.LOSS)
-	assert_str(_toast().text).is_equal("Lost the fight · +10g, shop restocked")
-	assert_that(_toast().get_theme_color("font_color")).is_equal(ShopScreen.BAD_COLOR)
-	_screen.finish_round(RunState.FightResult.DRAW)
-	assert_str(_toast().text).is_equal("Drew the fight · +10g, shop restocked")
-	await await_idle_frame() # free the shop cards the restocks replaced
+func test_shops_in_a_given_run() -> void:
+	var acts: Array[ActData] = [Fixtures.act()]
+	var run := RunState.new(Fixtures.armed_cross(), [_laser], Fixtures.rules(), 25, RunRng.new(3), acts)
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	var screen: ShopScreen = auto_free(SCENE.instantiate())
+	screen.run = run
+	add_child(screen)
+	assert_object(screen.run).is_same(run)
+	assert_object(run.shop).is_not_null() # opened for it
+	assert_str((screen.get_node("%GoldLabel") as Label).text).is_equal("Gold: 25")
+	assert_str((screen.get_node("%RoundLabel") as Label).text).is_equal("Sector 1 · Floor 1")
+	assert_array(screen.find_children("*", "", true, false).filter(func(node: Node) -> bool: return node is ShopItem)) \
+		.has_size(ShopStock.SIZE)
 
 
 func test_dropping_an_installed_part_on_the_shop_sells_it() -> void:
@@ -127,7 +124,8 @@ func test_dropping_an_installed_part_on_the_shop_sells_it() -> void:
 
 func test_parts_from_earlier_shops_sell_for_half() -> void:
 	assert_bool(_screen.run.buy(_slot_of(_gatling), Vector2i(-1, 1))).is_true()
-	_screen.finish_round(RunState.FightResult.WIN)
+	_screen.run.close_shop()
+	_screen.run.open_shop()
 	_screen.show_sell_zone(_grid_ui()._get_drag_data(_cell_center(Vector2i(-1, 2))))
 	assert_str(_text("SellLabel")).is_equal("Sell for +2g")
 	assert_str(_text("SellNote")).is_equal("Half value: bought earlier")
