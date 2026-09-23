@@ -36,7 +36,7 @@ func _ready() -> void:
 	_cost_label.add_theme_color_override("font_color", COST_COLOR if affordable else TOO_EXPENSIVE_COLOR)
 	_shape_view.part = part
 	_shape_view.turns = turns
-	_info_label.text = "%s · %s" % [MechPart.PartType.find_key(part.type).capitalize(), _size_text()]
+	_info_label.text = PartInfo.summary(part, turns)
 	_description_label.text = part.description
 	_rotate_button.visible = part.can_rotate()
 	_rotate_button.pressed.connect(rotate_requested.emit)
@@ -60,14 +60,3 @@ func _grab_offset_at(at_position: Vector2) -> Vector2i:
 	var local := at_position + global_position - _shape_view.global_position
 	var cell := Vector2i((local / (_shape_view.cell_size + _shape_view.gap)).floor())
 	return cell if cell in part.get_shape(turns) else Vector2i.ZERO
-
-
-# "1 block", "1×3", or "3 blocks" for shapes that aren't rectangles.
-func _size_text() -> String:
-	var shape := part.get_shape(turns)
-	if shape.size() == 1:
-		return "1 block"
-	var extent := PartShapeView.shape_extent(shape)
-	if extent.x * extent.y == shape.size():
-		return "%d×%d" % [extent.x, extent.y]
-	return "%d blocks" % shape.size()

@@ -59,7 +59,7 @@ The root node for the shop phase. Builds the `RunState` from its chassis, catalo
 - Toasts for results that happen off the grid (sold, rerolled, new round, not enough gold).
 
 ### `MechGridUI.tscn` (Extends Control)
-- Draws the chassis from its size and disabled cells, and each placed part with a label (type tag, name, stat line, link bonuses) and a rotate button.
+- Draws the chassis from its size and disabled cells, and each placed part as a colored block with a rotate button in its top-right corner. Parts carry no text: hovering one pops up its `PartInfo` (name, type and size, numbers with links applied, link bonuses, blurb) as the grid's tooltip.
 - Drag and drop through Godot's `_get_drag_data`, `_can_drop_data`, and `_drop_data`. The payload (`PartDragData`) says where the part came from (a shop slot or a placed cell), its rotation, and which cell was grabbed.
 - While a drag hovers: the footprint in green or red, the reason it can't drop, open edges around it, and link markers for the links it would make. Hovering a placed part shows its open edges; a part that was just placed or moved shows them briefly.
 - Dragging a placed part moves it on the grid, or sells it when dropped on the shop.

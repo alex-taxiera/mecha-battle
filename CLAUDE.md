@@ -32,9 +32,12 @@ Run the tests headlessly from the project root using this command:
 - Property values: pass Vector2 as `{"x": .., "y": ..}`, Color as `"#rrggbb"`, and resources as `"res://..."` paths. Typed arrays can't be set.
 - Anchors: the scene root only needs `anchors_preset: 15`. Any other node outside a container needs `layout_mode: 1` before `anchors_preset`, or the preset silently does nothing.
 - `create_resource` only knows engine classes. Create custom-Resource `.tres` files (e.g. a `MechPart`) with a headless script that calls `ResourceSaver.save()`.
+- `manage_theme_resource` snake-cases item keys (`TooltipPanel` becomes `_tooltip_panel`) and saves resource values as `null`. Build `Theme` resources with a `ResourceSaver` script too, using `theme.set_stylebox(...)` and friends.
+- Headless MCP tools (`create_resource`, `modify_scene_node`, ...) fail with "Failed to listen on port 9090" while `run_project` is active, because they load its injected autoload. Stop the game first.
 - `run_project` injects an `McpInteractionServer` autoload and script into the project. `stop_project` removes them but leaves an empty `[autoload]` section in `project.godot`; delete it.
 - A script error in `game_eval` freezes the game at a `debug>` prompt. Call `stop_project`, then run it again.
 - `game_mouse_drag` can't finish a drag-and-drop, because Godot 4.7 aims the drop at the real OS cursor. To test drops in a running game, `push_input()` events into a standalone `SubViewport` (not inside a `SubViewportContainer`).
+- `game_mouse_move` doesn't move the game's mouse either; hover needs the harness too. Motion events reach controls only after the SubViewport gets `notification(Node.NOTIFICATION_VP_MOUSE_ENTER)`, and its tooltips and popups only show in its texture with `gui_embed_subwindows = true`.
 - In that harness, call `game_wait` for a frame after anything that rebuilds or reveals controls (a refresh, a drag that shows a drop zone) before pushing input at them. Containers lay out on the next frame, so earlier input hits the old rects.
 - `game_screenshot` returns a stale frame while the game window is minimized.
 

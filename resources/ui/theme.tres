@@ -1,0 +1,6 @@
+[gd_resource type="Theme" format=3]
+
+[ext_resource type="StyleBox" path="res://resources/ui/tooltip.tres" id="1_qfwp4"]
+
+[resource]
+TooltipPanel/styles/panel = ExtResource("1_qfwp4")

@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://src/ui/ShopScreen.gd" id="1_2u7n2"]
+[ext_resource type="Theme" path="res://resources/ui/theme.tres" id="1_8v2hw"]
 [ext_resource type="PackedScene" path="res://src/ui/MechGridUI.tscn" id="2_2ygms"]
 [ext_resource type="Resource" path="res://resources/chassis/skirmisher.tres" id="2_ps511"]
 [ext_resource type="Script" path="res://src/ui/MechGridUI.gd" id="3_pgemp"]
@@ -15,6 +16,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("1_8v2hw")
 script = ExtResource("1_2u7n2")
 chassis = ExtResource("2_ps511")
 

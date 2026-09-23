@@ -9,12 +9,6 @@ const TYPE_COLORS := {
 	MechPart.PartType.DEFENSE: Color(0.36, 0.61, 0.84),
 	MechPart.PartType.UTILITY: Color(0.36, 0.72, 0.36),
 }
-const TYPE_TAGS := {
-	MechPart.PartType.WEAPON: "WPN",
-	MechPart.PartType.GENERATOR: "GEN",
-	MechPart.PartType.DEFENSE: "DEF",
-	MechPart.PartType.UTILITY: "UTL",
-}
 
 @export var cell_size := 20.0
 @export var gap := 2.0
@@ -62,12 +56,6 @@ func _draw() -> void:
 
 static func color_for(type: MechPart.PartType) -> Color:
 	return TYPE_COLORS.get(type, Color.GRAY)
-
-
-## Returns the short badge for a part type, e.g. "WPN".
-static func tag_for(type: MechPart.PartType) -> String:
-	return TYPE_TAGS.get(type, "")
-
 
 ## Returns the width and height, in cells, of a shape anchored at (0, 0).
 static func shape_extent(shape: Array[Vector2i]) -> Vector2i:

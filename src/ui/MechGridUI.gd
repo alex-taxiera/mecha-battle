@@ -2,7 +2,7 @@ class_name MechGridUI
 extends Control
 ## Draws a run's mech grid and takes parts dragged onto it: bought from the shop or moved
 ## around the grid. It never decides what fits or what anything is worth: it asks the
-## [RunState] and draws the answer.
+## [RunState] and draws the answer. Parts carry no text; hovering one pops up its [PartInfo].
 
 ## Emitted when a drag's hover changes: the stats the drop would give, or null when nothing
 ## droppable is hovered.
@@ -21,8 +21,8 @@ const DISABLED_CELL_COLOR := Color(0.07, 0.07, 0.09)
 const FITS_COLOR := Color(0.4, 1.0, 0.5, 0.45)
 const BLOCKED_COLOR := Color(1.0, 0.35, 0.35, 0.45)
 const EDGE_COLOR := Color(0.96, 0.83, 0.43)
-const LABEL_COLOR := Color(0.0, 0.0, 0.0, 0.85)
 const LABEL_FONT_SIZE := 11
+const ROTATE_BUTTON_SIZE := 22.0
 const MOVING_ALPHA := 0.3
 
 const _FIT_REASONS := {
@@ -53,8 +53,10 @@ var _hovered: MechGridData.Placement
 # Open edges lit briefly after a part is placed or moved.
 var _flash_edges: Array[Vector2i] = []
 var _flash_timer: Timer
-# Each placement -> its overlay of name, stat line, bonuses, and rotate button.
-var _overlays: Dictionary[MechGridData.Placement, Control] = {}
+# Each placement that can turn -> its rotate button.
+var _rotate_buttons: Dictionary[MechGridData.Placement, RotateButton] = {}
+# The placement the last tooltip request found, for the popup Godot asks for next.
+var _tooltip_placement: MechGridData.Placement
 
 
 func _ready() -> void:
@@ -124,6 +126,25 @@ func _gui_input(event: InputEvent) -> void:
 			queue_redraw()
 
 
+# Godot asks for the text under the mouse, then for the popup to show it in. A part's text
+# changes with its links, so moving between parts with different numbers refreshes the popup.
+func _get_tooltip(at_position: Vector2) -> String:
+	_tooltip_placement = null
+	if run == null or _moving or get_viewport().gui_is_dragging():
+		return ""
+	_tooltip_placement = run.grid.get_placement_at(_cell_at(at_position))
+	if _tooltip_placement == null:
+		return ""
+	return PartInfo.text_for(_tooltip_placement.part, _tooltip_placement.rotation, _stats.part_stats[_tooltip_placement])
+
+
+func _make_custom_tooltip(_for_text: String) -> Object:
+	if _tooltip_placement == null:
+		return null
+	var placement := _tooltip_placement
+	return PartInfo.new(placement.part, placement.rotation, _stats.part_stats[placement])
+
+
 func _notification(what: int) -> void:
 	match what:
 		NOTIFICATION_DRAG_END:
@@ -183,7 +204,8 @@ func _on_run_changed() -> void:
 	# Moves and rotations replace placements, so drop references to old ones.
 	_hovered = null
 	_moving = null
-	_rebuild_overlays()
+	_tooltip_placement = null
+	_rebuild_rotate_buttons()
 	update_minimum_size()
 	queue_redraw()
 
@@ -202,11 +224,11 @@ func _clear_preview() -> void:
 
 
 func _set_moving(placement: MechGridData.Placement) -> void:
-	if _moving and _overlays.has(_moving):
-		_overlays[_moving].modulate.a = 1.0
+	if _moving and _rotate_buttons.has(_moving):
+		_rotate_buttons[_moving].modulate.a = 1.0
 	_moving = placement
-	if _moving and _overlays.has(_moving):
-		_overlays[_moving].modulate.a = MOVING_ALPHA
+	if _moving and _rotate_buttons.has(_moving):
+		_rotate_buttons[_moving].modulate.a = MOVING_ALPHA
 	queue_redraw()
 
 
@@ -246,95 +268,34 @@ func _rotate(cell: Vector2i) -> void:
 		message.emit("No room to rotate here", false)
 
 
-func _rebuild_overlays() -> void:
-	for overlay in _overlays.values():
-		remove_child(overlay)
-		overlay.queue_free()
-	_overlays.clear()
+func _rebuild_rotate_buttons() -> void:
+	for button in _rotate_buttons.values():
+		remove_child(button)
+		button.queue_free()
+	_rotate_buttons.clear()
 	if run == null:
 		return
 	for placement in run.grid.get_placements():
-		var overlay := _make_overlay(placement)
-		add_child(overlay)
-		_overlays[placement] = overlay
+		if placement.part.can_rotate():
+			var button := _make_rotate_button(placement)
+			add_child(button)
+			_rotate_buttons[placement] = button
 
 
-# The type tag, name, stat line, and bonuses shown over a placed part, plus its rotate button.
-# The name gets its own line so the button never squeezes it on a one-cell-wide label.
-func _make_overlay(placement: MechGridData.Placement) -> Control:
-	var rect := _label_rect(placement)
-	var box := VBoxContainer.new()
-	box.mouse_filter = MOUSE_FILTER_IGNORE
-	box.position = rect.position + Vector2(5, 3)
-	box.size = rect.size - Vector2(10, 6)
-	box.add_theme_constant_override("separation", 0)
-	var header := HBoxContainer.new()
-	header.mouse_filter = MOUSE_FILTER_IGNORE
-	var tag := _overlay_label(PartShapeView.tag_for(placement.part.type))
-	tag.size_flags_horizontal = SIZE_EXPAND_FILL
-	tag.size_flags_vertical = SIZE_SHRINK_BEGIN
-	header.add_child(tag)
-	if placement.part.can_rotate():
-		var rotate := RotateButton.new()
-		# PASS lets drags that start or drop on the button reach the grid.
-		rotate.mouse_filter = MOUSE_FILTER_PASS
-		rotate.custom_minimum_size = Vector2(22, 22)
-		rotate.size_flags_vertical = SIZE_SHRINK_BEGIN
-		rotate.pressed.connect(_rotate.bind(placement.cells[0]))
-		header.add_child(rotate)
-	box.add_child(header)
-	box.add_child(_overlay_label(placement.part.part_name))
-	var numbers: MechStats.PartStats = _stats.part_stats[placement]
-	box.add_child(_overlay_label(stat_line(numbers)))
-	var bonuses := bonus_line(numbers)
-	if not bonuses.is_empty():
-		box.add_child(_overlay_label(bonuses))
-	return box
-
-
-func _overlay_label(text: String) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", LABEL_FONT_SIZE)
-	label.add_theme_color_override("font_color", LABEL_COLOR)
-	return label
-
-
-## A part's numbers in a line, e.g. "17 DMG · -3 EN" or "+6 EN · +5 HP".
-static func stat_line(numbers: MechStats.PartStats) -> String:
-	var bits: PackedStringArray = []
-	if numbers.damage:
-		bits.append("%d DMG" % numbers.damage)
-	if numbers.energy_draw:
-		bits.append("-%d EN" % numbers.energy_draw)
-	if numbers.energy:
-		bits.append("+%d EN" % numbers.energy)
-	if numbers.hp:
-		bits.append("+%d HP" % numbers.hp)
-	if not bits.is_empty():
-		return " · ".join(bits)
-	return "Links: %d" % numbers.links if numbers.links else "Not linked"
-
-
-## The bonuses a part gets from its links, e.g. "Overcharge +3 · Cooled ×1.5".
-static func bonus_line(numbers: MechStats.PartStats) -> String:
-	var bits: PackedStringArray = []
-	for rule: SynergyRule in numbers.bonuses:
-		var amount := numbers.bonuses[rule]
-		var shown := str(roundi(amount)) if is_equal_approx(amount, roundf(amount)) else str(amount)
-		var op := "×" if rule.op == SynergyRule.Op.MULTIPLY else "+"
-		bits.append("%s %s%s" % [rule.id.capitalize(), op, shown])
-	return " · ".join(bits)
-
-
-# Rectangular parts label their whole block; others label their first cell.
-func _label_rect(placement: MechGridData.Placement) -> Rect2:
-	var shape := placement.part.get_shape(placement.rotation)
-	var extent := PartShapeView.shape_extent(shape)
-	if extent.x * extent.y != shape.size():
-		return _cell_rect(placement.cells[0])
-	return Rect2(Vector2(placement.origin) * CELL_PITCH, Vector2(extent) * CELL_PITCH - Vector2(CELL_GAP, CELL_GAP))
+# A rotate button in the part's top-right corner: the last cell of its top row.
+func _make_rotate_button(placement: MechGridData.Placement) -> RotateButton:
+	var corner := placement.cells[0]
+	for cell in placement.cells:
+		if cell.y == corner.y:
+			corner.x = maxi(corner.x, cell.x)
+	var button := RotateButton.new()
+	# PASS lets drags that start or drop on the button reach the grid.
+	button.mouse_filter = MOUSE_FILTER_PASS
+	button.custom_minimum_size = Vector2.ONE * ROTATE_BUTTON_SIZE
+	button.size = button.custom_minimum_size
+	button.position = _cell_rect(corner).position + Vector2(CELL_SIZE - ROTATE_BUTTON_SIZE - 4, 4)
+	button.pressed.connect(_rotate.bind(placement.cells[0]))
+	return button
 
 
 func _draw_edge(cell: Vector2i) -> void:
