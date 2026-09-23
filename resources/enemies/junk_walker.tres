@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/reactor.tres" id="1_e7qtx"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_kivo8"]
+[ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_iwpdd"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="4_6qfk0"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="5_7ip81"]
+
+[sub_resource type="Resource" id="Resource_7h6s7"]
+script = ExtResource("2_kivo8")
+part = ExtResource("3_iwpdd")
+origin = Vector2i(5, 1)
+
+[sub_resource type="Resource" id="Resource_xbo3h"]
+script = ExtResource("2_kivo8")
+part = ExtResource("4_6qfk0")
+origin = Vector2i(3, 1)
+
+[resource]
+script = ExtResource("5_7ip81")
+id = "junk_walker"
+enemy_name = "Junk Walker"
+chassis = ExtResource("1_e7qtx")
+lineup = Array[ExtResource("2_kivo8")]([SubResource("Resource_7h6s7"), SubResource("Resource_xbo3h")])

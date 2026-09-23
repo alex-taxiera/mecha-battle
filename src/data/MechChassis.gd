@@ -24,11 +24,8 @@ enum Passive {
 @export var size := Vector2i(4, 4)
 ## Cells inside [member size] that can never hold a part.
 @export var disabled_cells: Array[Vector2i] = []
-## Hull points before any parts, in round 1. See [method get_base_hp] for later rounds.
+## Hull points before any parts.
 @export var base_hp: int
-## How much [member base_hp] grows each round, compounding: 0.15 is +15% a round. It keeps fights
-## from getting shorter as later shops add damage.
-@export var hp_growth := 0.15
 ## Energy generated each turn before any generators.
 @export var base_energy := 3
 ## The weapon bays around the grid. Weapons only mount here, never on the grid.
@@ -36,6 +33,8 @@ enum Passive {
 ## The frame in a fight: a 128x128 pixel sprite facing right, with its bays empty. Each mounted
 ## weapon's own sprite goes at its bay's [member Hardpoint.battle_anchor].
 @export var battle_sprite: Texture2D
+## The parts a run on this frame starts with, already installed.
+@export var starter_lineup: Array[LoadoutPart] = []
 
 @export_group("Passive")
 @export var passive := Passive.NONE
@@ -67,14 +66,6 @@ func get_usable_cell_count() -> int:
 			if is_usable(Vector2i(x, y)):
 				count += 1
 	return count
-
-
-## Returns the frame's hull points before any parts in round [param round_number]:
-## [member base_hp] grown by [member hp_growth] a round, compounding, rounded down. A Bastion's
-## 450 is 450, 517, 595, 684, then 787 in round 5.
-func get_base_hp(round_number := 1) -> int:
-	# The nudge keeps float error from rounding an exact result down: 100 × 1.15 is 114.999....
-	return floori(base_hp * pow(1.0 + hp_growth, maxi(round_number, 1) - 1) + 1e-6)
 
 
 ## Returns the hardpoint whose bay covers [param cell], or [code]null[/code].

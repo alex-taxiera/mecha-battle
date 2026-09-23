@@ -20,11 +20,10 @@ func before_test() -> void:
 	_laser = Fixtures.laser()
 	_reactor = Fixtures.reactor()
 	_heatsink = Fixtures.heatsink()
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
 	# The armed cross: a left arm at (-1, 1)-(-1, 3), a right arm at (4, 1)-(4, 3), and a 2x2
 	# back at (1, -2)-(2, -1).
-	_run = RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink], Fixtures.rules(), 10, rng)
+	_run = RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink], Fixtures.rules(), 10, RunRng.new(7))
+	_run.open_shop()
 	_grid_ui = auto_free(SCENE.instantiate())
 	_grid_ui.run = _run
 	add_child(_grid_ui)
@@ -227,8 +226,8 @@ func _shop_drag(part: MechPart) -> PartDragData:
 
 
 func _slot_of(part: MechPart) -> int:
-	for i in _run.slots.size():
-		if _run.slots[i].part == part:
+	for i in _run.shop.slots.size():
+		if _run.shop.slots[i].part == part:
 			return i
 	return -1
 

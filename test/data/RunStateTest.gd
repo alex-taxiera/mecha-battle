@@ -27,12 +27,27 @@ func before_test() -> void:
 	_run.changed.connect(func() -> void: _changes += 1)
 
 
-func test_the_first_shop_offers_each_part_once() -> void:
-	for slot in _run.slots:
-		assert_bool(slot.sold).is_false()
-	assert_array(_parts_of(_run)).has_size(4).contains_same_exactly_in_any_order(_gatling, _laser, _reactor, _heatsink)
+func test_a_new_run_starts_with_its_gold_and_an_empty_mech() -> void:
 	assert_int(_run.gold).is_equal(10)
-	assert_int(_run.round_number).is_equal(1)
+	assert_int(_run.grid.get_used_cell_count()).is_equal(0) # the fixture frame has no starter kit
+	assert_array(_run.stash).is_empty()
+	assert_int(_run.hull_damage).is_equal(0)
+	assert_int(_run.fights_won).is_equal(0)
+	assert_bool(_run.is_over()).is_false()
+	assert_object(_run.map).is_null() # no sectors given
+	# The open shop offers each part once.
+	assert_array(_parts_of(_run)).has_size(4).contains_same_exactly_in_any_order(_gatling, _laser, _reactor, _heatsink)
+
+
+func test_a_run_starts_with_its_chassis_starter_kit() -> void:
+	var chassis := Fixtures.armed_cross()
+	chassis.starter_lineup = [LoadoutPart.make(_gatling, LEFT_ARM), LoadoutPart.make(_heatsink, Vector2i(2, 1), 1)]
+	var run := RunState.new(chassis, [], [])
+	assert_int(run.grid.get_mounted_count()).is_equal(1)
+	assert_int(run.grid.get_placement_at(Vector2i(2, 1)).rotation).is_equal(1)
+	assert_int(run.grid.get_used_cell_count()).is_equal(3)
+	# The kit's parts are the run's own copies.
+	assert_object(run.grid.get_part_at(LEFT_ARM)).is_not_same(_gatling)
 
 
 func test_the_shop_only_offers_weapons_the_chassis_can_mount() -> void:
@@ -40,6 +55,7 @@ func test_the_shop_only_offers_weapons_the_chassis_can_mount() -> void:
 	var missile_pod := Fixtures.missile_pod()
 	var run := RunState.new(Fixtures.bastion(), [_gatling, missile_pod, _laser, _heatsink], [])
 	assert_array(run.catalog).has_size(3).contains_same_exactly_in_any_order([missile_pod, _laser, _heatsink])
+	run.open_shop()
 	assert_array(_parts_of(run)).not_contains_same([_gatling])
 	# The cross has arms and a back, so everything is on offer.
 	assert_array(_run.catalog).has_size(4).contains_same_exactly_in_any_order([_gatling, _laser, _reactor, _heatsink])
@@ -49,7 +65,7 @@ func test_buying_installs_the_part_and_pays_for_it() -> void:
 	var slot := _slot_of(_gatling)
 	assert_bool(_run.buy(slot, LEFT_ARM)).is_true() # (-1, 1)-(-1, 3)
 	assert_int(_run.gold).is_equal(6)
-	assert_bool(_run.slots[slot].sold).is_true()
+	assert_bool(_run.shop.slots[slot].sold).is_true()
 	var installed := _run.grid.get_part_at(Vector2i(-1, 3))
 	assert_str(installed.part_name).is_equal(_gatling.part_name)
 	assert_object(installed).is_not_same(_gatling) # its own instance, not the shop's blueprint
@@ -64,7 +80,7 @@ func test_a_failed_buy_changes_nothing() -> void:
 	assert_bool(_run.buy(gatling_slot, LEFT_ARM)).is_false()       # costs 4
 	assert_bool(_run.buy(99, LEFT_ARM)).is_false()                 # no such slot
 	assert_int(_run.gold).is_equal(3)
-	assert_bool(_run.slots[gatling_slot].sold).is_false()
+	assert_bool(_run.shop.slots[gatling_slot].sold).is_false()
 	assert_int(_run.grid.get_used_cell_count()).is_equal(0)
 	assert_int(_changes).is_equal(0)
 	# The affordable laser still sells, but its slot only sells once.
@@ -89,7 +105,7 @@ func test_weapon_offers_do_not_rotate() -> void:
 	# A weapon must match its hardpoint's shape, so its offer never turns.
 	var slot := _slot_of(_gatling)
 	assert_bool(_run.rotate_slot(slot)).is_false()
-	assert_int(_run.slots[slot].rotation).is_equal(0)
+	assert_int(_run.shop.slots[slot].rotation).is_equal(0)
 	assert_int(_changes).is_equal(0)
 	assert_bool(_run.rotate_slot(_slot_of(_reactor))).is_true() # a 2x1 still turns
 
@@ -109,7 +125,7 @@ func test_weapons_mount_on_hardpoints() -> void:
 	assert_int(_changes).is_equal(3) # the buy, the move, and the sale
 
 
-func test_selling_refunds_in_full_this_round_and_half_later() -> void:
+func test_selling_refunds_in_full_at_the_same_shop_and_half_later() -> void:
 	assert_bool(_run.buy(_slot_of(_gatling), LEFT_ARM)).is_true()       # 10 -> 6
 	assert_bool(_run.buy(_slot_of(_reactor), Vector2i(2, 1))).is_true() # 6 -> 3, at (2, 1) (3, 1)
 	assert_bool(_run.is_fresh(Vector2i(2, 1))).is_true()
@@ -117,56 +133,38 @@ func test_selling_refunds_in_full_this_round_and_half_later() -> void:
 	assert_int(_run.sell(Vector2i(-1, 2))).is_equal(4)                  # 3 -> 7
 	assert_object(_run.grid.get_part_at(Vector2i(-1, 2))).is_null()
 
-	_run.end_round()                                                     # 7 -> 17
+	_run.close_shop()
+	# Away from a shop nothing sells.
+	assert_int(_run.sell(Vector2i(3, 1))).is_equal(0)
+	assert_object(_run.grid.get_part_at(Vector2i(3, 1))).is_not_null()
+	_run.open_shop()
 	assert_bool(_run.is_fresh(Vector2i(2, 1))).is_false()
 	assert_int(_run.sell_value(Vector2i(3, 1))).is_equal(1)             # half of 3, rounded down
 	assert_int(_run.sell(Vector2i(3, 1))).is_equal(1)
-	assert_int(_run.gold).is_equal(18)
+	assert_int(_run.gold).is_equal(8)
 	assert_int(_run.sell(Vector2i(3, 1))).is_equal(0)                   # nothing left there
 
 
-func test_end_round_carries_gold_over_and_adds_income() -> void:
-	assert_bool(_run.buy(_slot_of(_laser), Vector2i(1, 1))).is_true() # 10 -> 8
-	_run.end_round()
-	assert_int(_run.round_number).is_equal(2)
-	assert_int(_run.gold).is_equal(18) # the unspent 8 plus 10 income
-	for slot in _run.slots:
-		assert_bool(slot.sold).is_false() # restocked for free
-	assert_int(_run.grid.get_used_cell_count()).is_equal(1) # the mech keeps its parts
-
-
-func test_the_chassis_hp_grows_each_round() -> void:
-	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
-	assert_int(_run.stats().hp).is_equal(30 + 12)
-	_run.end_round()
-	assert_int(_run.stats().base_hp).is_equal(34) # 30 × 1.15 = 34.5, rounded down
-	assert_int(_run.stats().hp).is_equal(34 + 12)
-	# Previews count the same round.
-	assert_int(_run.preview_move(Vector2i(1, 1), Vector2i(2, 1)).stats.hp).is_equal(34 + 12)
-
-
-func test_records_each_fight() -> void:
-	assert_int(_run.wins).is_equal(0)
-	assert_int(_run.losses).is_equal(0)
-	assert_int(_run.draws).is_equal(0)
-	_run.record_fight(RunState.FightResult.WIN)
-	_run.record_fight(RunState.FightResult.WIN)
-	_run.record_fight(RunState.FightResult.LOSS)
-	_run.record_fight(RunState.FightResult.DRAW)
-	assert_int(_run.wins).is_equal(2)
-	assert_int(_run.losses).is_equal(1)
-	assert_int(_run.draws).is_equal(1)
-	assert_int(_changes).is_equal(4) # the shop redraws its record each time
-	# Recording a fight doesn't end the round; the shop does that next.
-	assert_int(_run.round_number).is_equal(1)
+func test_the_shop_only_trades_while_open() -> void:
+	_run.close_shop()
+	assert_bool(_run.can_sell()).is_false()
+	assert_bool(_run.buy(0, Vector2i(1, 1))).is_false()
+	assert_bool(_run.reroll()).is_false()
+	assert_bool(_run.rotate_slot(0)).is_false()
+	assert_object(_run.preview_buy(0, Vector2i(1, 1))).is_null()
+	assert_int(_run.gold).is_equal(10)
+	# Positive control: reopened, it trades again.
+	_run.open_shop()
+	assert_bool(_run.can_sell()).is_true()
+	assert_bool(_run.buy(_slot_of(_laser), Vector2i(1, 1))).is_true()
 
 
 func test_reroll_costs_gold_and_restocks() -> void:
 	assert_bool(_run.buy(_slot_of(_laser), Vector2i(1, 1))).is_true() # 10 -> 8
 	assert_bool(_run.reroll()).is_true()
 	assert_int(_run.gold).is_equal(7)
-	assert_array(_run.slots).has_size(4)
-	for slot in _run.slots:
+	assert_array(_run.shop.slots).has_size(4)
+	for slot in _run.shop.slots:
 		assert_bool(slot.sold).is_false()
 	# Without the gold, it fails and keeps the same offers.
 	_run.gold = 0
@@ -245,22 +243,230 @@ func test_preview_move() -> void:
 	assert_object(_run.grid.get_part_at(Vector2i(3, 2))).is_null()
 
 
+func test_hull_damage_carries_over_from_a_won_fight() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true() # 30 + 12 = 42 HP
+	var mech := _run.make_player_mech()
+	assert_int(mech.max_hp).is_equal(42)
+	assert_int(mech.current_health).is_equal(42)
+	mech.take_damage(15)
+	_run.record_fight(RunState.FightResult.WIN, mech)
+	assert_int(_run.hull_damage).is_equal(15)
+	assert_int(_run.get_current_hp()).is_equal(27)
+	assert_int(_run.fights_won).is_equal(1)
+	assert_bool(_run.is_over()).is_false()
+	# The next fight starts where this one left off.
+	assert_int(_run.make_player_mech().current_health).is_equal(27)
+
+
+func test_a_lost_or_drawn_fight_ends_the_run() -> void:
+	var mech := _run.make_player_mech()
+	mech.take_damage(999)
+	_run.record_fight(RunState.FightResult.LOSS, mech)
+	assert_bool(_run.is_over()).is_true()
+	assert_int(_run.outcome).is_equal(RunState.Outcome.DEFEAT)
+	assert_int(_run.get_current_hp()).is_equal(0)
+	assert_int(_run.fights_won).is_equal(0)
+	var draw := _new_run(5)
+	var both_down := draw.make_player_mech()
+	both_down.take_damage(999)
+	draw.record_fight(RunState.FightResult.DRAW, both_down)
+	assert_int(draw.outcome).is_equal(RunState.Outcome.DEFEAT)
+
+
+func test_hp_parts_raise_current_hp_and_reinstalling_does_not_heal() -> void:
+	_run.hull_damage = 10
+	assert_int(_run.get_current_hp()).is_equal(20) # 30 - 10
+	# Two touching lasers, plated: 12 + 4 each.
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(0, 1))).is_true()
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(0, 2))).is_true()
+	assert_int(_run.get_max_hp()).is_equal(62)
+	assert_int(_run.get_current_hp()).is_equal(52) # raised with the max, still 10 down
+	# Taking a laser out and putting it back leaves the damage as it was.
+	assert_bool(_run.unequip(Vector2i(0, 2))).is_true()
+	assert_int(_run.get_current_hp()).is_equal(32)
+	assert_bool(_run.install(0, Vector2i(0, 2))).is_true()
+	assert_int(_run.get_current_hp()).is_equal(52)
+	assert_int(_run.hull_damage).is_equal(10)
+
+
+func test_current_hp_never_drops_below_1_while_the_run_goes_on() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	_run.hull_damage = 40 # of 42
+	assert_int(_run.get_current_hp()).is_equal(2)
+	assert_bool(_run.unequip(Vector2i(1, 1))).is_true() # the max drops to 30, under the damage
+	assert_int(_run.get_current_hp()).is_equal(1)
+
+
+func test_heal_and_damage_hull() -> void:
+	_run.hull_damage = 20
+	assert_int(_run.heal(5)).is_equal(5)
+	assert_int(_run.hull_damage).is_equal(15)
+	assert_int(_run.heal(100)).is_equal(15) # only what's missing
+	assert_int(_run.hull_damage).is_equal(0)
+	_run.damage_hull(12)
+	assert_int(_run.get_current_hp()).is_equal(18)
+	# Damage outside a fight leaves at least 1 HP.
+	_run.damage_hull(999)
+	assert_int(_run.get_current_hp()).is_equal(1)
+	assert_bool(_run.is_over()).is_false()
+	assert_int(_changes).is_equal(4)
+
+
+func test_stash_install_and_unequip() -> void:
+	_run.stash_part(_heatsink, 1)
+	assert_array(_run.stash).has_size(1)
+	assert_object(_run.stash[0].part).is_not_same(_heatsink) # the run's own copy
+	assert_int(_run.stash[0].rotation).is_equal(1)
+	# Upright it would hit the (3, 3) corner at (2, 2); it's stashed turned once, so it fits.
+	var preview := _run.preview_install(0, Vector2i(2, 2))
+	assert_int(preview.fit).is_equal(MechGridData.Fit.OK)
+	assert_object(preview.stats).is_not_null()
+	assert_array(_run.stash).has_size(1) # a preview installs nothing
+	assert_bool(_run.install(0, Vector2i(2, 2))).is_true()
+	assert_array(_run.stash).is_empty()
+	for cell: Vector2i in [Vector2i(2, 2), Vector2i(3, 2), Vector2i(2, 3)]:
+		assert_object(_run.grid.get_part_at(cell)).is_not_null()
+	# Back to the stash, keeping its turn.
+	assert_bool(_run.unequip(Vector2i(3, 2))).is_true()
+	assert_int(_run.grid.get_used_cell_count()).is_equal(0)
+	assert_array(_run.stash).has_size(1)
+	assert_int(_run.stash[0].rotation).is_equal(1)
+	assert_int(_changes).is_equal(3)
+
+
+func test_the_stash_rejects_what_does_not_fit() -> void:
+	_run.stash_part(_gatling)
+	assert_bool(_run.install(0, Vector2i(1, 1))).is_false() # weapons only go in bays
+	assert_bool(_run.install(5, LEFT_ARM)).is_false()       # no such stash entry
+	assert_bool(_run.unequip(Vector2i(1, 1))).is_false()     # nothing there
+	assert_object(_run.preview_install(5, LEFT_ARM)).is_null()
+	assert_array(_run.stash).has_size(1)
+	# Weapons don't turn in the stash either; other parts do.
+	assert_bool(_run.rotate_stashed(0)).is_false()
+	_run.stash_part(_reactor)
+	assert_bool(_run.rotate_stashed(1)).is_true()
+	assert_int(_run.stash[1].rotation).is_equal(1)
+	# Positive control: the gatling installs in a bay.
+	assert_bool(_run.install(0, LEFT_ARM)).is_true()
+
+
+func test_sectors_give_a_map_and_the_run_travels_it() -> void:
+	var run := _sector_run(3)
+	assert_object(run.map).is_not_null()
+	assert_object(run.get_act()).is_same(run.acts[0])
+	assert_int(run.get_floor_number()).is_equal(0)
+	# The whole bottom floor is open at first; nothing else is.
+	assert_array(run.get_reachable()).contains_same_exactly(run.map.floors[0])
+	var first: MapNode = run.get_reachable()[0]
+	assert_bool(run.travel(run.map.boss)).is_false()
+	assert_bool(run.travel(first)).is_true()
+	assert_bool(first.visited).is_true()
+	assert_int(run.get_floor_number()).is_equal(1)
+	assert_array(run.get_reachable()).contains_same_exactly(first.next)
+	# Nowhere to go once the run is over.
+	run.outcome = RunState.Outcome.DEFEAT
+	assert_bool(run.travel(first.next[0])).is_false()
+
+
+func test_fights_pick_the_sectors_enemy_of_the_nodes_tier() -> void:
+	var run := _sector_run(3)
+	var node: MapNode = run.get_reachable()[0]
+	assert_bool(run.travel(node)).is_true()
+	var enemy := run.get_enemy()
+	assert_int(enemy.tier).is_equal(EnemyLoadout.Tier.NORMAL)
+	# Picked once, then kept on the node.
+	assert_object(run.get_enemy()).is_same(enemy)
+	assert_object(node.enemy).is_same(enemy)
+	# Its HP is scaled for the sector and the floor: 30 × 1.5 on floor 0.
+	assert_int(run.make_enemy_mech().max_hp).is_equal(45)
+	# Two floors up, +10% a floor: 30 × 1.5 × 1.2.
+	assert_int(run.make_enemy_mech(MapNode.new(2, 0)).max_hp).is_equal(54)
+	# An elite comes from the elites, and the boss was picked with the map, from the bosses.
+	assert_int(run.get_enemy(MapNode.new(5, 0, MapNode.Type.ELITE)).tier).is_equal(EnemyLoadout.Tier.ELITE)
+	assert_int(run.map.boss.enemy.tier).is_equal(EnemyLoadout.Tier.BOSS)
+
+
+func test_the_same_enemy_does_not_come_twice_in_a_row() -> void:
+	var run := _sector_run(1)
+	for i in 20:
+		var a := run.get_enemy(MapNode.new(1, 0))
+		var b := run.get_enemy(MapNode.new(1, 0))
+		assert_object(b).append_failure_message("roll %d" % i).is_not_same(a)
+
+
+func test_next_act_repairs_half_the_damage_then_ends_in_victory() -> void:
+	var run := _sector_run(2)
+	var first_map := run.map
+	run.hull_damage = 9
+	run.next_act()
+	assert_int(run.act_index).is_equal(1)
+	assert_object(run.map).is_not_same(first_map)
+	assert_object(run.map.act).is_same(run.acts[1])
+	assert_object(run.map.current).is_null()
+	assert_int(run.hull_damage).is_equal(4) # half of 9, rounded up, repaired
+	assert_bool(run.is_over()).is_false()
+	run.next_act()
+	assert_int(run.outcome).is_equal(RunState.Outcome.VICTORY)
+
+
+func test_a_sector_can_lay_out_its_own_map() -> void:
+	# A generator that makes just a boss, standing in for a sector's own layout.
+	var script := GDScript.new()
+	script.source_code = "extends MapGenerator\n\nfunc generate(act: ActData, _rng: RandomNumberGenerator) -> MapGraph:\n" \
+		+ "\tvar graph := MapGraph.new()\n\tgraph.act = act\n\tgraph.boss = MapNode.new(0, 0, MapNode.Type.BOSS)\n\treturn graph\n"
+	assert_int(script.reload()).is_equal(OK)
+	var act := Fixtures.act()
+	act.generator = script
+	var acts: Array[ActData] = [act]
+	var run := RunState.new(Fixtures.cross_chassis(), [], [], 10, RunRng.new(1), acts)
+	assert_array(run.map.floors).is_empty()
+	assert_array(run.map.get_nodes()).contains_same_exactly([run.map.boss])
+	# Positive control: without one, it's the standard map.
+	assert_array(_sector_run(1).map.floors).has_size(12)
+
+
+func test_the_same_seed_gives_the_same_run() -> void:
+	var a := _sector_run(2, 77)
+	var b := _sector_run(2, 77)
+	assert_array(_map_summary(a.map)).is_equal(_map_summary(b.map))
+	assert_str(a.map.boss.enemy.enemy_name).is_equal(b.map.boss.enemy.enemy_name)
+	# Positive control: another seed gives another map.
+	assert_array(_map_summary(_sector_run(2, 78).map)).is_not_equal(_map_summary(a.map))
+
+
 func _new_run(rng_seed: int) -> RunState:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = rng_seed
-	return RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink],
-		[Fixtures.cooled(), Fixtures.overcharge(), Fixtures.stable(), Fixtures.plated()], 10, rng)
+	var run := RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink],
+		[Fixtures.cooled(), Fixtures.overcharge(), Fixtures.stable(), Fixtures.plated()], 10, RunRng.new(rng_seed))
+	run.open_shop()
+	return run
+
+
+# A run on the bare cross (30 HP) through [param act_count] of the fixture sectors, with enemy
+# HP ×1.5 and +10% a floor.
+func _sector_run(act_count: int, rng_seed := 1) -> RunState:
+	var acts: Array[ActData] = []
+	for i in act_count:
+		acts.append(Fixtures.act(1.5, 0.1))
+	return RunState.new(Fixtures.cross_chassis(), [], [], 10, RunRng.new(rng_seed), acts)
+
+
+# Each node's id, type, and links, to compare two maps.
+func _map_summary(map: MapGraph) -> Array[String]:
+	var summary: Array[String] = []
+	for node in map.get_nodes():
+		summary.append("%s:%d:%s" % [node.id, node.type, ",".join(node.next.map(func(n: MapNode) -> String: return n.id))])
+	return summary
 
 
 func _slot_of(part: MechPart) -> int:
-	for i in _run.slots.size():
-		if _run.slots[i].part == part:
+	for i in _run.shop.slots.size():
+		if _run.shop.slots[i].part == part:
 			return i
 	return -1
 
 
 func _parts_of(run: RunState) -> Array[MechPart]:
 	var parts: Array[MechPart] = []
-	for slot in run.slots:
+	for slot in run.shop.slots:
 		parts.append(slot.part)
 	return parts

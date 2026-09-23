@@ -54,57 +54,43 @@ func test_next_round_fights_the_players_build_then_returns_to_the_shop() -> void
 	assert_array(player.active_parts).has_size(2)
 	var gun: ActivePart = player.active_parts.filter(func(active: ActivePart) -> bool: return active.part == run.grid.get_part_at(Vector2i(-1, 2)))[0]
 	assert_int(gun.damage).is_equal(12)
-	# The fight knows its run, for the round and record it shows.
+	# The fight knows its run, for the progress it shows.
 	assert_object(_game.combat.run).is_same(run)
 
 	await _finish_fight()
 	assert_object(_game.combat).is_null()
 	assert_bool(_game.shop.is_inside_tree()).is_true()
-	assert_int(run.wins).is_equal(1)
-	assert_int(run.losses).is_equal(0)
-	assert_int(run.round_number).is_equal(2)
+	assert_int(run.fights_won).is_equal(1)
+	assert_bool(run.is_over()).is_false()
 	assert_int(run.gold).is_equal(12) # the 2 left over plus 10 income
-	assert_str((_game.shop.get_node("%RecordLabel") as Label).text).is_equal("Record: 1 W · 0 L")
-	assert_str((_game.shop.get_node("%Toast") as Label).text).is_equal("Won round 1 · +10g income, shop restocked")
+	assert_str((_game.shop.get_node("%RecordLabel") as Label).text).is_equal("Hull: 30 / 30 HP · 1 won")
+	assert_str((_game.shop.get_node("%Toast") as Label).text).is_equal("Won the fight · +10g, shop restocked")
 	assert_int(run.grid.get_placements().size()).is_equal(2) # the build survives the fight
 	await await_idle_frame() # free the combat screen and the shop cards the restock replaced
 
 
-func test_losing_is_recorded_and_the_next_round_fights_again() -> void:
+func test_losing_ends_the_run() -> void:
 	# With nothing bought, the player's bare 30 HP falls to a gatling in 4 seconds.
 	_game.make_opponent = func() -> BattleMech: return _gun_mech()
 	await _choose(Fixtures.armed_cross())
 	await _press_next_round()
 	await _finish_fight()
 	var run := _game.shop.run
-	assert_int(run.losses).is_equal(1)
-	assert_int(run.wins).is_equal(0)
-	assert_str((_game.shop.get_node("%Toast") as Label).text).is_equal("Lost round 1 · +10g income, shop restocked")
-	# The run goes on: Next round starts round 2's fight.
-	await _press_next_round()
-	assert_object(_game.combat).is_not_null()
-	assert_bool(_game.shop.is_inside_tree()).is_false()
-	await _finish_fight()
-	assert_int(run.losses).is_equal(2)
-	assert_int(run.round_number).is_equal(3)
+	assert_int(run.outcome).is_equal(RunState.Outcome.DEFEAT)
+	assert_int(run.fights_won).is_equal(0)
+	assert_str((_game.shop.get_node("%Toast") as Label).text).is_equal("Lost the fight · +10g, shop restocked")
 	await await_idle_frame()
 
 
-func test_both_mechs_fight_with_the_rounds_hp() -> void:
+func test_the_player_fights_at_the_hulls_hp_against_the_dummy() -> void:
 	_game.make_opponent = Callable() # the combat screen's dummy
 	await _choose(Fixtures.armed_cross())
 	var rules := _game.shop.run.rules
+	_game.shop.run.hull_damage = 10
 	await _press_next_round()
-	# Round 1: the player's bare cross has its 30 base HP, and the dummy its own.
 	assert_int(_game.combat.engine.left.max_hp).is_equal(30)
+	assert_int(_game.combat.engine.left.current_health).is_equal(20)
 	assert_int(_game.combat.engine.right.max_hp).is_equal(CombatScreen.make_dummy(rules).max_hp)
-	await _finish_fight()
-	await _press_next_round()
-	# Round 2: both grow. The dummy's build is content, so it's compared with its own round-2 build.
-	assert_int(_game.combat.engine.left.max_hp).is_equal(34) # 30 × 1.15 = 34.5, rounded down
-	var dummy_round_2 := CombatScreen.make_dummy(rules, 2).max_hp
-	assert_int(_game.combat.engine.right.max_hp).is_equal(dummy_round_2)
-	assert_int(dummy_round_2).is_greater(CombatScreen.make_dummy(rules).max_hp)
 	await _finish_fight()
 	await await_idle_frame()
 
@@ -142,8 +128,8 @@ func _finish_fight() -> void:
 
 
 func _slot_of(part: MechPart) -> int:
-	for i in _game.shop.run.slots.size():
-		if _game.shop.run.slots[i].part == part:
+	for i in _game.shop.run.shop.slots.size():
+		if _game.shop.run.shop.slots[i].part == part:
 			return i
 	return -1
 

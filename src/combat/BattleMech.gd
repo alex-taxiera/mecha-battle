@@ -13,7 +13,7 @@ const MIN_FIRE_RATE := 0.5
 
 ## The frame, for its passive. Only read.
 var chassis: MechChassis
-## Hull points at full health: the chassis's base HP for the round plus every part's HP.
+## Hull points at full health: the chassis's base HP plus every part's HP, times any HP scale.
 var max_hp: int
 var current_health: int
 ## Energy stored for parts to spend. A fight starts with none.
@@ -37,13 +37,14 @@ var active_parts: Array[ActivePart] = []
 
 ## Pass the run's [param rules] so link bonuses count, the same way the shop's stats panel
 ## counts them: HP bonuses (e.g. Plated) toward [member max_hp], and damage and energy
-## bonuses in each [ActivePart]. The chassis's HP is its [param round_number]'s, grown each
-## round (see [method MechChassis.get_base_hp]).
-func _init(grid: MechGridData, rules: Array[SynergyRule] = [], round_number := 1) -> void:
-	var stats := MechStats.calculate(grid, rules, round_number)
+## bonuses in each [ActivePart]. [param hp_scale] scales [member max_hp], rounded, for enemies
+## that get tougher up the map. The mech starts at [param start_health], or full health if it's
+## below 0; the player's starts where their last fight left it.
+func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, start_health := -1) -> void:
+	var stats := MechStats.calculate(grid, rules)
 	chassis = grid.chassis
-	max_hp = stats.hp
-	current_health = max_hp
+	max_hp = roundi(stats.hp * hp_scale)
+	current_health = max_hp if start_health < 0 else clampi(start_health, 0, max_hp)
 	base_energy = chassis.base_energy
 	for placement in grid.get_placements():
 		var active := ActivePart.new(placement.part, stats.part_stats[placement])

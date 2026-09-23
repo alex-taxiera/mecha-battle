@@ -32,7 +32,7 @@ class Link:
 
 
 var hp := 0
-## The chassis's share of [member hp], grown for the round.
+## The chassis's share of [member hp].
 var base_hp := 0
 ## Energy a turn: the chassis's, plus its generators' and its weapons' at their cadence.
 var energy_generated := 0
@@ -76,9 +76,8 @@ func get_rule_counts() -> Dictionary[SynergyRule, int]:
 
 
 ## Returns the stats of the parts on [param grid], with [param rules] applied to every touching
-## pair, in round [param round_number], whose chassis HP has grown (see
-## [method MechChassis.get_base_hp]). A pair links once, however many edges it shares.
-static func calculate(grid: MechGridData, rules: Array[SynergyRule], round_number := 1) -> MechStats:
+## pair. A pair links once, however many edges it shares.
+static func calculate(grid: MechGridData, rules: Array[SynergyRule]) -> MechStats:
 	var stats := MechStats.new()
 	for placement in grid.get_placements():
 		stats.part_stats[placement] = PartStats.new()
@@ -95,7 +94,7 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], round_numbe
 			stats.part_stats[contact.a].links += 1
 			stats.part_stats[contact.b].links += 1
 
-	stats.base_hp = grid.chassis.get_base_hp(round_number)
+	stats.base_hp = grid.chassis.base_hp
 	stats.hp = stats.base_hp
 	var generated := 0.0
 	var drawn := 0.0

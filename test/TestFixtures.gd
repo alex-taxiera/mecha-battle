@@ -31,8 +31,7 @@ static func open_chassis(size: Vector2i) -> MechChassis:
 	return _chassis(size, [])
 
 
-# The design doc's three frames, at the hundreds-of-HP scale. Each one's base HP grows 15% a
-# round (MechChassis.hp_growth's default).
+# The design doc's three frames, at the hundreds-of-HP scale.
 
 ## Tank: 4 wide by 3 tall, 450 HP, 20 energy a turn, every hit taken 2 smaller. One back bay,
 ## over (1, 0) and (2, 0).
@@ -166,6 +165,31 @@ static func plated() -> SynergyRule:
 ## All four mockup rules, in the mockup's legend order.
 static func rules() -> Array[SynergyRule]:
 	return [cooled(), overcharge(), stable(), plated()]
+
+
+# Sectors and enemies for run tests.
+
+## A sector with the default map and two normal enemies, an elite, and a boss, each a bare cross
+## (30 HP, no parts), with enemy HP ×[param hp_scale] and +[param hp_per_floor] a floor.
+static func act(hp_scale := 1.0, hp_per_floor := 0.0) -> ActData:
+	var sector := ActData.new()
+	sector.sector_name = "Test Sector"
+	sector.enemy_hp_scale = hp_scale
+	sector.enemy_hp_per_floor = hp_per_floor
+	sector.enemies = [enemy("Grunt A", EnemyLoadout.Tier.NORMAL), enemy("Grunt B", EnemyLoadout.Tier.NORMAL),
+		enemy("Elite", EnemyLoadout.Tier.ELITE), enemy("Boss", EnemyLoadout.Tier.BOSS)]
+	return sector
+
+
+## An enemy on the bare cross, carrying [param lineup].
+static func enemy(enemy_name: String, tier: EnemyLoadout.Tier, lineup: Array[LoadoutPart] = []) -> EnemyLoadout:
+	var result := EnemyLoadout.new()
+	result.id = enemy_name.to_snake_case()
+	result.enemy_name = enemy_name
+	result.tier = tier
+	result.chassis = cross_chassis()
+	result.lineup = lineup
+	return result
 
 
 static func _chassis(size: Vector2i, disabled: Array[Vector2i]) -> MechChassis:

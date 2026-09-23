@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActData" format=3]
+
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="1_3px3w"]
+[ext_resource type="Resource" path="res://resources/enemies/foundry_striker.tres" id="2_0tlxa"]
+[ext_resource type="Resource" path="res://resources/enemies/forge_sentinel.tres" id="3_phn7j"]
+[ext_resource type="Resource" path="res://resources/enemies/smelter.tres" id="4_e7hyv"]
+[ext_resource type="Resource" path="res://resources/enemies/foundry_overseer.tres" id="5_5f7h3"]
+[ext_resource type="Resource" path="res://resources/enemies/crucible.tres" id="6_6d21g"]
+[ext_resource type="Script" path="res://src/data/ActData.gd" id="7_bj0d8"]
+
+[resource]
+script = ExtResource("7_bj0d8")
+id = "act_2"
+sector_name = "The Orbital Foundry"
+enemies = Array[ExtResource("1_3px3w")]([ExtResource("2_0tlxa"), ExtResource("3_phn7j"), ExtResource("4_e7hyv"), ExtResource("5_5f7h3"), ExtResource("6_6d21g")])
+enemy_hp_scale = 1.4

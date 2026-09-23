@@ -58,7 +58,7 @@ const KO_RECOVER_TIME := 0.4
 @export var print_ticks := true
 
 var engine: CombatEngine
-## The run the fight belongs to, for the round and record. Null outside a run.
+## The run the fight belongs to, for where it is and the fights won. Null outside a run.
 var run: RunState
 ## Whether the fight is paused, and how many times normal speed it plays at.
 var paused := false
@@ -132,7 +132,7 @@ func _exit_tree() -> void:
 
 
 ## Sets the two mechs to fight: the player's on the left. Pass the [param p_run] the fight
-## belongs to for its round and record. Call it before the screen enters the tree, or it
+## belongs to for where it is and the fights won. Call it before the screen enters the tree, or it
 ## fights the demo builds.
 func setup(left: BattleMech, right: BattleMech, p_run: RunState = null) -> void:
 	engine = CombatEngine.new(left, right)
@@ -225,23 +225,17 @@ func result_title() -> String:
 	return "VICTORY" if _winner == engine.left else "DEFEAT"
 
 
-## Returns the round and the run's record with this fight counted, e.g.
-## "ROUND 3 · WINS 3 · LOSSES 1". Draws show once there are any.
+## Returns where the fight is in the run and the fights won with this one counted, e.g.
+## "SECTOR 1 · FLOOR 5 · WINS 3". Outside a run, it's sector 1 with only this fight.
 func record_line() -> String:
-	var round_number := run.round_number if run else 1
-	var wins := run.wins if run else 0
-	var losses := run.losses if run else 0
-	var draws := run.draws if run else 0
-	match result_title():
-		"VICTORY":
-			wins += 1
-		"DEFEAT":
-			losses += 1
-		"DRAW":
-			draws += 1
-	var parts := ["ROUND %d" % round_number, "WINS %d" % wins, "LOSSES %d" % losses]
-	if draws > 0:
-		parts.append("DRAWS %d" % draws)
+	var wins := run.fights_won if run else 0
+	if result_title() == "VICTORY":
+		wins += 1
+	var parts := ["SECTOR %d" % _sector()]
+	var floor_number := run.get_floor_number() if run else 0
+	if floor_number > 0:
+		parts.append("FLOOR %d" % floor_number)
+	parts.append("WINS %d" % wins)
 	return " · ".join(parts)
 
 
@@ -257,21 +251,19 @@ func result_rows() -> Array:
 
 
 ## Returns a mech built on [param p_chassis] from [param lineup], [part id, origin] pairs of
-## part files in [constant ShopScreen.PARTS_DIR], fighting with [param p_rules]' link bonuses
-## and its chassis HP for round [param round_number].
-static func build_mech(p_chassis: MechChassis, lineup: Array, p_rules: Array[SynergyRule], round_number := 1) -> BattleMech:
+## part files in [constant ShopScreen.PARTS_DIR], fighting with [param p_rules]' link bonuses.
+static func build_mech(p_chassis: MechChassis, lineup: Array, p_rules: Array[SynergyRule]) -> BattleMech:
 	var grid := MechGridData.new(p_chassis)
 	for entry in lineup:
 		var part: MechPart = load(ShopScreen.PARTS_DIR.path_join("%s.tres" % entry[0]))
 		if not grid.place_part(part, entry[1]):
 			push_error("CombatScreen: can't place %s at %s" % [entry[0], entry[1]])
-	return BattleMech.new(grid, p_rules, round_number)
+	return BattleMech.new(grid, p_rules)
 
 
-## Returns the [constant DUMMY] build on [constant DUMMY_CHASSIS], its HP grown for round
-## [param round_number] like the player's.
-static func make_dummy(p_rules: Array[SynergyRule], round_number := 1) -> BattleMech:
-	return build_mech(DUMMY_CHASSIS, DUMMY, p_rules, round_number)
+## Returns the [constant DUMMY] build on [constant DUMMY_CHASSIS].
+static func make_dummy(p_rules: Array[SynergyRule]) -> BattleMech:
+	return build_mech(DUMMY_CHASSIS, DUMMY, p_rules)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -322,7 +314,7 @@ func _bind() -> void:
 		hp.accent = CombatColors.accent(left)
 		hp.mirrored = not left
 	if run:
-		_round_badge.set_record(run.round_number, run.wins, run.losses, run.draws)
+		_round_badge.set_progress(_sector(), run.get_floor_number(), run.fights_won)
 	_set_smoothing(TICK)
 	_show_playback()
 	_refresh()
@@ -529,6 +521,11 @@ func _weapons_of(mech: BattleMech) -> WeaponTags:
 func _mech_status(side: String, mech: BattleMech) -> String:
 	var status := "%s HP %d/%d EN %d HEAT %d" % [side, mech.current_health, mech.max_hp, mech.current_energy, mech.heat]
 	return status + " OFF" if mech.is_shut_down() else status
+
+
+# The run's sector, counting from 1; 1 outside a run.
+func _sector() -> int:
+	return run.act_index + 1 if run else 1
 
 
 func _side_name(mech: BattleMech) -> String:

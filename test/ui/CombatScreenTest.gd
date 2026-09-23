@@ -110,18 +110,20 @@ func test_a_draw_says_so() -> void:
 
 
 func test_the_record_line_counts_this_fight() -> void:
-	var run := RunState.new(Fixtures.armed_cross(), [], [])
-	run.round_number = 3
-	run.wins = 2
-	run.losses = 1
+	var acts: Array[ActData] = [Fixtures.act(), Fixtures.act()]
+	var run := RunState.new(Fixtures.armed_cross(), [], [], 10, RunRng.new(1), acts)
+	run.next_act()
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	run.fights_won = 2
 	var screen := _screen(_gunner(), _bare(), run)
-	assert_str((screen.get_node("%RoundBadge") as RoundBadge).get_text()).is_equal("ROUND 3  2W 1L")
+	assert_str((screen.get_node("%RoundBadge") as RoundBadge).get_text()).is_equal("SECTOR 2 · FLOOR 2  2W")
 	_tick_until_over(screen)
-	assert_str(screen.record_line()).is_equal("ROUND 3 · WINS 3 · LOSSES 1")
-	# A draw shows the draws. Outside a run, it's round 1 with only this fight.
+	assert_str(screen.record_line()).is_equal("SECTOR 2 · FLOOR 2 · WINS 3")
+	# A draw adds no win. Outside a run, it's sector 1 with only this fight.
 	var draw := _screen(_gunner(), _gunner())
 	_tick_until_over(draw)
-	assert_str(draw.record_line()).is_equal("ROUND 1 · WINS 0 · LOSSES 0 · DRAWS 1")
+	assert_str(draw.record_line()).is_equal("SECTOR 1 · WINS 0")
 
 
 func test_the_readout_shows_heat_and_shutdowns() -> void:
@@ -385,9 +387,8 @@ func test_fights_the_demo_builds_by_default() -> void:
 	assert_array(screen.rules).is_not_empty()
 
 
-func test_built_mechs_grow_with_the_round() -> void:
-	# An empty lineup loads no parts: just the chassis's HP for the round.
-	assert_int(CombatScreen.build_mech(Fixtures.cross_chassis(), [], [], 2).max_hp).is_equal(34)
+func test_built_mechs_have_the_chassis_hp_plus_their_parts() -> void:
+	# An empty lineup loads no parts: just the chassis's HP.
 	assert_int(CombatScreen.build_mech(Fixtures.cross_chassis(), [], []).max_hp).is_equal(30)
 
 

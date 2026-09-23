@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActData" format=3]
+
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="1_nv2mn"]
+[ext_resource type="Resource" path="res://resources/enemies/citadel_guard.tres" id="2_dmb7u"]
+[ext_resource type="Resource" path="res://resources/enemies/citadel_lancer.tres" id="3_m1at6"]
+[ext_resource type="Resource" path="res://resources/enemies/core_warden.tres" id="4_4njjo"]
+[ext_resource type="Resource" path="res://resources/enemies/praetorian.tres" id="5_b00fj"]
+[ext_resource type="Resource" path="res://resources/enemies/the_core.tres" id="6_bd1kb"]
+[ext_resource type="Script" path="res://src/data/ActData.gd" id="7_cgyiy"]
+
+[resource]
+script = ExtResource("7_cgyiy")
+id = "act_3"
+sector_name = "The Core Citadel"
+enemies = Array[ExtResource("1_nv2mn")]([ExtResource("2_dmb7u"), ExtResource("3_m1at6"), ExtResource("4_4njjo"), ExtResource("5_b00fj"), ExtResource("6_bd1kb")])
+enemy_hp_scale = 1.8

@@ -8,12 +8,12 @@ func test_starts_hidden_and_shows_a_result() -> void:
 	var panel: ResultPanel = auto_free(ResultPanel.new())
 	add_child(panel)
 	assert_bool(panel.visible).is_false()
-	panel.present("VICTORY", CombatColors.HP, "ROUND 3 · WINS 3 · LOSSES 1",
+	panel.present("VICTORY", CombatColors.HP, "SECTOR 1 · FLOOR 3 · WINS 3",
 		[["Battle duration", "16.5s"], ["MVP weapon", "Missile Pod · 254 DMG"]])
 	assert_bool(panel.visible).is_true()
 	assert_str(panel.title_label.text).is_equal("VICTORY")
 	assert_that(panel.title_label.get_theme_color("font_color")).is_equal(CombatColors.HP)
-	assert_str(panel.record_label.text).is_equal("ROUND 3 · WINS 3 · LOSSES 1")
+	assert_str(panel.record_label.text).is_equal("SECTOR 1 · FLOOR 3 · WINS 3")
 	assert_array(panel.get_rows()).is_equal([["Battle duration", "16.5s"], ["MVP weapon", "Missile Pod · 254 DMG"]])
 	# Showing another result replaces the rows.
 	panel.present("DEFEAT", CombatColors.DANGER, "", [["Battle duration", "4.0s"]])

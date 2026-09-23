@@ -24,8 +24,9 @@ func before_test() -> void:
 	add_child(_screen)
 
 
-func test_shows_the_round_gold_chassis_and_shop() -> void:
-	assert_str(_text("RoundLabel")).is_equal("Hangar · Round 1")
+func test_shows_the_hull_gold_chassis_and_shop() -> void:
+	assert_str(_text("RoundLabel")).is_equal("Hangar")
+	assert_str(_text("RecordLabel")).is_equal("Hull: 30 / 30 HP · 0 won")
 	assert_str(_text("GoldLabel")).is_equal("Gold: 10")
 	assert_str(_text("ChassisLabel")).is_equal("Chassis · The Skirmisher")
 	assert_str(_text("ChassisInfo")).is_equal("Cross frame · 0 / 12 slots · 0 / 3 hardpoints")
@@ -84,28 +85,24 @@ func test_next_round_asks_for_the_fight() -> void:
 	_screen.fight_requested.connect(func() -> void: requests[0] += 1)
 	_button("NextRoundButton").pressed.emit()
 	assert_int(requests[0]).is_equal(1)
-	# The round only ends once the fight has been recorded.
-	assert_str(_text("RoundLabel")).is_equal("Hangar · Round 1")
+	# Nothing changes until the fight is over.
 	assert_str(_text("GoldLabel")).is_equal("Gold: 10")
 
 
-func test_finishing_a_round_records_the_fight_and_opens_the_next_shop() -> void:
-	assert_str(_text("RecordLabel")).is_equal("Record: 0 W · 0 L")
+func test_finishing_a_fight_pays_income_and_restocks_the_shop() -> void:
+	assert_bool(_screen.run.buy(_slot_of(_laser), Vector2i(1, 1))).is_true() # 10 -> 8
 	_screen.run.gold = 3
 	_screen.finish_round(RunState.FightResult.WIN)
-	assert_str(_text("RecordLabel")).is_equal("Record: 1 W · 0 L")
-	assert_str(_text("RoundLabel")).is_equal("Hangar · Round 2")
 	assert_str(_text("GoldLabel")).is_equal("Gold: 13") # the 3 left over plus 10 income
-	assert_str(_toast().text).is_equal("Won round 1 · +10g income, shop restocked")
+	assert_str(_toast().text).is_equal("Won the fight · +10g, shop restocked")
 	assert_that(_toast().get_theme_color("font_color")).is_equal(ShopScreen.GOOD_COLOR)
+	for item in _items():
+		assert_bool(item.sold).is_false()
 	_screen.finish_round(RunState.FightResult.LOSS)
-	assert_str(_text("RecordLabel")).is_equal("Record: 1 W · 1 L")
-	assert_str(_toast().text).is_equal("Lost round 2 · +10g income, shop restocked")
+	assert_str(_toast().text).is_equal("Lost the fight · +10g, shop restocked")
 	assert_that(_toast().get_theme_color("font_color")).is_equal(ShopScreen.BAD_COLOR)
-	# Draws only show once there's been one.
 	_screen.finish_round(RunState.FightResult.DRAW)
-	assert_str(_text("RecordLabel")).is_equal("Record: 1 W · 1 L · 1 D")
-	assert_str(_toast().text).is_equal("Drew round 3 · +10g income, shop restocked")
+	assert_str(_toast().text).is_equal("Drew the fight · +10g, shop restocked")
 	await await_idle_frame() # free the shop cards the restocks replaced
 
 
@@ -115,7 +112,7 @@ func test_dropping_an_installed_part_on_the_shop_sells_it() -> void:
 	_screen.show_sell_zone(drag)
 	assert_bool(_sell_zone().visible).is_true()
 	assert_str(_text("SellLabel")).is_equal("Sell for +4g")
-	assert_str(_text("SellNote")).is_equal("Full refund: bought this round")
+	assert_str(_text("SellNote")).is_equal("Full refund: bought at this shop")
 	# Installed parts can be sold there; shop offers can't.
 	assert_bool(_screen.can_sell(Vector2.ZERO, drag)).is_true()
 	assert_bool(_screen.can_sell(Vector2.ZERO, _item_for(_laser)._get_drag_data(Vector2.ZERO))).is_false()
@@ -128,12 +125,12 @@ func test_dropping_an_installed_part_on_the_shop_sells_it() -> void:
 	await await_idle_frame()
 
 
-func test_parts_from_earlier_rounds_sell_for_half() -> void:
+func test_parts_from_earlier_shops_sell_for_half() -> void:
 	assert_bool(_screen.run.buy(_slot_of(_gatling), Vector2i(-1, 1))).is_true()
 	_screen.finish_round(RunState.FightResult.WIN)
 	_screen.show_sell_zone(_grid_ui()._get_drag_data(_cell_center(Vector2i(-1, 2))))
 	assert_str(_text("SellLabel")).is_equal("Sell for +2g")
-	assert_str(_text("SellNote")).is_equal("Half value: bought in an earlier round")
+	assert_str(_text("SellNote")).is_equal("Half value: bought earlier")
 	await await_idle_frame()
 
 
@@ -143,7 +140,7 @@ func test_rotating_a_shop_offer() -> void:
 	assert_bool(_item_for(_laser).get_node("%RotateButton").visible).is_false()   # a 1x1 can't turn
 	assert_bool(_item_for(_gatling).get_node("%RotateButton").visible).is_false() # nor can a weapon
 	_items()[slot].rotate_requested.emit()
-	assert_int(_screen.run.slots[slot].rotation).is_equal(1)
+	assert_int(_screen.run.shop.slots[slot].rotation).is_equal(1)
 	assert_int(_items()[slot].turns).is_equal(1)
 	assert_str(_items()[slot].get_node("%InfoLabel").text).is_equal("Generator · 1×2")
 	await await_idle_frame()
@@ -182,8 +179,8 @@ func _item_for(part: MechPart) -> ShopItem:
 
 
 func _slot_of(part: MechPart) -> int:
-	for i in _screen.run.slots.size():
-		if _screen.run.slots[i].part == part:
+	for i in _screen.run.shop.slots.size():
+		if _screen.run.shop.slots[i].part == part:
 			return i
 	return -1
 

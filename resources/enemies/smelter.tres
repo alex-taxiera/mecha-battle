@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/reactor.tres" id="1_ljpq5"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_ofaqm"]
+[ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_p3ef6"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="4_kr60j"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="5_yx3u0"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_au8ew"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_tf20l"]
+
+[sub_resource type="Resource" id="Resource_rt8b3"]
+script = ExtResource("2_ofaqm")
+part = ExtResource("3_p3ef6")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_cmc2t"]
+script = ExtResource("2_ofaqm")
+part = ExtResource("3_p3ef6")
+origin = Vector2i(5, 1)
+
+[sub_resource type="Resource" id="Resource_edtin"]
+script = ExtResource("2_ofaqm")
+part = ExtResource("4_kr60j")
+origin = Vector2i(0, 2)
+
+[sub_resource type="Resource" id="Resource_lwanf"]
+script = ExtResource("2_ofaqm")
+part = ExtResource("5_yx3u0")
+origin = Vector2i(3, 1)
+
+[sub_resource type="Resource" id="Resource_lh3mq"]
+script = ExtResource("2_ofaqm")
+part = ExtResource("6_au8ew")
+origin = Vector2i(2, 0)
+
+[resource]
+script = ExtResource("7_tf20l")
+id = "smelter"
+enemy_name = "Smelter"
+chassis = ExtResource("1_ljpq5")
+lineup = Array[ExtResource("2_ofaqm")]([SubResource("Resource_rt8b3"), SubResource("Resource_cmc2t"), SubResource("Resource_edtin"), SubResource("Resource_lwanf"), SubResource("Resource_lh3mq")])

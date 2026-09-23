@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/striker.tres" id="1_g2rwk"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_dtg3n"]
+[ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_a0mmm"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="4_cvrqt"]
+
+[sub_resource type="Resource" id="Resource_u3cv1"]
+script = ExtResource("2_dtg3n")
+part = ExtResource("3_a0mmm")
+origin = Vector2i(-1, 1)
+
+[resource]
+script = ExtResource("4_cvrqt")
+id = "scrap_gunner"
+enemy_name = "Scrap Gunner"
+chassis = ExtResource("1_g2rwk")
+lineup = Array[ExtResource("2_dtg3n")]([SubResource("Resource_u3cv1")])

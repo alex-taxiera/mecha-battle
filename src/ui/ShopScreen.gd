@@ -3,8 +3,8 @@ extends Control
 ## Root of the shop phase: the round and gold up top, the mech on the left, the parts shop on
 ## the right, and the mech's stats below. Drag parts from the shop onto the mech to buy them
 ## (weapons onto the hardpoints around its grid), around the mech to move them, and back onto
-## the shop to sell them. Next round asks for the
-## round's fight; [method finish_round] records it and opens the next round's shop.
+## the shop to sell them. Next round asks for a fight; [method finish_round] restocks the shop
+## afterwards.
 
 ## Emitted when the player is done shopping and wants this round's fight.
 signal fight_requested
@@ -23,6 +23,8 @@ const _RESULT_WORDS := {
 
 @export var chassis: MechChassis
 @export var starting_gold := 10
+## Gold added after each fight. A stand-in until fights drop loot.
+@export var income := 10
 ## Parts for sale. Left empty, the shop sells every MechPart in [constant PARTS_DIR].
 @export var catalog: Array[MechPart] = []
 ## Adjacency rules. Left empty, every SynergyRule in [constant RULES_DIR] applies.
@@ -57,6 +59,7 @@ func _ready() -> void:
 	if rules.is_empty():
 		rules.assign(load_dir(RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
 	run = RunState.new(chassis, catalog, rules, starting_gold)
+	run.open_shop()
 	run.changed.connect(_refresh)
 	_grid_ui.run = run
 	_grid_ui.preview_changed.connect(_on_preview_changed)
@@ -97,9 +100,9 @@ func show_toast(text: String, good: bool) -> void:
 func show_sell_zone(drag: PartDragData) -> void:
 	_sell_label.text = "Sell for +%dg" % run.sell_value(drag.from_cell)
 	if run.is_fresh(drag.from_cell):
-		_sell_note.text = "Full refund: bought this round"
+		_sell_note.text = "Full refund: bought at this shop"
 	else:
-		_sell_note.text = "Half value: bought in an earlier round"
+		_sell_note.text = "Half value: bought earlier"
 	_sell_zone.show()
 
 
@@ -118,10 +121,8 @@ func sell(_at_position: Vector2, data: Variant) -> void:
 
 func _refresh() -> void:
 	_stats = run.stats()
-	_round_label.text = "Hangar · Round %d" % run.round_number
-	_record_label.text = "Record: %d W · %d L" % [run.wins, run.losses]
-	if run.draws:
-		_record_label.text += " · %d D" % run.draws
+	_round_label.text = "Hangar"
+	_record_label.text = "Hull: %d / %d HP · %d won" % [run.get_current_hp(), run.get_max_hp(), run.fights_won]
 	_gold_label.text = "Gold: %d" % run.gold
 	var frame := run.grid.chassis
 	_chassis_label.text = "Chassis · %s" % frame.chassis_name
@@ -129,12 +130,12 @@ func _refresh() -> void:
 		frame.get_usable_cell_count(), run.grid.get_mounted_count(), frame.hardpoints.size()]
 	_passive_label.visible = frame.passive != MechChassis.Passive.NONE
 	_passive_label.text = "%s: %s" % [frame.passive_name, frame.passive_text]
-	_reroll_button.text = "Reroll · %dg" % RunState.REROLL_COST
+	_reroll_button.text = "Reroll · %dg" % ShopStock.REROLL_COST
 	for item in _slots.get_children():
 		_slots.remove_child(item)
 		item.queue_free()
-	for i in run.slots.size():
-		var slot := run.slots[i]
+	for i in run.shop.slots.size():
+		var slot := run.shop.slots[i]
 		var item: ShopItem = SHOP_ITEM_SCENE.instantiate()
 		item.slot_index = i
 		item.part = slot.part
@@ -155,13 +156,11 @@ func _on_reroll_pressed() -> void:
 		show_toast("Not enough gold to reroll", false)
 
 
-## Records how the round's fight went, then starts the next round: income, a restock, and a
-## toast saying so.
+## Opens the shop again after a fight: [member income] gold, a restock, and a toast saying so.
 func finish_round(result: RunState.FightResult) -> void:
-	var fought := run.round_number
-	run.record_fight(result)
-	run.end_round()
-	show_toast("%s round %d · +%dg income, shop restocked" % [_RESULT_WORDS[result], fought, run.round_income],
+	run.gold += income
+	run.open_shop()
+	show_toast("%s the fight · +%dg, shop restocked" % [_RESULT_WORDS[result], income],
 		result != RunState.FightResult.LOSS)
 
 

@@ -217,15 +217,11 @@ func test_heat_is_made_at_each_weapons_cadence_and_vented_by_heatsinks() -> void
 	assert_int(stats.get_net_heat()).is_equal(5)
 
 
-func test_the_chassis_hp_grows_with_the_round() -> void:
-	_place(Fixtures.laser(), Vector2i(2, 2)) # +12 HP, which doesn't grow
-	var first := MechStats.calculate(_grid, _rules)
-	assert_int(first.base_hp).is_equal(30)
-	assert_int(first.hp).is_equal(42)
-	# Round 2: 30 × 1.15 = 34.5, rounded down.
-	var second := MechStats.calculate(_grid, _rules, 2)
-	assert_int(second.base_hp).is_equal(34)
-	assert_int(second.hp).is_equal(46)
+func test_hp_is_the_chassis_plus_the_parts() -> void:
+	_place(Fixtures.laser(), Vector2i(2, 2)) # +12 HP
+	var stats := MechStats.calculate(_grid, _rules)
+	assert_int(stats.base_hp).is_equal(30)
+	assert_int(stats.hp).is_equal(42)
 
 
 func test_rules_match_their_types_in_either_order() -> void:

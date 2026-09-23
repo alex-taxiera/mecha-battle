@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/reactor.tres" id="1_n50hx"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_tbpqb"]
+[ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_p0qnf"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="4_e8dse"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="5_hq21y"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_2d66j"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_oa38b"]
+
+[sub_resource type="Resource" id="Resource_cnn13"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("3_p0qnf")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_a6044"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("3_p0qnf")
+origin = Vector2i(5, 1)
+
+[sub_resource type="Resource" id="Resource_tna8i"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("4_e8dse")
+origin = Vector2i(0, 2)
+
+[sub_resource type="Resource" id="Resource_vv0x6"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("4_e8dse")
+origin = Vector2i(1, 1)
+
+[sub_resource type="Resource" id="Resource_updms"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("5_hq21y")
+origin = Vector2i(3, 1)
+
+[sub_resource type="Resource" id="Resource_m02sc"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("6_2d66j")
+origin = Vector2i(1, 3)
+
+[sub_resource type="Resource" id="Resource_4gau8"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("6_2d66j")
+origin = Vector2i(2, 3)
+
+[sub_resource type="Resource" id="Resource_2s2pv"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("6_2d66j")
+origin = Vector2i(2, 4)
+
+[resource]
+script = ExtResource("7_oa38b")
+id = "crucible"
+enemy_name = "The Crucible"
+tier = 2
+chassis = ExtResource("1_n50hx")
+lineup = Array[ExtResource("2_tbpqb")]([SubResource("Resource_cnn13"), SubResource("Resource_a6044"), SubResource("Resource_tna8i"), SubResource("Resource_vv0x6"), SubResource("Resource_updms"), SubResource("Resource_m02sc"), SubResource("Resource_4gau8"), SubResource("Resource_2s2pv")])
+hp_scale = 1.2

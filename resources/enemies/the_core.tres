@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/striker.tres" id="1_dvncv"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_hig38"]
+[ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_giv0p"]
+[ext_resource type="Resource" path="res://resources/parts/missile_pod.tres" id="4_2bala"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_hbvdc"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="6_62rak"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="7_chgwc"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="8_8tpbc"]
+
+[sub_resource type="Resource" id="Resource_ak0rj"]
+script = ExtResource("2_hig38")
+part = ExtResource("3_giv0p")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_vn404"]
+script = ExtResource("2_hig38")
+part = ExtResource("3_giv0p")
+origin = Vector2i(2, 1)
+
+[sub_resource type="Resource" id="Resource_pnlfy"]
+script = ExtResource("2_hig38")
+part = ExtResource("4_2bala")
+origin = Vector2i(0, -2)
+
+[sub_resource type="Resource" id="Resource_647r5"]
+script = ExtResource("2_hig38")
+part = ExtResource("5_hbvdc")
+
+[sub_resource type="Resource" id="Resource_32ob3"]
+script = ExtResource("2_hig38")
+part = ExtResource("5_hbvdc")
+origin = Vector2i(0, 1)
+
+[sub_resource type="Resource" id="Resource_e8nq2"]
+script = ExtResource("2_hig38")
+part = ExtResource("6_62rak")
+origin = Vector2i(0, 2)
+
+[sub_resource type="Resource" id="Resource_wav53"]
+script = ExtResource("2_hig38")
+part = ExtResource("7_chgwc")
+origin = Vector2i(1, 2)
+
+[sub_resource type="Resource" id="Resource_t5wyo"]
+script = ExtResource("2_hig38")
+part = ExtResource("7_chgwc")
+origin = Vector2i(0, 4)
+
+[sub_resource type="Resource" id="Resource_na38b"]
+script = ExtResource("2_hig38")
+part = ExtResource("7_chgwc")
+origin = Vector2i(1, 4)
+
+[resource]
+script = ExtResource("8_8tpbc")
+id = "the_core"
+enemy_name = "The Core"
+tier = 2
+chassis = ExtResource("1_dvncv")
+lineup = Array[ExtResource("2_hig38")]([SubResource("Resource_ak0rj"), SubResource("Resource_vn404"), SubResource("Resource_pnlfy"), SubResource("Resource_647r5"), SubResource("Resource_32ob3"), SubResource("Resource_e8nq2"), SubResource("Resource_wav53"), SubResource("Resource_t5wyo"), SubResource("Resource_na38b")])
+hp_scale = 1.3

@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/bastion.tres" id="1_yo5to"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_k5tx1"]
+[ext_resource type="Resource" path="res://resources/parts/missile_pod.tres" id="3_sfyac"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="4_arcqq"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_c6v2d"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_prygf"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_qht46"]
+
+[sub_resource type="Resource" id="Resource_qhfix"]
+script = ExtResource("2_k5tx1")
+part = ExtResource("3_sfyac")
+origin = Vector2i(1, -2)
+
+[sub_resource type="Resource" id="Resource_d8oqk"]
+script = ExtResource("2_k5tx1")
+part = ExtResource("4_arcqq")
+origin = Vector2i(1, 0)
+
+[sub_resource type="Resource" id="Resource_80djp"]
+script = ExtResource("2_k5tx1")
+part = ExtResource("5_c6v2d")
+origin = Vector2i(2, 0)
+
+[sub_resource type="Resource" id="Resource_8kaw5"]
+script = ExtResource("2_k5tx1")
+part = ExtResource("6_prygf")
+origin = Vector2i(0, 2)
+
+[sub_resource type="Resource" id="Resource_tsu6o"]
+script = ExtResource("2_k5tx1")
+part = ExtResource("6_prygf")
+origin = Vector2i(1, 2)
+
+[sub_resource type="Resource" id="Resource_eeq1i"]
+script = ExtResource("2_k5tx1")
+part = ExtResource("6_prygf")
+origin = Vector2i(3, 2)
+
+[resource]
+script = ExtResource("7_qht46")
+id = "citadel_guard"
+enemy_name = "Citadel Guard"
+chassis = ExtResource("1_yo5to")
+lineup = Array[ExtResource("2_k5tx1")]([SubResource("Resource_qhfix"), SubResource("Resource_d8oqk"), SubResource("Resource_80djp"), SubResource("Resource_8kaw5"), SubResource("Resource_tsu6o"), SubResource("Resource_eeq1i")])

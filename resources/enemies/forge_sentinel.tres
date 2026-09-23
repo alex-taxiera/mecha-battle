@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/bastion.tres" id="1_2bym1"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_aqw8v"]
+[ext_resource type="Resource" path="res://resources/parts/missile_pod.tres" id="3_7vi5s"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="4_hn42t"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_xos1x"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_spjv2"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_b86rf"]
+
+[sub_resource type="Resource" id="Resource_snsav"]
+script = ExtResource("2_aqw8v")
+part = ExtResource("3_7vi5s")
+origin = Vector2i(1, -2)
+
+[sub_resource type="Resource" id="Resource_rn263"]
+script = ExtResource("2_aqw8v")
+part = ExtResource("4_hn42t")
+origin = Vector2i(1, 0)
+
+[sub_resource type="Resource" id="Resource_0vqwi"]
+script = ExtResource("2_aqw8v")
+part = ExtResource("5_xos1x")
+origin = Vector2i(2, 0)
+
+[sub_resource type="Resource" id="Resource_mbehw"]
+script = ExtResource("2_aqw8v")
+part = ExtResource("6_spjv2")
+origin = Vector2i(0, 2)
+
+[sub_resource type="Resource" id="Resource_q6eol"]
+script = ExtResource("2_aqw8v")
+part = ExtResource("6_spjv2")
+origin = Vector2i(1, 2)
+
+[resource]
+script = ExtResource("7_b86rf")
+id = "forge_sentinel"
+enemy_name = "Forge Sentinel"
+chassis = ExtResource("1_2bym1")
+lineup = Array[ExtResource("2_aqw8v")]([SubResource("Resource_snsav"), SubResource("Resource_rn263"), SubResource("Resource_0vqwi"), SubResource("Resource_mbehw"), SubResource("Resource_q6eol")])

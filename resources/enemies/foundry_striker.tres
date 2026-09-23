@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/striker.tres" id="1_uliiy"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_hw0ft"]
+[ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_cwjrd"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="4_ugamb"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="5_dv4kd"]
+
+[sub_resource type="Resource" id="Resource_rcaut"]
+script = ExtResource("2_hw0ft")
+part = ExtResource("3_cwjrd")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_wc8uq"]
+script = ExtResource("2_hw0ft")
+part = ExtResource("3_cwjrd")
+origin = Vector2i(2, 1)
+
+[sub_resource type="Resource" id="Resource_h32hj"]
+script = ExtResource("2_hw0ft")
+part = ExtResource("4_ugamb")
+origin = Vector2i(0, 1)
+
+[resource]
+script = ExtResource("5_dv4kd")
+id = "foundry_striker"
+enemy_name = "Foundry Striker"
+chassis = ExtResource("1_uliiy")
+lineup = Array[ExtResource("2_hw0ft")]([SubResource("Resource_rcaut"), SubResource("Resource_wc8uq"), SubResource("Resource_h32hj")])

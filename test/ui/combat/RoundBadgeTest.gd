@@ -4,11 +4,11 @@ extends GdUnitTestSuite
 const __source: String = "res://src/ui/combat/RoundBadge.gd"
 
 
-func test_shows_the_round_and_record() -> void:
+func test_shows_the_sector_floor_and_wins() -> void:
 	var badge: RoundBadge = auto_free(RoundBadge.new())
-	assert_str(badge.get_text()).is_equal("ROUND 1  0W 0L")
-	badge.set_record(3, 2, 1, 0)
-	assert_str(badge.get_text()).is_equal("ROUND 3  2W 1L")
-	# Draws show once there are any.
-	badge.set_record(4, 2, 1, 1)
-	assert_str(badge.get_text()).is_equal("ROUND 4  2W 1L 1D")
+	assert_str(badge.get_text()).is_equal("SECTOR 1  0W")
+	badge.set_progress(2, 5, 7)
+	assert_str(badge.get_text()).is_equal("SECTOR 2 · FLOOR 5  7W")
+	# Before a node is picked there's no floor to show.
+	badge.set_progress(3, 0, 9)
+	assert_str(badge.get_text()).is_equal("SECTOR 3  9W")

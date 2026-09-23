@@ -55,13 +55,19 @@ func test_damage_taken_can_be_asked_without_taking_the_hit() -> void:
 	assert_int(BattleMech.new(MechGridData.new(_chassis)).get_damage_taken(8)).is_equal(8)
 
 
-func test_max_hp_uses_the_rounds_chassis_hp() -> void:
+func test_max_hp_scales_and_health_can_start_lower() -> void:
 	var grid := _grid_with([[Fixtures.laser(), Vector2i(1, 1)]])
-	# Round 3: 30 × 1.15² = 39.675, rounded down, plus the laser's 12.
-	var mech := BattleMech.new(grid, [], 3)
-	assert_int(mech.max_hp).is_equal(51)
-	assert_int(mech.current_health).is_equal(51)
-	assert_int(BattleMech.new(grid).max_hp).is_equal(42) # round 1 by default
+	var mech := BattleMech.new(grid)
+	assert_int(mech.max_hp).is_equal(42) # the chassis's 30 plus the laser's 12
+	assert_int(mech.current_health).is_equal(42) # full by default
+	# An enemy up the map: 42 × 1.5 = 63.
+	var scaled := BattleMech.new(grid, [], 1.5)
+	assert_int(scaled.max_hp).is_equal(63)
+	assert_int(scaled.current_health).is_equal(63)
+	# The player's mech starts where the last fight left it, within 0 and its max.
+	assert_int(BattleMech.new(grid, [], 1.0, 20).current_health).is_equal(20)
+	assert_int(BattleMech.new(grid, [], 1.0, 99).current_health).is_equal(42)
+	assert_int(BattleMech.new(grid, [], 1.0, 0).current_health).is_equal(0)
 
 
 func test_heat_stays_between_empty_and_full() -> void:
