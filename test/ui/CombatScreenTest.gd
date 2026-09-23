@@ -20,7 +20,7 @@ func test_the_timer_ticks_the_fight_every_tenth_of_a_second() -> void:
 	for i in 10:
 		timer.timeout.emit()
 	assert_float(screen.engine.elapsed).is_equal_approx(1.0, 1e-9)
-	assert_str(screen.status_line()).is_equal("[ 1.0s] Left HP 30/30 EN 0 | Right HP 22/30 EN 3")
+	assert_str(screen.status_line()).is_equal("[ 1.0s] Left HP 30/30 EN 0 HEAT 0 | Right HP 22/30 EN 3 HEAT 0")
 	assert_str(screen.result_line()).is_empty()
 
 
@@ -36,13 +36,13 @@ func test_the_timer_stops_when_the_fight_ends() -> void:
 func test_shows_the_fight_and_reports_the_winner_after_a_pause() -> void:
 	var gunner := _gunner()
 	var screen := _screen(gunner, _bare())
-	assert_str(screen.get_status_text()).is_equal("[ 0.0s] Left HP 30/30 EN 0 | Right HP 30/30 EN 0")
+	assert_str(screen.get_status_text()).is_equal("[ 0.0s] Left HP 30/30 EN 0 HEAT 0 | Right HP 30/30 EN 0 HEAT 0")
 	var winners := []
 	screen.finished.connect(func(winner: BattleMech) -> void: winners.append(winner))
 	_tick_until_over(screen)
 	# The bare mech banks its 3 chassis energy a turn with nothing to spend it on.
 	assert_str(screen.get_status_text()) \
-		.is_equal("[ 4.0s] Left HP 30/30 EN 0 | Right HP 0/30 EN 12\nLeft wins with 30/30 HP left")
+		.is_equal("[ 4.0s] Left HP 30/30 EN 0 HEAT 0 | Right HP 0/30 EN 12 HEAT 0\nLeft wins with 30/30 HP left")
 	# The result stays up for 2 seconds before the screen reports it.
 	var result_timer: Timer = screen.get_node("%ResultTimer")
 	assert_float(result_timer.wait_time).is_equal(2.0)
@@ -52,6 +52,26 @@ func test_shows_the_fight_and_reports_the_winner_after_a_pause() -> void:
 	result_timer.timeout.emit()
 	assert_array(winners).has_size(1)
 	assert_object(winners[0]).is_same(gunner)
+
+
+func test_the_readout_shows_heat_and_shutdowns() -> void:
+	# A Reactor's gatling at (2, 0)-(2, 2) making 20 heat a shot, against a 200 HP target.
+	var gatling := Fixtures.gatling()
+	gatling.cooldown_max = 1.0
+	gatling.heat = 20
+	var grid := MechGridData.new(Fixtures.reactor_frame())
+	assert_bool(grid.place_part(gatling, Vector2i(2, 0))).is_true()
+	var target_chassis := Fixtures.cross_chassis()
+	target_chassis.base_hp = 200
+	var screen := _screen(BattleMech.new(grid), BattleMech.new(MechGridData.new(target_chassis)))
+	var timer: Timer = screen.get_node("%TickTimer")
+	for i in 40:
+		timer.timeout.emit()
+	assert_str(screen.status_line()).is_equal("[ 4.0s] Left HP 30/30 EN 0 HEAT 80 | Right HP 168/200 EN 12 HEAT 0")
+	# The 5th shot fills it: 25 damage, and the Reactor shuts down.
+	for i in 10:
+		timer.timeout.emit()
+	assert_str(screen.status_line()).is_equal("[ 5.0s] Left HP 30/30 EN 0 HEAT 0 OFF | Right HP 135/200 EN 15 HEAT 0")
 
 
 func test_a_draw_says_so() -> void:

@@ -9,8 +9,9 @@ extends Control
 signal finished(winner: BattleMech)
 
 ## The mech the player fights until there are real opponents: the gatling and heatsink build
-## from the first shop, as [part id, origin] pairs.
+## from the first shop, as [part id, origin] pairs, on a training Bastion.
 const DUMMY := [["gatling", Vector2i(1, 0)], ["heatsink", Vector2i(2, 1)]]
+const DUMMY_CHASSIS := preload("res://resources/chassis/bastion.tres")
 # Run on its own, the screen pits this stand-in for the player against the dummy.
 const DEMO_PLAYER := [["gatling", Vector2i(1, 0)], ["reactor", Vector2i(2, 1)], ["laser", Vector2i(2, 2)]]
 
@@ -36,7 +37,7 @@ func _ready() -> void:
 	if engine == null:
 		if rules.is_empty():
 			rules.assign(ShopScreen.load_dir(ShopScreen.RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
-		setup(build_mech(chassis, DEMO_PLAYER, rules), make_dummy(chassis, rules))
+		setup(build_mech(chassis, DEMO_PLAYER, rules), make_dummy(rules))
 	_tick_timer.timeout.connect(_on_tick_timer_timeout)
 	_result_timer.timeout.connect(func() -> void: finished.emit(_winner))
 	_status_label.text = status_line()
@@ -51,7 +52,9 @@ func setup(left: BattleMech, right: BattleMech) -> void:
 	engine.battle_ended.connect(func(winner: BattleMech) -> void: _winner = winner)
 
 
-## Returns a tick's printout, e.g. "[ 1.0s] Left HP 47/47 EN 1 | Right HP 18/30 EN 0".
+## Returns a tick's printout, e.g.
+## "[ 1.0s] Left HP 47/47 EN 1 HEAT 20 | Right HP 18/30 EN 0 HEAT 0 OFF", where OFF marks a
+## mech shut down by a meltdown.
 func status_line() -> String:
 	return "[%4.1fs] %s | %s" % [engine.elapsed, _mech_status("Left", engine.left), _mech_status("Right", engine.right)]
 
@@ -81,9 +84,9 @@ static func build_mech(p_chassis: MechChassis, lineup: Array, p_rules: Array[Syn
 	return BattleMech.new(grid, p_rules)
 
 
-## Returns the [constant DUMMY] build on [param p_chassis].
-static func make_dummy(p_chassis: MechChassis, p_rules: Array[SynergyRule]) -> BattleMech:
-	return build_mech(p_chassis, DUMMY, p_rules)
+## Returns the [constant DUMMY] build on [constant DUMMY_CHASSIS].
+static func make_dummy(p_rules: Array[SynergyRule]) -> BattleMech:
+	return build_mech(DUMMY_CHASSIS, DUMMY, p_rules)
 
 
 func _on_tick_timer_timeout() -> void:
@@ -101,7 +104,8 @@ func _on_tick_timer_timeout() -> void:
 
 
 func _mech_status(side: String, mech: BattleMech) -> String:
-	return "%s HP %d/%d EN %d" % [side, mech.current_health, mech.max_hp, mech.current_energy]
+	var status := "%s HP %d/%d EN %d HEAT %d" % [side, mech.current_health, mech.max_hp, mech.current_energy, mech.heat]
+	return status + " OFF" if mech.is_shut_down() else status
 
 
 func _side_name(mech: BattleMech) -> String:

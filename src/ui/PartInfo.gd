@@ -51,7 +51,7 @@ static func summary(part: MechPart, turns: int) -> String:
 	return "%s · %s" % [MechPart.PartType.find_key(part.type).capitalize(), size_text]
 
 
-## A part's numbers in a line, e.g. "17 DMG · -3 EN" or "+6 EN · +5 HP".
+## A part's numbers in a line, e.g. "17 DMG · -3 EN · +20 HEAT" or "+6 EN · +5 HP".
 static func stat_line(numbers: MechStats.PartStats) -> String:
 	var bits: PackedStringArray = []
 	if numbers.damage:
@@ -62,6 +62,10 @@ static func stat_line(numbers: MechStats.PartStats) -> String:
 		bits.append("+%d EN" % numbers.energy)
 	if numbers.hp:
 		bits.append("+%d HP" % numbers.hp)
+	if numbers.heat:
+		bits.append("+%d HEAT" % numbers.heat)
+	if numbers.cooling:
+		bits.append("-%d HEAT" % numbers.cooling)
 	if not bits.is_empty():
 		return " · ".join(bits)
 	return "Links: %d" % numbers.links if numbers.links else "Not linked"

@@ -19,6 +19,47 @@ static func open_chassis(size: Vector2i) -> MechChassis:
 	return _chassis(size, [])
 
 
+# The design doc's three frames.
+
+## Tank: 4 wide by 3 tall, 45 HP, 2 energy a turn, every hit taken 1 smaller.
+static func bastion() -> MechChassis:
+	var chassis := _frame("The Bastion", "Wide frame", Vector2i(4, 3), [], 45, 2)
+	chassis.playstyle = "Tank / Attrition"
+	chassis.passive = MechChassis.Passive.THICK_PLATING
+	chassis.passive_name = "Thick Plating"
+	chassis.passive_text = "Reduces all incoming flat damage by 1."
+	chassis.plating = 1
+	return chassis
+
+
+## Glass cannon: 2 wide by 5 tall, 22 HP, 4 energy a turn, its first shot fires twice.
+static func striker() -> MechChassis:
+	var chassis := _frame("The Striker", "Tall frame", Vector2i(2, 5), [], 22, 4)
+	chassis.playstyle = "Glass Cannon / Burst"
+	chassis.passive = MechChassis.Passive.OVERCLOCK
+	chassis.passive_name = "Overclock"
+	chassis.passive_text = "The first weapon to fire each battle fires twice."
+	return chassis
+
+
+## Combo: a 13-cell diamond on 5x5, 30 HP, 3 energy a turn. At full heat it deals 25 and
+## shuts down for 3 seconds.
+static func reactor_frame() -> MechChassis:
+	var disabled: Array[Vector2i] = []
+	for y in 5:
+		for x in 5:
+			if absi(x - 2) + absi(y - 2) > 2:
+				disabled.append(Vector2i(x, y))
+	var chassis := _frame("The Reactor", "Diamond frame", Vector2i(5, 5), disabled, 30, 3)
+	chassis.playstyle = "Synergy / Combo"
+	chassis.passive = MechChassis.Passive.MELTDOWN
+	chassis.passive_name = "Meltdown"
+	chassis.passive_text = "When heat reaches 100%, deal massive damage and shut down for 3 seconds."
+	chassis.meltdown_damage = 25
+	chassis.meltdown_shutdown = 3.0
+	return chassis
+
+
 # The mockup's parts. Shapes are (x, y): the gatling is 1x3 vertical, the reactor 2x1.
 
 static func gatling() -> MechPart:
@@ -85,6 +126,15 @@ static func _chassis(size: Vector2i, disabled: Array[Vector2i]) -> MechChassis:
 	chassis.disabled_cells = disabled
 	chassis.base_hp = 30
 	chassis.base_energy = 3
+	return chassis
+
+
+static func _frame(chassis_name: String, frame_name: String, size: Vector2i, disabled: Array[Vector2i], hp: int, energy: int) -> MechChassis:
+	var chassis := _chassis(size, disabled)
+	chassis.chassis_name = chassis_name
+	chassis.frame_name = frame_name
+	chassis.base_hp = hp
+	chassis.base_energy = energy
 	return chassis
 
 

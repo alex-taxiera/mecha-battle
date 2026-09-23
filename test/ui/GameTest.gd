@@ -16,20 +16,28 @@ func before_test() -> void:
 	_gatling = _gun()
 	_heatsink = Fixtures.heatsink()
 	_game = auto_free(SCENE.instantiate())
-	var shop: ShopScreen = _game.get_node("%ShopScreen")
-	shop.chassis = Fixtures.cross_chassis()
-	shop.catalog = [_gatling, Fixtures.laser(), Fixtures.reactor(), _heatsink]
-	shop.rules = Fixtures.rules()
+	_game.catalog = [_gatling, Fixtures.laser(), Fixtures.reactor(), _heatsink]
+	_game.rules = Fixtures.rules()
 	_game.make_opponent = func() -> BattleMech: return _bare_mech()
 	add_child(_game)
 
 
-func test_the_run_starts_in_the_shop() -> void:
-	assert_bool(_game.shop.is_inside_tree()).is_true()
+func test_the_run_starts_by_choosing_a_chassis() -> void:
+	assert_bool(_game.chassis_select.is_inside_tree()).is_true()
+	assert_object(_game.shop).is_null()
 	assert_object(_game.combat).is_null()
+	# Choosing one opens the shop on it, with the run's parts.
+	var bastion := Fixtures.bastion()
+	await _choose(bastion)
+	assert_object(_game.chassis_select).is_null()
+	assert_bool(_game.shop.is_inside_tree()).is_true()
+	assert_object(_game.shop.run.grid.chassis).is_same(bastion)
+	assert_array(_game.shop.run.catalog).contains_same_exactly_in_any_order(_game.catalog)
+	await await_idle_frame() # free the select screen
 
 
 func test_next_round_fights_the_players_build_then_returns_to_the_shop() -> void:
+	await _choose(Fixtures.cross_chassis())
 	var run := _game.shop.run
 	# A gatling (1, 0)-(1, 2) cooled by a heatsink at (2, 1), (2, 2), (3, 2): 10 -> 2 gold.
 	assert_bool(run.buy(_slot_of(_gatling), Vector2i(1, 0))).is_true()
@@ -60,6 +68,7 @@ func test_next_round_fights_the_players_build_then_returns_to_the_shop() -> void
 func test_losing_is_recorded_and_the_next_round_fights_again() -> void:
 	# With nothing bought, the player's bare 30 HP falls to a gatling in 4 seconds.
 	_game.make_opponent = func() -> BattleMech: return _gun_mech()
+	await _choose(Fixtures.cross_chassis())
 	await _press_next_round()
 	await _finish_fight()
 	var run := _game.shop.run
@@ -74,6 +83,13 @@ func test_losing_is_recorded_and_the_next_round_fights_again() -> void:
 	assert_int(run.losses).is_equal(2)
 	assert_int(run.round_number).is_equal(3)
 	await await_idle_frame()
+
+
+# Picks [param chassis] on the select screen and waits for the deferred switch to the shop.
+func _choose(chassis: MechChassis) -> void:
+	_game.chassis_select.choose(chassis)
+	await await_idle_frame()
+	assert_object(_game.shop).append_failure_message("choosing a chassis didn't open the shop").is_not_null()
 
 
 # Presses the shop's Next round button and waits for the deferred switch to combat. The

@@ -9,6 +9,9 @@ var part: MechPart
 var damage: int
 var energy_gen: int
 var energy_cost: int
+## Heat added per shot and vented per turn, straight from the part: no link changes them.
+var heat: int
+var cooling: int
 ## Seconds until the part activates. It starts a fight at the part's
 ## [member MechPart.cooldown_max] and counts down.
 var current_cooldown: float
@@ -21,6 +24,8 @@ var is_active := true
 func _init(p_part: MechPart, numbers: MechStats.PartStats = null) -> void:
 	part = p_part
 	current_cooldown = p_part.cooldown_max
+	heat = p_part.heat
+	cooling = p_part.cooling
 	if numbers:
 		damage = numbers.damage
 		energy_gen = numbers.energy

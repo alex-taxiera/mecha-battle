@@ -34,6 +34,21 @@ func test_shows_the_round_gold_chassis_and_shop() -> void:
 	assert_array(_stats_panel().get_rule_rows()).has_size(4)
 
 
+func test_shows_the_chassis_passive_under_the_grid() -> void:
+	# The cross fixture has no passive, so there's nothing to show.
+	assert_bool((_screen.get_node("%PassiveLabel") as Label).visible).is_false()
+	var screen: ShopScreen = auto_free(SCENE.instantiate())
+	screen.chassis = Fixtures.bastion()
+	screen.catalog = [_gatling, _laser, _reactor, _heatsink]
+	screen.rules = Fixtures.rules()
+	add_child(screen)
+	var label: Label = screen.get_node("%PassiveLabel")
+	assert_bool(label.visible).is_true()
+	assert_str(label.text).is_equal("Thick Plating: Reduces all incoming flat damage by 1.")
+	assert_str((screen.get_node("%ChassisLabel") as Label).text).is_equal("Chassis · The Bastion")
+	assert_str((screen.get_node("%ChassisInfo") as Label).text).is_equal("Wide frame · 0 / 12 slots used")
+
+
 func test_dragging_a_shop_part_onto_the_grid_buys_it() -> void:
 	var drag: PartDragData = _item_for(_gatling)._get_drag_data(Vector2.ZERO)
 	var target := _cell_center(Vector2i(1, 0) + drag.grab_offset) # origin (1, 0)

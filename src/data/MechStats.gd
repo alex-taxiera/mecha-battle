@@ -9,6 +9,9 @@ class PartStats:
 	var energy := 0
 	var energy_draw := 0
 	var damage := 0
+	## Heat added per shot and vented per turn. No rule changes these.
+	var heat := 0
+	var cooling := 0
 	## How many touching parts it links with.
 	var links := 0
 	## Each rule that changed this part -> its total: the summed amount for ADD rules, the
@@ -79,6 +82,8 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule]) -> MechStat
 		numbers.energy = _with_bonuses(part.energy_gen, numbers, SynergyRule.Stat.ENERGY)
 		numbers.energy_draw = part.energy_cost
 		numbers.damage = _with_bonuses(part.damage, numbers, SynergyRule.Stat.DAMAGE)
+		numbers.heat = part.heat
+		numbers.cooling = part.cooling
 		stats.hp += numbers.hp
 		stats.energy_generated += numbers.energy
 		stats.energy_drawn += numbers.energy_draw

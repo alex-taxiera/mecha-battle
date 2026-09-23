@@ -39,6 +39,7 @@ var _toast_timer: Timer
 @onready var _next_round_button: Button = %NextRoundButton
 @onready var _chassis_label: Label = %ChassisLabel
 @onready var _chassis_info: Label = %ChassisInfo
+@onready var _passive_label: Label = %PassiveLabel
 @onready var _grid_ui: MechGridUI = %MechGridUI
 @onready var _reroll_button: Button = %RerollButton
 @onready var _slots: Container = %Slots
@@ -124,6 +125,8 @@ func _refresh() -> void:
 	var frame := run.grid.chassis
 	_chassis_label.text = "Chassis · %s" % frame.chassis_name
 	_chassis_info.text = "%s · %d / %d slots used" % [frame.frame_name, run.grid.get_used_cell_count(), frame.get_usable_cell_count()]
+	_passive_label.visible = frame.passive != MechChassis.Passive.NONE
+	_passive_label.text = "%s: %s" % [frame.passive_name, frame.passive_text]
 	_reroll_button.text = "Reroll · %dg" % RunState.REROLL_COST
 	for item in _slots.get_children():
 		_slots.remove_child(item)

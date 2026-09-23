@@ -25,6 +25,10 @@ enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY }
 @export var damage: int
 ## Seconds between the part's activations in combat.
 @export var cooldown_max: float
+## Heat this part adds to its mech each time it fires.
+@export var heat: int
+## Heat this part vents from its mech each turn.
+@export var cooling: int
 
 
 ## Returns [member grid_shape] turned [param turns] quarter-turns clockwise, shifted so its

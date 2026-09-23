@@ -40,7 +40,7 @@ Run the tests headlessly from the project root using this command:
 - `game_mouse_drag` can't finish a drag-and-drop, because Godot 4.7 aims the drop at the real OS cursor. To test drops in a running game, `push_input()` events into a standalone `SubViewport` (not inside a `SubViewportContainer`).
 - `game_mouse_move` doesn't move the game's mouse either; hover needs the harness too. Motion events reach controls only after the SubViewport gets `notification(Node.NOTIFICATION_VP_MOUSE_ENTER)`, and its tooltips and popups only show in its texture with `gui_embed_subwindows = true`.
 - In that harness, call `game_wait` for a frame after anything that rebuilds or reveals controls (a refresh, a drag that shows a drop zone) before pushing input at them. Containers lay out on the next frame, so earlier input hits the old rects.
-- `game_screenshot` returns a stale frame while the game window is minimized.
+- `game_screenshot` returns a stale frame while the game window is minimized. Check with `game_eval` (`DisplayServer.window_get_mode()` is 1 when minimized) and restore it with `DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)`.
 
 ## Addons
 - `addons/phantom_camera/` (Phantom Camera 0.11.0.3) is vendored for dynamic camera effects later: following and framing, tweened moves between shots, and shake from noise emitters (e.g. combat hits). Use it for camera work instead of hand-tweening a `Camera2D`/`Camera3D`.

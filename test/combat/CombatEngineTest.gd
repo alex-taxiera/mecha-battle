@@ -10,8 +10,9 @@ const MAX_TICKS := 10000
 # Tests of chassis energy use _energized_chassis().
 var _chassis: MechChassis
 # What engines made by _engine() emit: each weapon_fired as [attacker, target, damage], each
-# storm strike's damage, and each battle_ended's winner.
+# meltdown as [mech, target, damage], each storm strike's damage, and each battle_ended's winner.
 var _shots: Array = []
+var _meltdowns: Array = []
 var _strikes: Array = []
 var _endings: Array = []
 
@@ -20,6 +21,7 @@ func before_test() -> void:
 	_chassis = Fixtures.cross_chassis()
 	_chassis.base_energy = 0
 	_shots = []
+	_meltdowns = []
 	_strikes = []
 	_endings = []
 
@@ -334,6 +336,115 @@ func test_generators_make_energy_with_their_link_bonuses() -> void:
 	assert_int(mech.current_energy).is_equal(6)
 
 
+func test_thick_plating_shrinks_every_hit_the_bastion_takes() -> void:
+	# A peashooter's 2 damage lands as 1, twice a second.
+	var bastion := _mech([], [], Fixtures.bastion()) # 45 HP
+	var engine := _engine(_mech([[_peashooter(), Vector2i(1, 1)]]), bastion)
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([1, 1])
+	assert_int(bastion.current_health).is_equal(43)
+	# Storm strikes of 1 and 2 land as 0 and 1; the bare mech beside it takes them in full.
+	bastion = _mech([], [], Fixtures.bastion())
+	var bare := _mech([])
+	engine = _stormy_engine(bastion, bare)
+	for i in 12:
+		engine.process_tick(0.1)
+	assert_array(_strikes).is_equal([1, 2])
+	assert_int(bastion.current_health).is_equal(44)
+	assert_int(bare.current_health).is_equal(27)
+
+
+func test_overclock_fires_the_strikers_first_shot_twice() -> void:
+	# A gatling (0, 0)-(0, 2) on the Striker's 4 energy a turn: at 1 second it fires twice for
+	# one shot's energy, then once a second.
+	var striker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(0, 0)]], [], Fixtures.striker())
+	var dummy := _mech([])
+	var engine := _engine(striker, dummy)
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([8, 8])
+	assert_int(striker.current_energy).is_equal(1) # 4 - 3, paid once
+	assert_int(dummy.current_health).is_equal(14)
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_array(_shots).has_size(3)
+	# Positive control: off the Striker, the same gun fires once.
+	_shots = []
+	engine = _engine(_mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(1, 0)]], [], _energized_chassis(4)), _mech([]))
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_array(_shots).has_size(1)
+
+
+func test_overclock_goes_to_whichever_weapon_fires_first() -> void:
+	# The peashooter (1, 0), ready at 0.5 seconds, beats the gatling (0, 0)-(0, 2) to it; at
+	# 1 second both fire once, the gatling first as it was placed first.
+	var striker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(0, 0)], [_peashooter(), Vector2i(1, 0)]], [], Fixtures.striker())
+	var engine := _engine(striker, _mech([]))
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([2, 2, 8, 2])
+
+
+func test_shots_heat_their_mech_and_heatsinks_vent_it() -> void:
+	# A gatling making 20 heat a shot beside a heatsink venting 10 a turn. Each second the
+	# heatsink vents, then the gatling fires: 20, 30, 40...
+	var mech := _mech([[_hot_gun(), Vector2i(1, 0)], [_venting_sink(), Vector2i(2, 1)]], [], _energized_chassis(3))
+	var engine := _engine(mech, _tough_dummy())
+	var heat_per_second := []
+	for second in 3:
+		for i in 10:
+			engine.process_tick(0.1)
+		heat_per_second.append(mech.heat)
+	assert_array(heat_per_second).is_equal([20, 30, 40])
+
+
+func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
+	# The Reactor's gatling (2, 0)-(2, 2) fires once a second on its 3 energy a turn, 20 heat a
+	# shot: the 5th shot, at 5 seconds, fills it.
+	var reactor := _mech([[_hot_gun(), Vector2i(2, 0)]], [], Fixtures.reactor_frame())
+	var target := _tough_dummy() # 200 HP
+	var engine := _engine(reactor, target)
+	for i in 50:
+		engine.process_tick(0.1)
+	assert_array(_shots).has_size(5)
+	assert_array(_meltdowns).has_size(1)
+	assert_object(_meltdowns[0][0]).is_same(reactor)
+	assert_object(_meltdowns[0][1]).is_same(target)
+	assert_int(_meltdowns[0][2]).is_equal(25)
+	assert_int(target.current_health).is_equal(135) # 200 - 5 × 8 - 25
+	assert_int(reactor.heat).is_equal(0)
+	assert_bool(reactor.is_shut_down()).is_true()
+	# Shut down for 3 seconds: no shots and no chassis energy, even at 6 and 7 seconds.
+	for i in 29:
+		engine.process_tick(0.1)
+	assert_array(_shots).has_size(5)
+	assert_int(reactor.current_energy).is_equal(0)
+	assert_bool(reactor.is_shut_down()).is_true()
+	# At 8 seconds it's back: the turn's energy arrives, and the gatling's frozen cooldown
+	# resumes, so it fires at 8.9 seconds.
+	engine.process_tick(0.1)
+	assert_bool(reactor.is_shut_down()).is_false()
+	assert_int(reactor.current_energy).is_equal(3)
+	for i in 8:
+		engine.process_tick(0.1)
+	assert_array(_shots).has_size(5)
+	engine.process_tick(0.1)
+	assert_array(_shots).has_size(6)
+
+
+func test_only_the_reactor_melts_down() -> void:
+	# The same hot gatling on a plain chassis fills to 100 heat and stays there, firing on.
+	var mech := _mech([[_hot_gun(), Vector2i(1, 0)]], [], _energized_chassis(3))
+	var engine := _engine(mech, _tough_dummy())
+	for i in 100:
+		engine.process_tick(0.1)
+	assert_int(mech.heat).is_equal(100)
+	assert_array(_meltdowns).is_empty()
+	assert_array(_shots).has_size(10)
+
+
 # A started engine whose storm starts at 1 second with strikes of 1, 2, 4, 8...
 func _stormy_engine(left: BattleMech, right: BattleMech) -> CombatEngine:
 	var engine := _engine(left, right)
@@ -349,6 +460,8 @@ func _engine(left: BattleMech, right: BattleMech) -> CombatEngine:
 	engine.weapon_fired.connect(func(attacker: BattleMech, target: BattleMech, damage: int) -> void:
 		_shots.append([attacker, target, damage]))
 	engine.storm_struck.connect(func(damage: int) -> void: _strikes.append(damage))
+	engine.meltdown.connect(func(mech: BattleMech, target: BattleMech, damage: int) -> void:
+		_meltdowns.append([mech, target, damage]))
 	engine.battle_ended.connect(func(winner: BattleMech) -> void: _endings.append(winner))
 	engine.start()
 	return engine
@@ -382,6 +495,28 @@ func _reactor(seconds: float) -> MechPart:
 # A free 1x1 gun: 2 damage every half second, no energy needed.
 func _peashooter() -> MechPart:
 	return Fixtures.part("Peashooter", MechPart.PartType.WEAPON, [Vector2i(0, 0)], 0, {"damage": 2, "cooldown_max": 0.5})
+
+
+# A gatling firing every second that makes 20 heat a shot.
+func _hot_gun() -> MechPart:
+	var gatling := _on_cooldown(Fixtures.gatling(), 1.0)
+	gatling.heat = 20
+	return gatling
+
+
+# A heatsink venting 10 heat a turn.
+func _venting_sink() -> MechPart:
+	var heatsink := Fixtures.heatsink()
+	heatsink.cooling = 10
+	return heatsink
+
+
+# 200 HP and nothing else, to soak up a long fight.
+func _tough_dummy() -> BattleMech:
+	var chassis := Fixtures.cross_chassis()
+	chassis.base_hp = 200
+	chassis.base_energy = 0
+	return BattleMech.new(MechGridData.new(chassis))
 
 
 func _on_cooldown(part: MechPart, seconds: float) -> MechPart:

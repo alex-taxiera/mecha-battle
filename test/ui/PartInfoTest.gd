@@ -52,6 +52,12 @@ func test_part_numbers_read_as_short_lines() -> void:
 	generator.energy = 6
 	generator.hp = 5
 	assert_str(PartInfo.stat_line(generator)).is_equal("+6 EN · +5 HP")
+	# Heat a weapon makes goes up; heat a heatsink vents goes down.
+	weapon.heat = 20
+	assert_str(PartInfo.stat_line(weapon)).is_equal("17 DMG · -3 EN · +20 HEAT")
+	var sink := MechStats.PartStats.new()
+	sink.cooling = 10
+	assert_str(PartInfo.stat_line(sink)).is_equal("-10 HEAT")
 	var utility := MechStats.PartStats.new()
 	assert_str(PartInfo.stat_line(utility)).is_equal("Not linked")
 	assert_str(PartInfo.bonus_line(utility)).is_empty()

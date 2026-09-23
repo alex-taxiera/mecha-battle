@@ -26,11 +26,32 @@ func test_max_hp_is_the_chassis_plus_its_parts() -> void:
 
 func test_take_damage_lowers_health_down_to_zero() -> void:
 	var mech := BattleMech.new(MechGridData.new(_chassis)) # 30 HP
-	mech.take_damage(8)
+	assert_int(mech.take_damage(8)).is_equal(8)
 	assert_int(mech.current_health).is_equal(22)
 	mech.take_damage(100)
 	assert_int(mech.current_health).is_equal(0)
 	assert_int(mech.max_hp).is_equal(30)
+
+
+func test_thick_plating_takes_1_off_every_hit() -> void:
+	var bastion := BattleMech.new(MechGridData.new(Fixtures.bastion())) # 45 HP
+	assert_int(bastion.take_damage(8)).is_equal(7)
+	assert_int(bastion.current_health).is_equal(38)
+	# A 1-damage hit does nothing, and it never heals.
+	assert_int(bastion.take_damage(1)).is_equal(0)
+	assert_int(bastion.take_damage(0)).is_equal(0)
+	assert_int(bastion.current_health).is_equal(38)
+
+
+func test_heat_stays_between_empty_and_full() -> void:
+	var mech := BattleMech.new(MechGridData.new(_chassis))
+	assert_int(mech.heat).is_equal(0)
+	mech.add_heat(60)
+	assert_int(mech.heat).is_equal(60)
+	mech.add_heat(60)
+	assert_int(mech.heat).is_equal(100)
+	mech.add_heat(-130)
+	assert_int(mech.heat).is_equal(0)
 
 
 func test_hp_link_bonuses_count_when_given_the_rules() -> void:

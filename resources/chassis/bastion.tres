@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MechChassis" format=3]
+
+[ext_resource type="Script" path="res://src/data/MechChassis.gd" id="1_wjsne"]
+
+[resource]
+script = ExtResource("1_wjsne")
+id = "bastion"
+chassis_name = "The Bastion"
+frame_name = "Wide frame"
+playstyle = "Tank / Attrition"
+size = Vector2i(4, 3)
+base_hp = 45
+base_energy = 2
+passive = 1
+passive_name = "Thick Plating"
+passive_text = "Reduces all incoming flat damage by 1."

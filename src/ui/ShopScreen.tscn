@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/ui/ShopScreen.gd" id="1_2u7n2"]
 [ext_resource type="Theme" path="res://resources/ui/theme.tres" id="1_8v2hw"]
 [ext_resource type="PackedScene" path="res://src/ui/MechGridUI.tscn" id="2_2ygms"]
-[ext_resource type="Resource" path="res://resources/chassis/skirmisher.tres" id="2_ps511"]
+[ext_resource type="Resource" path="res://resources/chassis/bastion.tres" id="3_8v2hw"]
 [ext_resource type="Script" path="res://src/ui/MechGridUI.gd" id="3_pgemp"]
 [ext_resource type="StyleBox" path="res://resources/ui/sell_zone.tres" id="5_u45px"]
 [ext_resource type="Script" path="res://src/ui/StatsPanel.gd" id="6_w88x5"]
@@ -18,7 +18,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_8v2hw")
 script = ExtResource("1_2u7n2")
-chassis = ExtResource("2_ps511")
+chassis = ExtResource("3_8v2hw")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=822173180]
 layout_mode = 1
@@ -106,6 +106,14 @@ text = "Frame · 0 / 0 slots used"
 unique_name_in_owner = true
 layout_mode = 2
 script = ExtResource("3_pgemp")
+
+[node name="PassiveLabel" type="Label" parent="Margin/Screen/Layout/MechColumn" unique_id=1389581959]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.7882353, 0.80784315, 0.8392157, 1)
+text = "Passive"
+autowrap_mode = 3
 
 [node name="ShopArea" type="PanelContainer" parent="Margin/Screen/Layout" unique_id=1768936590]
 layout_mode = 2
