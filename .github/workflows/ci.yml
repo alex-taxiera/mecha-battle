@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+
+      - name: Run GdUnit4
+        run: |
+          godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd \
+            -a res://test -c --ignoreHeadlessMode -rd user://reports 2>&1 | tee gdunit.log
+          # GdUnit4's own exit code is lost to tee; a run with no summary, or any failure, fails the job.
+          summary=$(sed 's/\x1b\[[0-9;]*m//g' gdunit.log | grep "Overall Summary" || true)
+          echo "$summary"
+          if [ -z "$summary" ] || ! echo "$summary" | grep -q "0 errors | 0 failures"; then
+            exit 1
+          fi

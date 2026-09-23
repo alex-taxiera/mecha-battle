@@ -1,0 +1,73 @@
+name: Release to itch.io
+
+# Push a tag like v0.1.0 to test, export, and upload the game to itch.io. Run it by hand from the
+# Actions tab to build without a tag (it uploads too, once itch.io is set up).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  export:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          templates: "true"
+
+      - name: Export
+        run: |
+          mkdir -p build/web build/windows build/linux
+          godot --headless --path . --export-release "Web" build/web/index.html
+          godot --headless --path . --export-release "Windows" build/windows/MechaBattle.exe
+          godot --headless --path . --export-release "Linux" build/linux/MechaBattle.x86_64
+          # Godot can print an export error and still exit 0: make sure each build is there.
+          test -f build/web/index.html -a -f build/web/index.wasm -a -f build/web/index.pck
+          test -f build/windows/MechaBattle.exe
+          test -f build/linux/MechaBattle.x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: builds
+          path: build/
+          retention-days: 14
+
+  publish:
+    needs: export
+    runs-on: ubuntu-latest
+    # Skipped until the repository has the ITCH_USER and ITCH_GAME variables set.
+    if: vars.ITCH_USER != '' && vars.ITCH_GAME != ''
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+      ITCH_TARGET: ${{ vars.ITCH_USER }}/${{ vars.ITCH_GAME }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: builds
+          path: build/
+
+      - name: Install butler
+        run: |
+          curl -fsSL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          echo "$PWD/butler" >> "$GITHUB_PATH"
+
+      - name: Push to itch.io
+        run: |
+          version="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then version="dev-${GITHUB_SHA::7}"; fi
+          chmod +x build/linux/MechaBattle.x86_64
+          butler push build/web "$ITCH_TARGET:html5" --userversion "$version"
+          butler push build/windows "$ITCH_TARGET:windows" --userversion "$version"
+          butler push build/linux "$ITCH_TARGET:linux" --userversion "$version"

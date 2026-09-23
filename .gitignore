@@ -3,6 +3,9 @@
 .godot/
 /android/
 
+# Exported builds (the release workflow makes these)
+/build/
+
 # GdUnit4 reports (default location) and per-run editor config
 /reports/
 addons/gdUnit4/GdUnitRunner.cfg

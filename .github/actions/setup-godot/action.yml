@@ -1,0 +1,53 @@
+name: Set up Godot
+description: Installs the Godot editor (headless-capable) and, optionally, its export templates, then imports the project.
+
+inputs:
+  version:
+    description: Godot version, e.g. 4.7.2
+    required: true
+  release:
+    description: Release name, e.g. stable
+    default: stable
+  templates:
+    description: Also install the export templates
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Godot
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/godot
+          ~/.local/share/godot/export_templates
+        key: godot-${{ inputs.version }}-${{ inputs.release }}-templates-${{ inputs.templates }}
+
+    - name: Download Godot
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        base="https://github.com/godotengine/godot/releases/download/${{ inputs.version }}-${{ inputs.release }}"
+        name="Godot_v${{ inputs.version }}-${{ inputs.release }}"
+        mkdir -p ~/godot
+        curl -fsSL -o /tmp/godot.zip "$base/${name}_linux.x86_64.zip"
+        unzip -q /tmp/godot.zip -d ~/godot
+        mv ~/godot/${name}_linux.x86_64 ~/godot/godot
+        chmod +x ~/godot/godot
+        if [ "${{ inputs.templates }}" = "true" ]; then
+          dir=~/.local/share/godot/export_templates/${{ inputs.version }}.${{ inputs.release }}
+          mkdir -p "$dir"
+          curl -fsSL -o /tmp/templates.tpz "$base/${name}_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates/* "$dir"/
+        fi
+
+    - name: Put Godot on the path
+      shell: bash
+      run: echo "$HOME/godot" >> "$GITHUB_PATH"
+
+    - name: Import the project
+      shell: bash
+      # Headless runs don't rescan the project; without this, class_name scripts aren't known yet.
+      run: godot --headless --path . --import
