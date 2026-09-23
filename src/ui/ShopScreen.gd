@@ -1,57 +1,150 @@
 class_name ShopScreen
 extends Control
-## Root of the shop phase: the player's mech on the left, parts for sale on the right.
-## Dragging a part from the shop onto the mech buys it.
+## Root of the shop phase: the round and gold up top, the mech on the left, the parts shop on
+## the right, and the mech's stats below. Drag parts from the shop onto the mech to buy them,
+## around the mech to move them, and back onto the shop to sell them.
 
 const SHOP_ITEM_SCENE := preload("res://src/ui/ShopItem.tscn")
 const PARTS_DIR := "res://resources/parts"
+const RULES_DIR := "res://resources/rules"
+const TOAST_SECONDS := 1.9
+const GOOD_COLOR := Color(0.49, 0.88, 0.63)
+const BAD_COLOR := Color(0.94, 0.42, 0.42)
 
 @export var chassis: MechChassis
 @export var starting_gold := 10
 ## Parts for sale. Left empty, the shop sells every MechPart in [constant PARTS_DIR].
 @export var catalog: Array[MechPart] = []
+## Adjacency rules. Left empty, every SynergyRule in [constant RULES_DIR] applies.
+@export var rules: Array[SynergyRule] = []
 
-var grid: MechGridData
-var shop: ShopData
+var run: RunState
 
-@onready var _grid_ui: MechGridUI = %MechGridUI
+# The run's current stats, refreshed on every change.
+var _stats: MechStats
+var _toast_timer: Timer
+
+@onready var _round_label: Label = %RoundLabel
 @onready var _gold_label: Label = %GoldLabel
-@onready var _items: Container = %Items
+@onready var _next_round_button: Button = %NextRoundButton
+@onready var _chassis_label: Label = %ChassisLabel
+@onready var _chassis_info: Label = %ChassisInfo
+@onready var _grid_ui: MechGridUI = %MechGridUI
+@onready var _reroll_button: Button = %RerollButton
+@onready var _slots: Container = %Slots
+@onready var _sell_zone: Control = %SellZone
+@onready var _sell_label: Label = %SellLabel
+@onready var _sell_note: Label = %SellNote
+@onready var _stats_panel: StatsPanel = %StatsPanel
+@onready var _toast: Label = %Toast
 
 
 func _ready() -> void:
 	if catalog.is_empty():
-		catalog = _load_parts(PARTS_DIR)
-	grid = MechGridData.new(chassis)
-	shop = ShopData.new(starting_gold, catalog)
-	shop.changed.connect(_refresh)
-	_grid_ui.grid_data = grid
-	_grid_ui.part_dropped.connect(_on_part_dropped)
+		catalog.assign(_load_dir(PARTS_DIR).filter(func(resource: Resource) -> bool: return resource is MechPart))
+	if rules.is_empty():
+		rules.assign(_load_dir(RULES_DIR).filter(func(resource: Resource) -> bool: return resource is SynergyRule))
+	run = RunState.new(chassis, catalog, rules, starting_gold)
+	run.changed.connect(_refresh)
+	_grid_ui.run = run
+	_grid_ui.preview_changed.connect(_on_preview_changed)
+	_grid_ui.message.connect(show_toast)
+	_reroll_button.pressed.connect(_on_reroll_pressed)
+	_next_round_button.pressed.connect(_on_next_round_pressed)
+	_sell_zone.set_drag_forwarding(Callable(), can_sell, sell)
+	_sell_zone.hide()
+	_stats_panel.show_rules(run.rules)
+	_toast_timer = Timer.new()
+	_toast_timer.one_shot = true
+	_toast_timer.timeout.connect(_toast.hide)
+	add_child(_toast_timer)
+	_toast.hide()
 	_refresh()
 
 
+func _notification(what: int) -> void:
+	if not is_node_ready():
+		return
+	if what == NOTIFICATION_DRAG_BEGIN:
+		var drag: Variant = get_viewport().gui_get_drag_data()
+		if drag is PartDragData and not drag.is_from_shop():
+			show_sell_zone(drag)
+	elif what == NOTIFICATION_DRAG_END:
+		_sell_zone.hide()
+
+
+## Shows [param text] briefly at the top of the screen, green when [param good].
+func show_toast(text: String, good: bool) -> void:
+	_toast.text = text
+	_toast.add_theme_color_override("font_color", GOOD_COLOR if good else BAD_COLOR)
+	_toast.show()
+	_toast_timer.start(TOAST_SECONDS)
+
+
+## Covers the shop with a drop zone that sells the installed part being dragged.
+func show_sell_zone(drag: PartDragData) -> void:
+	_sell_label.text = "Sell for +%dg" % run.sell_value(drag.from_cell)
+	if run.is_fresh(drag.from_cell):
+		_sell_note.text = "Full refund: bought this round"
+	else:
+		_sell_note.text = "Half value: bought in an earlier round"
+	_sell_zone.show()
+
+
+## Returns whether [param data] is an installed part that can be sold by dropping it here.
+func can_sell(_at_position: Vector2, data: Variant) -> bool:
+	return data is PartDragData and not data.is_from_shop()
+
+
+## Sells the installed part being dropped on the shop.
+func sell(_at_position: Vector2, data: Variant) -> void:
+	var drag: PartDragData = data
+	var gained := run.sell(drag.from_cell)
+	_sell_zone.hide()
+	show_toast("Sold %s · +%dg" % [drag.part.part_name, gained], true)
+
+
 func _refresh() -> void:
-	_gold_label.text = "Gold: %d" % shop.gold
-	for item in _items.get_children():
-		_items.remove_child(item)
+	_stats = run.stats()
+	_round_label.text = "Hangar · Round %d" % run.round_number
+	_gold_label.text = "Gold: %d" % run.gold
+	var frame := run.grid.chassis
+	_chassis_label.text = "Chassis · %s" % frame.chassis_name
+	_chassis_info.text = "%s · %d / %d slots used" % [frame.frame_name, run.grid.get_used_cell_count(), frame.get_usable_cell_count()]
+	_reroll_button.text = "Reroll · %dg" % RunState.REROLL_COST
+	for item in _slots.get_children():
+		_slots.remove_child(item)
 		item.queue_free()
-	for part in shop.offers:
+	for i in run.slots.size():
+		var slot := run.slots[i]
 		var item: ShopItem = SHOP_ITEM_SCENE.instantiate()
-		item.part = part
-		item.affordable = shop.can_afford(part)
-		_items.add_child(item)
+		item.slot_index = i
+		item.part = slot.part
+		item.turns = slot.rotation
+		item.sold = slot.sold
+		item.affordable = run.can_afford(slot.part)
+		item.rotate_requested.connect(run.rotate_slot.bind(i))
+		_slots.add_child(item)
+	_stats_panel.show_stats(_stats, null, frame)
 
 
-func _on_part_dropped(part: MechPart, _origin: Vector2i) -> void:
-	shop.buy(part)
+func _on_preview_changed(preview: MechStats) -> void:
+	_stats_panel.show_stats(_stats, preview, run.grid.chassis)
 
 
-static func _load_parts(dir: String) -> Array[MechPart]:
-	var parts: Array[MechPart] = []
+func _on_reroll_pressed() -> void:
+	if not run.reroll():
+		show_toast("Not enough gold to reroll", false)
+
+
+func _on_next_round_pressed() -> void:
+	run.end_round()
+	show_toast("Round %d · +%dg income, shop restocked" % [run.round_number, run.round_income], true)
+
+
+static func _load_dir(dir: String) -> Array[Resource]:
+	var loaded: Array[Resource] = []
 	for file in ResourceLoader.list_directory(dir):
-		if file.ends_with("/"):
-			continue
-		var part := load(dir.path_join(file)) as MechPart
-		if part:
-			parts.append(part)
-	return parts
+		if not file.ends_with("/"):
+			loaded.append(load(dir.path_join(file)))
+	return loaded

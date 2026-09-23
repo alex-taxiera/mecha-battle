@@ -8,7 +8,10 @@ const CORNERS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(3, 0), Vector2i(0, 3)
 
 ## The design doc's chassis: 4x4 with the corners disabled, with the Skirmisher's base stats.
 static func cross_chassis() -> MechChassis:
-	return _chassis(Vector2i(4, 4), CORNERS)
+	var chassis := _chassis(Vector2i(4, 4), CORNERS)
+	chassis.chassis_name = "The Skirmisher"
+	chassis.frame_name = "Cross frame"
+	return chassis
 
 
 ## A frame with no disabled cells and the Skirmisher's base stats, for roomy layouts.
@@ -50,19 +53,28 @@ static func part(part_name: String, type: MechPart.PartType, shape: Array[Vector
 # The mockup's adjacency rules.
 
 static func cooled() -> SynergyRule:
-	return _rule(MechPart.PartType.WEAPON, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, SynergyRule.Stat.DAMAGE, SynergyRule.Op.MULTIPLY, 1.5, false)
+	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, SynergyRule.Stat.DAMAGE, SynergyRule.Op.MULTIPLY, 1.5, false)
+	return _named(rule, "cooled", "Heatsink + Weapon", "weapon dmg ×1.5", Color(0.31, 0.77, 0.74))
 
 
 static func overcharge() -> SynergyRule:
-	return _rule(MechPart.PartType.WEAPON, MechPart.PartType.GENERATOR, SynergyRule.Target.FIRST, SynergyRule.Stat.DAMAGE, SynergyRule.Op.ADD, 3.0, true)
+	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.GENERATOR, SynergyRule.Target.FIRST, SynergyRule.Stat.DAMAGE, SynergyRule.Op.ADD, 3.0, true)
+	return _named(rule, "overcharge", "Reactor + Weapon", "+3 weapon dmg", Color(0.65, 0.55, 0.94))
 
 
 static func stable() -> SynergyRule:
-	return _rule(MechPart.PartType.GENERATOR, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, SynergyRule.Stat.ENERGY, SynergyRule.Op.ADD, 2.0, true)
+	var rule := _rule(MechPart.PartType.GENERATOR, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, SynergyRule.Stat.ENERGY, SynergyRule.Op.ADD, 2.0, true)
+	return _named(rule, "stable", "Heatsink + Reactor", "+2 energy", Color(0.94, 0.71, 0.24))
 
 
 static func plated() -> SynergyRule:
-	return _rule(MechPart.PartType.DEFENSE, MechPart.PartType.DEFENSE, SynergyRule.Target.BOTH, SynergyRule.Stat.HP, SynergyRule.Op.ADD, 4.0, true)
+	var rule := _rule(MechPart.PartType.DEFENSE, MechPart.PartType.DEFENSE, SynergyRule.Target.BOTH, SynergyRule.Stat.HP, SynergyRule.Op.ADD, 4.0, true)
+	return _named(rule, "plated", "Laser + Laser", "+4 HP each", Color(0.5, 0.65, 0.86))
+
+
+## All four mockup rules, in the mockup's legend order.
+static func rules() -> Array[SynergyRule]:
+	return [cooled(), overcharge(), stable(), plated()]
 
 
 static func _chassis(size: Vector2i, disabled: Array[Vector2i]) -> MechChassis:
@@ -72,6 +84,14 @@ static func _chassis(size: Vector2i, disabled: Array[Vector2i]) -> MechChassis:
 	chassis.base_hp = 30
 	chassis.base_energy = 3
 	return chassis
+
+
+static func _named(rule: SynergyRule, id: String, label: String, effect_text: String, color: Color) -> SynergyRule:
+	rule.id = id
+	rule.label = label
+	rule.effect_text = effect_text
+	rule.color = color
+	return rule
 
 
 static func _rule(first_type: MechPart.PartType, second_type: MechPart.PartType, target: SynergyRule.Target,

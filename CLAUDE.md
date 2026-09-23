@@ -35,6 +35,7 @@ Run the tests headlessly from the project root using this command:
 - `run_project` injects an `McpInteractionServer` autoload and script into the project. `stop_project` removes them but leaves an empty `[autoload]` section in `project.godot`; delete it.
 - A script error in `game_eval` freezes the game at a `debug>` prompt. Call `stop_project`, then run it again.
 - `game_mouse_drag` can't finish a drag-and-drop, because Godot 4.7 aims the drop at the real OS cursor. To test drops in a running game, `push_input()` events into a standalone `SubViewport` (not inside a `SubViewportContainer`).
+- In that harness, call `game_wait` for a frame after anything that rebuilds or reveals controls (a refresh, a drag that shows a drop zone) before pushing input at them. Containers lay out on the next frame, so earlier input hits the old rects.
 - `game_screenshot` returns a stale frame while the game window is minimized.
 
 ## Rules

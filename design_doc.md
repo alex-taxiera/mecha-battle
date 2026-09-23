@@ -47,18 +47,22 @@ An adjacency bonus between two part types: which part of the pair gets it, the s
 The shop phase: gold, the round, 4 shop slots (sold state, rotation), and the mech grid. `buy`, `sell` (full refund in the round it was bought, half after), `move`, `rotate_placed`, `rotate_slot`, `reroll` (1 gold), `end_round` (unspent gold carries over, plus income), and `preview_buy` / `preview_move` for hover feedback. Emits `changed`.
 
 ## 3. UI Architecture (The "View")
-The UI is strictly visual. It reads data from `MechGridData` and emits signals when the player clicks, but it does NOT calculate whether a part fits.
+The UI is strictly visual. It asks `RunState` what an action would do (`preview_buy` / `preview_move`) and calls it to act, but it does NOT calculate fits, costs, or stats itself. Every screen redraws from `RunState.changed`.
 
 ### `ShopScreen.tscn` (Extends Control)
-The root node for the shop phase.
-- Manages the player's Gold.
-- Contains the Shop UI (right side) and the Mech Grid UI (left side).
+The root node for the shop phase. Builds the `RunState` from its chassis, catalog, and rules (loaded from `res://resources/` when not set).
+- Header: round, gold, **Next round**.
+- Chassis column: name, "used / total slots used", and the `MechGridUI`.
+- Parts shop: 4 `ShopItem` slots (a bought slot shows "Sold · Reroll to restock"), **Reroll**. Each slot has a rotate button when turning changes the shape. Unaffordable parts can still be dragged; the grid explains why they can't drop.
+- Sell zone: while an installed part is dragged, the shop panel becomes a drop target showing its sell value.
+- `StatsPanel`: hull HP, energy per turn, and damage per volley, each with a delta while a drop is previewed; active links; the adjacency rules legend.
+- Toasts for results that happen off the grid (sold, rerolled, new round, not enough gold).
 
-### `MechGridUI.tscn` (Extends GridContainer or custom Control)
-- Visually draws the 4x4 grid.
-- Turns the 4 corner cells visually distinct (e.g., darkened or invisible) to indicate they are disabled.
-- Listens for Godot's built-in drag-and-drop callbacks (`_can_drop_data` and `_drop_data`).
-- When a drop is attempted, it asks `MechGridData.can_place_part()`. If true, it visually snaps the part and tells the data layer to save it.
+### `MechGridUI.tscn` (Extends Control)
+- Draws the chassis from its size and disabled cells, and each placed part with a label (type tag, name, stat line, link bonuses) and a rotate button.
+- Drag and drop through Godot's `_get_drag_data`, `_can_drop_data`, and `_drop_data`. The payload (`PartDragData`) says where the part came from (a shop slot or a placed cell), its rotation, and which cell was grabbed.
+- While a drag hovers: the footprint in green or red, the reason it can't drop, open edges around it, and link markers for the links it would make. Hovering a placed part shows its open edges; a part that was just placed or moved shows them briefly.
+- Dragging a placed part moves it on the grid, or sells it when dropped on the shop.
 
 ## 4. Signal Flow & Dependency Direction
 - **Rule:** UI nodes can call functions on Data scripts. Data scripts CANNOT call functions on UI nodes.

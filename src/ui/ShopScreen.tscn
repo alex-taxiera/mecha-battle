@@ -4,6 +4,9 @@
 [ext_resource type="PackedScene" path="res://src/ui/MechGridUI.tscn" id="2_2ygms"]
 [ext_resource type="Resource" path="res://resources/chassis/skirmisher.tres" id="2_ps511"]
 [ext_resource type="Script" path="res://src/ui/MechGridUI.gd" id="3_pgemp"]
+[ext_resource type="StyleBox" path="res://resources/ui/sell_zone.tres" id="5_u45px"]
+[ext_resource type="Script" path="res://src/ui/StatsPanel.gd" id="6_w88x5"]
+[ext_resource type="StyleBox" path="res://resources/ui/toast.tres" id="7_4ysvq"]
 
 [node name="ShopScreen" type="Control" unique_id=274162144]
 layout_mode = 3
@@ -22,53 +25,172 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 32
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 32
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
 
-[node name="Layout" type="HBoxContainer" parent="Margin" unique_id=1750249865]
+[node name="Screen" type="VBoxContainer" parent="Margin" unique_id=1651143241]
 layout_mode = 2
-theme_override_constants/separation = 48
+theme_override_constants/separation = 16
 
-[node name="MechColumn" type="VBoxContainer" parent="Margin/Layout" unique_id=1101074]
+[node name="Header" type="HBoxContainer" parent="Margin/Screen" unique_id=1808825982]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Titles" type="VBoxContainer" parent="Margin/Screen/Header" unique_id=1072773105]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="RoundLabel" type="Label" parent="Margin/Screen/Header/Titles" unique_id=1908652544]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.6039216, 0.6313726, 0.6627451, 1)
+text = "Hangar · Round 1"
+
+[node name="ScreenTitle" type="Label" parent="Margin/Screen/Header/Titles" unique_id=167263394]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Shop Phase"
+
+[node name="GoldLabel" type="Label" parent="Margin/Screen/Header" unique_id=415201291]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.9490196, 0.75686276, 0.30588236, 1)
+text = "Gold: 0"
+vertical_alignment = 1
+
+[node name="NextRoundButton" type="Button" parent="Margin/Screen/Header" unique_id=760781806]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Next round"
+
+[node name="Layout" type="HBoxContainer" parent="Margin/Screen" unique_id=1750249865]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 24
+
+[node name="MechColumn" type="VBoxContainer" parent="Margin/Screen/Layout" unique_id=1101074]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MechTitle" type="Label" parent="Margin/Layout/MechColumn" unique_id=950083085]
+[node name="ChassisLabel" type="Label" parent="Margin/Screen/Layout/MechColumn" unique_id=950083085]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "Your Mech"
+theme_override_font_sizes/font_size = 18
+text = "Chassis"
 
-[node name="MechGridUI" type="Control" parent="Margin/Layout/MechColumn" unique_id=1982216774 instance=ExtResource("2_2ygms")]
+[node name="ChassisInfo" type="Label" parent="Margin/Screen/Layout/MechColumn" unique_id=1233934835]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.6039216, 0.6313726, 0.6627451, 1)
+text = "Frame · 0 / 0 slots used"
+
+[node name="MechGridUI" type="Control" parent="Margin/Screen/Layout/MechColumn" unique_id=1982216774 instance=ExtResource("2_2ygms")]
 unique_name_in_owner = true
 layout_mode = 2
 script = ExtResource("3_pgemp")
 
-[node name="ShopPanel" type="VBoxContainer" parent="Margin/Layout" unique_id=1753008455]
+[node name="ShopArea" type="PanelContainer" parent="Margin/Screen/Layout" unique_id=1768936590]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShopMargin" type="MarginContainer" parent="Margin/Screen/Layout/ShopArea" unique_id=1289355748]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ShopPanel" type="VBoxContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin" unique_id=1753008455]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="ShopTitle" type="Label" parent="Margin/Layout/ShopPanel" unique_id=333729124]
+[node name="ShopHeader" type="HBoxContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel" unique_id=870020486]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "Shop"
+theme_override_constants/separation = 12
 
-[node name="GoldLabel" type="Label" parent="Margin/Layout/ShopPanel" unique_id=415201291]
-unique_name_in_owner = true
+[node name="ShopTitles" type="VBoxContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader" unique_id=1105305024]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="ShopTitle" type="Label" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader/ShopTitles" unique_id=333729124]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.9490196, 0.75686276, 0.30588236, 1)
-text = "Gold: 0"
+text = "Parts Shop"
 
-[node name="Hint" type="Label" parent="Margin/Layout/ShopPanel" unique_id=1825169020]
+[node name="Hint" type="Label" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader/ShopTitles" unique_id=1825169020]
 layout_mode = 2
+theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.72156864, 0.7372549, 0.7764706, 1)
-text = "Drag a part onto your mech to buy it."
+text = "Drag a part onto the chassis to buy it. Drag installed parts back here to sell."
+autowrap_mode = 3
 
-[node name="Items" type="HFlowContainer" parent="Margin/Layout/ShopPanel" unique_id=1547967009]
+[node name="RerollButton" type="Button" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader" unique_id=1789523966]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Reroll · 1g"
+
+[node name="Slots" type="GridContainer" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel" unique_id=1779311612]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
+columns = 2
+
+[node name="SellZone" type="PanelContainer" parent="Margin/Screen/Layout/ShopArea" unique_id=1513445550]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_styles/panel = ExtResource("5_u45px")
+
+[node name="SellBox" type="VBoxContainer" parent="Margin/Screen/Layout/ShopArea/SellZone" unique_id=1929444792]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="SellLabel" type="Label" parent="Margin/Screen/Layout/ShopArea/SellZone/SellBox" unique_id=156074168]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.9411765, 0.7058824, 0.23529412, 1)
+text = "Sell for +0g"
+horizontal_alignment = 1
+
+[node name="SellNote" type="Label" parent="Margin/Screen/Layout/ShopArea/SellZone/SellBox" unique_id=1682129567]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refund note"
+horizontal_alignment = 1
+
+[node name="StatsPanel" type="HBoxContainer" parent="Margin/Screen" unique_id=1173145273]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+script = ExtResource("6_w88x5")
+
+[node name="Toast" type="Label" parent="." unique_id=915689703]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 88.0
+offset_bottom = 88.0
+grow_horizontal = 2
+theme_override_styles/normal = ExtResource("7_4ysvq")
+theme_override_font_sizes/font_size = 15
+text = "Toast"
+horizontal_alignment = 1

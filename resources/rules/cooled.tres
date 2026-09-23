@@ -7,6 +7,7 @@ script = ExtResource("1_uhgpu")
 id = "cooled"
 label = "Heatsink + Weapon"
 effect_text = "weapon dmg ×1.5"
+color = Color(0.30980393, 0.76862746, 0.7372549, 1)
 second_type = 3
 stat = 2
 op = 1

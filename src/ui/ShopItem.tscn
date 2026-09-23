@@ -2,9 +2,11 @@
 
 [ext_resource type="Script" path="res://src/ui/ShopItem.gd" id="1_be3mj"]
 [ext_resource type="Script" path="res://src/ui/PartShapeView.gd" id="2_1gcl0"]
+[ext_resource type="Script" path="res://src/ui/RotateButton.gd" id="3_taqq6"]
 
 [node name="ShopItem" type="PanelContainer" unique_id=1718470254]
-custom_minimum_size = Vector2(120, 130)
+custom_minimum_size = Vector2(0, 150)
+size_flags_horizontal = 3
 script = ExtResource("1_be3mj")
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=1373892745]
@@ -20,13 +22,38 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="NameLabel" type="Label" parent="Margin/VBox" unique_id=1209049113]
+[node name="Offer" type="VBoxContainer" parent="Margin/VBox" unique_id=1477564734]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Part"
-horizontal_alignment = 1
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
 
-[node name="ShapeView" type="Control" parent="Margin/VBox" unique_id=1956896135]
+[node name="Header" type="HBoxContainer" parent="Margin/VBox/Offer" unique_id=277344747]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="Margin/VBox/Offer/Header" unique_id=1209049113]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Part"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="CostLabel" type="Label" parent="Margin/VBox/Offer/Header" unique_id=949135240]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "0g"
+
+[node name="Body" type="HBoxContainer" parent="Margin/VBox/Offer" unique_id=1278375763]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="ShapeView" type="Control" parent="Margin/VBox/Offer/Body" unique_id=1956896135]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
@@ -34,10 +61,36 @@ size_flags_vertical = 6
 mouse_filter = 2
 script = ExtResource("2_1gcl0")
 
-[node name="InfoLabel" type="Label" parent="Margin/VBox" unique_id=2104211731]
+[node name="InfoLabel" type="Label" parent="Margin/VBox/Offer/Body" unique_id=2104211731]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.72156864, 0.7372549, 0.7764706, 1)
 text = "Type · 0 gold"
+vertical_alignment = 1
+
+[node name="RotateButton" type="Button" parent="Margin/VBox/Offer/Body" unique_id=1879650206]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "Rotate"
+script = ExtResource("3_taqq6")
+
+[node name="DescriptionLabel" type="Label" parent="Margin/VBox/Offer" unique_id=160914927]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.76862746, 0.7607843, 0.7372549, 1)
+text = "Description"
+autowrap_mode = 3
+
+[node name="SoldLabel" type="Label" parent="Margin/VBox" unique_id=1940804297]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.6039216, 0.6313726, 0.6627451, 1)
+text = "Sold · Reroll to restock"
 horizontal_alignment = 1
+vertical_alignment = 1

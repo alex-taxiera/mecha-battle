@@ -7,6 +7,7 @@ script = ExtResource("1_5fwas")
 id = "plated"
 label = "Laser + Laser"
 effect_text = "+4 HP each"
+color = Color(0.49803922, 0.654902, 0.8627451, 1)
 first_type = 2
 second_type = 2
 target = 2

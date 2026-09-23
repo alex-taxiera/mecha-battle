@@ -1,33 +1,57 @@
 class_name ShopItem
 extends PanelContainer
-## One part for sale. Dragging it onto the mech grid buys it.
+## One shop slot. Dragging its part onto the mech grid buys it; a bought slot shows as sold.
 
+## Emitted when the player asks to turn the offer a quarter-turn.
+signal rotate_requested
+
+const COST_COLOR := Color(0.94, 0.71, 0.24)
+const TOO_EXPENSIVE_COLOR := Color(0.94, 0.42, 0.42)
+
+var slot_index := -1
 var part: MechPart
-## Unaffordable items are greyed out and can't be dragged.
+## Quarter-turns clockwise the offer is shown and bought at.
+var turns := 0
+var sold := false
+## Unaffordable parts can still be dragged; the grid explains why they can't drop.
 var affordable := true
 
+@onready var _offer: Control = %Offer
+@onready var _sold_label: Label = %SoldLabel
 @onready var _name_label: Label = %NameLabel
+@onready var _cost_label: Label = %CostLabel
 @onready var _shape_view: PartShapeView = %ShapeView
 @onready var _info_label: Label = %InfoLabel
+@onready var _rotate_button: Button = %RotateButton
+@onready var _description_label: Label = %DescriptionLabel
 
 
 func _ready() -> void:
+	_offer.visible = not sold
+	_sold_label.visible = sold
+	if sold:
+		return
 	_name_label.text = part.part_name
-	_info_label.text = "%s · %d gold" % [MechPart.PartType.find_key(part.type).capitalize(), part.cost]
+	_cost_label.text = "%dg" % part.cost
+	_cost_label.add_theme_color_override("font_color", COST_COLOR if affordable else TOO_EXPENSIVE_COLOR)
 	_shape_view.part = part
-	mouse_default_cursor_shape = CURSOR_DRAG if affordable else CURSOR_FORBIDDEN
+	_shape_view.turns = turns
+	_info_label.text = "%s · %s" % [MechPart.PartType.find_key(part.type).capitalize(), _size_text()]
+	_description_label.text = part.description
+	_rotate_button.visible = part.can_rotate()
+	_rotate_button.pressed.connect(rotate_requested.emit)
+	mouse_default_cursor_shape = CURSOR_DRAG
 	if not affordable:
-		modulate.a = 0.4
 		tooltip_text = "Not enough gold"
 
 
 func _get_drag_data(at_position: Vector2) -> Variant:
-	if not affordable:
+	if sold:
 		return null
-	var drag := PartDragData.new(part, _grab_offset_at(at_position))
+	var drag := PartDragData.from_shop(slot_index, part, turns, _grab_offset_at(at_position))
 	# Tests call this outside a real drag, where Godot won't accept a preview.
 	if get_viewport().gui_is_dragging():
-		set_drag_preview(_make_preview(drag.grab_offset))
+		set_drag_preview(PartShapeView.make_drag_preview(part, turns, drag.grab_offset))
 	return drag
 
 
@@ -35,19 +59,15 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 func _grab_offset_at(at_position: Vector2) -> Vector2i:
 	var local := at_position + global_position - _shape_view.global_position
 	var cell := Vector2i((local / (_shape_view.cell_size + _shape_view.gap)).floor())
-	return cell if cell in part.grid_shape else Vector2i.ZERO
+	return cell if cell in part.get_shape(turns) else Vector2i.ZERO
 
 
-func _make_preview(grab_offset: Vector2i) -> Control:
-	var shape := PartShapeView.new()
-	shape.cell_size = MechGridUI.CELL_SIZE
-	shape.gap = MechGridUI.CELL_GAP
-	shape.part = part
-	shape.modulate.a = 0.75
-	# Godot pins the preview's top-left to the cursor, so offset the shape inside it to
-	# put the grabbed cell's center under the cursor instead.
-	shape.position = -(Vector2(grab_offset) * MechGridUI.CELL_PITCH + Vector2.ONE * MechGridUI.CELL_SIZE / 2)
-	var preview := Control.new()
-	preview.mouse_filter = MOUSE_FILTER_IGNORE
-	preview.add_child(shape)
-	return preview
+# "1 block", "1×3", or "3 blocks" for shapes that aren't rectangles.
+func _size_text() -> String:
+	var shape := part.get_shape(turns)
+	if shape.size() == 1:
+		return "1 block"
+	var extent := PartShapeView.shape_extent(shape)
+	if extent.x * extent.y == shape.size():
+		return "%d×%d" % [extent.x, extent.y]
+	return "%d blocks" % shape.size()

@@ -11,6 +11,8 @@ enum Op { ADD, MULTIPLY }
 @export var label: String
 ## Shown next to the label, e.g. "weapon dmg ×1.5".
 @export var effect_text: String
+## Marks this rule's links on the grid and in the stats panel.
+@export var color := Color.WHITE
 @export var first_type: MechPart.PartType
 @export var second_type: MechPart.PartType
 ## Which part of the pair gets the bonus. Use BOTH when the two types are the same.
