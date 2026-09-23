@@ -150,6 +150,82 @@ func test_the_readout_shows_heat_and_shutdowns() -> void:
 	assert_int(tag.state).is_equal(WeaponTag.State.OFFLINE)
 
 
+func test_pausing_holds_the_fight() -> void:
+	var screen := _screen(_gunner(), _bare())
+	var timer: Timer = screen.get_node("%TickTimer")
+	var controls: PlaybackControls = screen.get_node("%Playback")
+	var label: Label = screen.get_node("%PlaybackLabel")
+	assert_str(label.text).is_empty()
+	controls.pause_button.pressed.emit()
+	assert_bool(screen.paused).is_true()
+	assert_bool(timer.paused).is_true()
+	assert_str(label.text).is_equal("PAUSED")
+	assert_str(controls.pause_button.icon_name).is_equal("play")
+	# Space plays it again.
+	screen._unhandled_input(_space())
+	assert_bool(screen.paused).is_false()
+	assert_bool(timer.paused).is_false()
+	assert_str(label.text).is_empty()
+	assert_str(controls.pause_button.icon_name).is_equal("pause")
+
+
+func test_fast_forward_speeds_the_ticks_not_the_fight() -> void:
+	var screen := _screen(_gunner(), _bare())
+	var timer: Timer = screen.get_node("%TickTimer")
+	var controls: PlaybackControls = screen.get_node("%Playback")
+	controls.speed_pressed.emit()
+	assert_int(screen.speed).is_equal(2)
+	assert_float(timer.wait_time).is_equal_approx(0.05, 1e-9)
+	assert_str(screen.get_playback_text()).is_equal("FAST FORWARD 2X")
+	assert_that(controls.speed_button.color).is_equal(PlaybackControls.FAST_COLOR)
+	# The bars glide over the shorter wait, so they keep up.
+	assert_float((screen.get_node("%LeftHp") as HpBar).smoothing).is_equal_approx(0.05, 1e-9)
+	screen.cycle_speed()
+	assert_int(screen.speed).is_equal(4)
+	assert_float(timer.wait_time).is_equal_approx(0.025, 1e-9)
+	assert_str(screen.get_playback_text()).is_equal("FAST FORWARD 4X")
+	# Each tick still moves the fight a tenth of a second.
+	timer.timeout.emit()
+	assert_float(screen.engine.elapsed).is_equal_approx(0.1, 1e-9)
+	# After the fastest, back to normal.
+	screen.cycle_speed()
+	assert_int(screen.speed).is_equal(1)
+	assert_float(timer.wait_time).is_equal_approx(0.1, 1e-9)
+	assert_str(screen.get_playback_text()).is_empty()
+
+
+func test_skipping_plays_out_the_fight_and_shows_the_result_at_once() -> void:
+	var screen := _screen(_gunner(), _bare())
+	screen.toggle_pause() # skipping works while paused too
+	(screen.get_node("%Playback") as PlaybackControls).skip_pressed.emit()
+	assert_bool(screen.is_over()).is_true()
+	assert_float(screen.engine.elapsed).is_equal_approx(4.0, 1e-9)
+	assert_bool((screen.get_node("%TickTimer") as Timer).is_stopped()).is_true()
+	assert_bool(screen.result_panel.visible).is_true()
+	assert_str(screen.result_panel.title_label.text).is_equal("VICTORY")
+	assert_str(screen.get_playback_text()).is_equal("BATTLE OVER")
+	assert_str((screen.get_node("%RightHp") as HpBar).get_text()).is_equal("0/30")
+	# Once it's over, the controls are off and do nothing.
+	var controls: PlaybackControls = screen.get_node("%Playback")
+	assert_bool(controls.pause_button.disabled).is_true()
+	assert_bool(controls.skip_button.disabled).is_true()
+	screen.toggle_pause()
+	screen.cycle_speed()
+	screen._unhandled_input(_space())
+	assert_bool(screen.paused).is_false()
+	assert_int(screen.speed).is_equal(1)
+
+
+func test_a_fight_that_ends_on_its_own_turns_the_controls_off() -> void:
+	var screen := _screen(_gunner(), _bare())
+	_tick_until_over(screen)
+	assert_str(screen.get_playback_text()).is_equal("BATTLE OVER")
+	assert_bool((screen.get_node("%Playback") as PlaybackControls).speed_button.disabled).is_true()
+	# Positive control: while it runs, they're on.
+	var running := _screen(_gunner(), _bare())
+	assert_bool((running.get_node("%Playback") as PlaybackControls).speed_button.disabled).is_false()
+
+
 func test_leaving_resets_the_view() -> void:
 	var screen := _screen(_gunner(), _bare())
 	get_viewport().canvas_transform = Transform2D(0.0, Vector2(12, -7))
@@ -184,6 +260,13 @@ func _screen(left: BattleMech, right: BattleMech, run: RunState = null) -> Comba
 	screen.setup(left, right, run)
 	add_child(screen)
 	return screen
+
+
+func _space() -> InputEventKey:
+	var event := InputEventKey.new()
+	event.keycode = KEY_SPACE
+	event.pressed = true
+	return event
 
 
 # Fires the screen's timer until the fight is over, and returns how many ticks that took.

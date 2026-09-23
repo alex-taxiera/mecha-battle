@@ -2,9 +2,10 @@ class_name CombatScreen
 extends Control
 ## Plays a fight in real time on the arena stage, after the Claude Design mockup: both mechs on
 ## their pads with their energy, heat, and weapons, their health across the top, and the
-## countdown to the storm. A looping 0.1-second timer drives a [CombatEngine]. Once the fight
-## is over, the result panel comes up after a moment, and its button emits [signal finished].
-## The fight's ticks also print to the output.
+## countdown to the storm. A looping timer drives a [CombatEngine] 0.1 seconds a tick; the
+## player can pause it (also with Space), speed it up, or skip to the end. Once the fight is
+## over, the result panel comes up after a moment, and its button emits [signal finished]. The
+## fight's ticks also print to the output.
 
 ## Emitted when the player leaves the result panel. [param winner] is null for a draw.
 signal finished(winner: BattleMech)
@@ -16,8 +17,12 @@ const DUMMY_CHASSIS := preload("res://resources/chassis/bastion.tres")
 # Run on its own, the screen pits this stand-in for the player against the dummy, on the
 # screen's Bastion: a missile pod overcharged by a reactor touching its bay, and a laser.
 const DEMO_PLAYER := [["missile_pod", Vector2i(1, -2)], ["reactor", Vector2i(1, 0)], ["laser", Vector2i(1, 1)]]
-## Seconds of fight each tick moves.
+## Seconds of fight each tick moves, whatever the playback speed.
 const TICK := 0.1
+## The playback speeds fast-forward steps through.
+const SPEEDS: Array[int] = [1, 2, 4]
+# Skipping stops after this many ticks, in case a fight could somehow never end.
+const MAX_SKIP_TICKS := 100000
 
 ## The chassis the demo mechs are built on.
 @export var chassis: MechChassis
@@ -30,6 +35,9 @@ const TICK := 0.1
 var engine: CombatEngine
 ## The run the fight belongs to, for the round and record. Null outside a run.
 var run: RunState
+## Whether the fight is paused, and how many times normal speed it plays at.
+var paused := false
+var speed := 1
 
 # The winner once the fight is over; null for a draw.
 var _winner: BattleMech
@@ -48,6 +56,8 @@ var _winner: BattleMech
 @onready var _round_badge: RoundBadge = %RoundBadge
 @onready var _storm_timer: StormTimer = %StormTimer
 @onready var _main_pcam: PhantomCamera2D = %MainPCam
+@onready var _playback: PlaybackControls = %Playback
+@onready var _playback_label: Label = %PlaybackLabel
 
 
 func _ready() -> void:
@@ -58,6 +68,9 @@ func _ready() -> void:
 	_tick_timer.timeout.connect(_on_tick_timer_timeout)
 	_result_timer.timeout.connect(_show_result)
 	result_panel.return_pressed.connect(func() -> void: finished.emit(_winner))
+	_playback.pause_pressed.connect(toggle_pause)
+	_playback.speed_pressed.connect(cycle_speed)
+	_playback.skip_pressed.connect(skip)
 	resized.connect(_center_camera)
 	_center_camera()
 	_bind()
@@ -77,6 +90,54 @@ func setup(left: BattleMech, right: BattleMech, p_run: RunState = null) -> void:
 	engine = CombatEngine.new(left, right)
 	engine.battle_ended.connect(func(winner: BattleMech) -> void: _winner = winner)
 	run = p_run
+
+
+## Pauses a running fight, or resumes a paused one. Does nothing once the fight is over.
+func toggle_pause() -> void:
+	if is_over():
+		return
+	paused = not paused
+	_tick_timer.paused = paused
+	_show_playback()
+
+
+## Steps to the next speed in [constant SPEEDS], after the fastest back to 1x. Ticks come faster,
+## but each still moves the fight [constant TICK] seconds, so speed never changes a fight.
+func cycle_speed() -> void:
+	if is_over():
+		return
+	speed = SPEEDS[(SPEEDS.find(speed) + 1) % SPEEDS.size()]
+	_tick_timer.wait_time = TICK / speed
+	_set_smoothing(TICK / speed)
+	_show_playback()
+
+
+## Plays the rest of the fight at once and brings up the result.
+func skip() -> void:
+	if is_over():
+		return
+	var ticks := 0
+	while engine.state == CombatEngine.State.RUNNING and ticks < MAX_SKIP_TICKS:
+		engine.process_tick(TICK)
+		ticks += 1
+	_refresh()
+	if is_over():
+		_end_fight()
+		_show_result()
+
+
+func is_over() -> bool:
+	return engine.state == CombatEngine.State.FINISHED
+
+
+## Returns what the line under the timer says: "BATTLE OVER", "PAUSED", "FAST FORWARD 2X", or
+## nothing while the fight plays at normal speed.
+func get_playback_text() -> String:
+	if is_over():
+		return "BATTLE OVER"
+	if paused:
+		return "PAUSED"
+	return "FAST FORWARD %dX" % speed if speed > 1 else ""
 
 
 ## Returns a tick's printout, e.g.
@@ -154,16 +215,36 @@ static func make_dummy(p_rules: Array[SynergyRule], round_number := 1) -> Battle
 	return build_mech(DUMMY_CHASSIS, DUMMY, p_rules, round_number)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.keycode == KEY_SPACE and not is_over():
+		toggle_pause()
+		get_viewport().set_input_as_handled()
+
+
 func _on_tick_timer_timeout() -> void:
 	engine.process_tick(TICK)
 	_refresh()
 	if print_ticks:
 		print(status_line())
-	if engine.state == CombatEngine.State.FINISHED:
-		_tick_timer.stop()
-		if print_ticks:
-			print(result_line())
+	if is_over():
+		_end_fight()
 		_result_timer.start()
+
+
+# Stops the ticks once the fight is over and turns the playback controls off.
+func _end_fight() -> void:
+	_tick_timer.stop()
+	paused = false
+	_tick_timer.paused = false
+	_show_playback()
+	if print_ticks:
+		print(result_line())
+
+
+func _show_playback() -> void:
+	_playback.show_state(paused, speed, is_over())
+	_playback_label.text = get_playback_text()
 
 
 # Points every widget at the fight's mechs.
@@ -182,6 +263,7 @@ func _bind() -> void:
 	if run:
 		_round_badge.set_record(run.round_number, run.wins, run.losses, run.draws)
 	_set_smoothing(TICK)
+	_show_playback()
 	_refresh()
 
 

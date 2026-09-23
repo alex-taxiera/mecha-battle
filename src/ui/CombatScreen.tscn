@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://src/ui/combat/RoundBadge.gd" id="11_8h31a"]
 [ext_resource type="Script" path="res://src/ui/combat/HpBar.gd" id="12_brono"]
 [ext_resource type="Script" path="res://src/ui/combat/StormTimer.gd" id="13_7j30b"]
+[ext_resource type="Script" path="res://src/ui/combat/PlaybackControls.gd" id="14_62d5h"]
 [ext_resource type="Script" path="res://src/ui/combat/ResultPanel.gd" id="14_oiwih"]
 
 [sub_resource type="Resource" id="Resource_brono"]
@@ -226,6 +227,38 @@ offset_bottom = 148.0
 grow_horizontal = 2
 mouse_filter = 2
 script = ExtResource("13_7j30b")
+
+[node name="Playback" type="HBoxContainer" parent="Hud/HudRoot" unique_id=231450898]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -80.0
+offset_top = 8.0
+offset_right = 80.0
+offset_bottom = 52.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+script = ExtResource("14_62d5h")
+
+[node name="PlaybackLabel" type="Label" parent="Hud/HudRoot" unique_id=313678222]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -220.0
+offset_top = 152.0
+offset_right = 220.0
+offset_bottom = 178.0
+grow_horizontal = 2
+theme_type_variation = &"PixelLabel"
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="ModalLayer" type="CanvasLayer" parent="." unique_id=136546932]
 layer = 2
