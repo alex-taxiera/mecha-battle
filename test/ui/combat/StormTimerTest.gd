@@ -26,3 +26,17 @@ func test_float_error_doesnt_hold_a_second_back() -> void:
 	# Positive control: a real fraction of a second still rounds up.
 	timer.set_countdown(19.01)
 	assert_str(timer.get_text()).is_equal("20")
+
+
+func test_the_last_seconds_are_urgent_until_the_fight_ends() -> void:
+	var timer: StormTimer = auto_free(StormTimer.new())
+	timer.set_countdown(5.5)
+	assert_bool(timer.is_urgent()).is_false()
+	timer.set_countdown(5.0)
+	assert_bool(timer.is_urgent()).is_true()
+	# The storm itself isn't urgent, and a finished fight's countdown holds still.
+	timer.set_countdown(0.0)
+	assert_bool(timer.is_urgent()).is_false()
+	timer.set_countdown(3.0)
+	timer.running = false
+	assert_bool(timer.is_urgent()).is_false()

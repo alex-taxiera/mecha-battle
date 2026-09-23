@@ -5,10 +5,12 @@
 [ext_resource type="Resource" path="res://resources/chassis/bastion.tres" id="2_adm1t"]
 [ext_resource type="Texture2D" path="res://assets/combat/arena.png" id="4_m2nnd"]
 [ext_resource type="Script" path="res://src/ui/combat/WeaponTags.gd" id="5_ai6fr"]
+[ext_resource type="Script" path="res://src/ui/combat/Embers.gd" id="5_yghov"]
 [ext_resource type="Script" path="res://src/ui/combat/FighterView.gd" id="6_15kyt"]
 [ext_resource type="Script" path="res://src/ui/combat/MechGauges.gd" id="7_sbe3w"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="8_oslx1"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_2d.gd" id="9_41rmm"]
+[ext_resource type="Script" path="res://src/ui/combat/CombatEffects.gd" id="9_yghov"]
 [ext_resource type="Script" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="10_8h31a"]
 [ext_resource type="Script" path="res://src/ui/combat/RoundBadge.gd" id="11_8h31a"]
 [ext_resource type="Script" path="res://src/ui/combat/HpBar.gd" id="12_brono"]
@@ -40,8 +42,9 @@ wait_time = 0.1
 
 [node name="ResultTimer" type="Timer" parent="." unique_id=67242364]
 unique_name_in_owner = true
-wait_time = 0.8
+wait_time = 2.0
 one_shot = true
+ignore_time_scale = true
 
 [node name="Letterbox" type="ColorRect" parent="." unique_id=189262412]
 layout_mode = 1
@@ -79,6 +82,10 @@ grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("4_m2nnd")
 expand_mode = 1
+
+[node name="Embers" type="CPUParticles2D" parent="Stage/Arena" unique_id=150533255]
+position = Vector2(640, 800)
+script = ExtResource("5_yghov")
 
 [node name="LeftWeapons" type="VBoxContainer" parent="Stage" unique_id=1990030231]
 unique_name_in_owner = true
@@ -143,6 +150,17 @@ offset_bottom = 688.0
 mouse_filter = 2
 theme_override_constants/separation = 12
 script = ExtResource("7_sbe3w")
+
+[node name="Effects" type="Control" parent="Stage" unique_id=1420183862]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("9_yghov")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2102363248]
 

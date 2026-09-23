@@ -2,7 +2,9 @@ class_name CombatScreen
 extends Control
 ## Plays a fight in real time on the arena stage, after the Claude Design mockup: both mechs on
 ## their pads with their energy, heat, and weapons, their health across the top, and the
-## countdown to the storm. A looping timer drives a [CombatEngine] 0.1 seconds a tick; the
+## countdown to the storm. Shots fly between them and land with a shake, a flash, and a damage
+## popup; heavy hits, meltdowns, and the KO shake the camera, and the KO slows time and punches
+## in on the fallen mech. A looping timer drives a [CombatEngine] 0.1 seconds a tick; the
 ## player can pause it (also with Space), speed it up, or skip to the end. Once the fight is
 ## over, the result panel comes up after a moment, and its button emits [signal finished]. The
 ## fight's ticks also print to the output.
@@ -23,6 +25,29 @@ const TICK := 0.1
 const SPEEDS: Array[int] = [1, 2, 4]
 # Skipping stops after this many ticks, in case a fight could somehow never end.
 const MAX_SKIP_TICKS := 100000
+## Seconds a shot takes to cross the stage, and a popup lasts, at normal speed. Faster playback
+## shortens both.
+const FLIGHT_TIME := 0.25
+const POPUP_TIME := 1.0
+## Shots one weapon fires in the same tick, like an Overclock double shot, leave this far apart.
+const SHOT_STAGGER := 0.08
+## A weapon that hits this hard shakes the camera and rocks its target; lighter hits stir it at
+## LIGHT_HIT strength.
+const HEAVY_HIT := 30
+const LIGHT_HIT := 0.4
+## A mech gets at most one damage popup this often, in real seconds. Hits in between add up into
+## the next one, so rapid fire and fast-forward stay readable.
+const POPUP_GAP := 0.15
+## The KO punch-in: how far the camera zooms in, over how many seconds. At 2x the zoomed view
+## is small enough to center on either pad, and the 2x pixel art lands on a whole 4x.
+const KO_ZOOM := 2.0
+const KO_TIME := 0.5
+## The KO slows time to this share of normal speed for KO_SLOW_TIME real seconds, then eases back
+## over KO_RECOVER_TIME, so the fall and the punch-in play out. The result panel waits for it:
+## the ResultTimer counts real seconds.
+const KO_SLOW_MO := 0.3
+const KO_SLOW_TIME := 1.2
+const KO_RECOVER_TIME := 0.4
 
 ## The chassis the demo mechs are built on.
 @export var chassis: MechChassis
@@ -41,6 +66,18 @@ var speed := 1
 
 # The winner once the fight is over; null for a draw.
 var _winner: BattleMech
+# Off while skipping, so a skipped fight plays no effects.
+var _animate := true
+# How many shots each weapon has fired this tick, to stagger an Overclock double shot.
+var _shots_this_tick := {}
+var _rng := RandomNumberGenerator.new()
+# Damage and blocks landed on each mech since its last popup: mech -> [damage, blocked, color].
+var _pending_popups := {}
+# When each mech's last popup went up, in milliseconds.
+var _last_popup := {}
+# Camera shakes: a small one for heavy hits and storm strikes, a big one for meltdowns and KOs.
+var _small_shake: PhantomCameraNoiseEmitter2D
+var _big_shake: PhantomCameraNoiseEmitter2D
 
 @onready var result_panel: ResultPanel = %ResultPanel
 @onready var _tick_timer: Timer = %TickTimer
@@ -56,6 +93,9 @@ var _winner: BattleMech
 @onready var _round_badge: RoundBadge = %RoundBadge
 @onready var _storm_timer: StormTimer = %StormTimer
 @onready var _main_pcam: PhantomCamera2D = %MainPCam
+@onready var _ko_pcam: PhantomCamera2D = %KoPCam
+@onready var _stage: Control = %Stage
+@onready var _effects: CombatEffects = %Effects
 @onready var _playback: PlaybackControls = %Playback
 @onready var _playback_label: Label = %PlaybackLabel
 
@@ -71,6 +111,12 @@ func _ready() -> void:
 	_playback.pause_pressed.connect(toggle_pause)
 	_playback.speed_pressed.connect(cycle_speed)
 	_playback.skip_pressed.connect(skip)
+	engine.weapon_fired.connect(_on_weapon_fired)
+	engine.meltdown.connect(_on_meltdown)
+	engine.storm_struck.connect(_on_storm_struck)
+	engine.battle_ended.connect(_on_battle_ended)
+	_rng.randomize()
+	_set_up_camera()
 	resized.connect(_center_camera)
 	_center_camera()
 	_bind()
@@ -79,8 +125,10 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	# The camera leaves with the screen: the next screen starts from an unmoved view.
+	# The camera leaves with the screen: the next screen starts from an unmoved view, at full
+	# speed.
 	get_viewport().canvas_transform = Transform2D.IDENTITY
+	Engine.time_scale = 1.0
 
 
 ## Sets the two mechs to fight: the player's on the left. Pass the [param p_run] the fight
@@ -117,9 +165,11 @@ func skip() -> void:
 	if is_over():
 		return
 	var ticks := 0
+	_animate = false
 	while engine.state == CombatEngine.State.RUNNING and ticks < MAX_SKIP_TICKS:
 		engine.process_tick(TICK)
 		ticks += 1
+	_animate = true
 	_refresh()
 	if is_over():
 		_end_fight()
@@ -138,6 +188,15 @@ func get_playback_text() -> String:
 	if paused:
 		return "PAUSED"
 	return "FAST FORWARD %dX" % speed if speed > 1 else ""
+
+
+## Returns the camera shake for heavy hits and storm strikes, and the one for meltdowns and KOs.
+func get_small_shake() -> PhantomCameraNoiseEmitter2D:
+	return _small_shake
+
+
+func get_big_shake() -> PhantomCameraNoiseEmitter2D:
+	return _big_shake
 
 
 ## Returns a tick's printout, e.g.
@@ -223,6 +282,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_tick_timer_timeout() -> void:
+	_shots_this_tick.clear()
 	engine.process_tick(TICK)
 	_refresh()
 	if print_ticks:
@@ -235,6 +295,7 @@ func _on_tick_timer_timeout() -> void:
 # Stops the ticks once the fight is over and turns the playback controls off.
 func _end_fight() -> void:
 	_tick_timer.stop()
+	_storm_timer.running = false
 	paused = false
 	_tick_timer.paused = false
 	_show_playback()
@@ -299,6 +360,170 @@ func _show_result() -> void:
 # The main camera frames the whole screen, whatever the window's shape.
 func _center_camera() -> void:
 	_main_pcam.position = size / 2.0
+
+
+# Both cameras take the shakes, and the camera eases over to the KO camera when it takes over.
+func _set_up_camera() -> void:
+	_main_pcam.noise_emitter_layer = 1
+	_ko_pcam.noise_emitter_layer = 1
+	var punch_in := PhantomCameraTween.new()
+	punch_in.duration = KO_TIME
+	punch_in.transition = PhantomCameraTween.TransitionType.SINE
+	punch_in.ease = PhantomCameraTween.EaseType.EASE_IN_OUT
+	_ko_pcam.tween_resource = punch_in
+	_small_shake = _shaker(4.0, 0.1, 0.15)
+	_big_shake = _shaker(10.0, 0.2, 0.35)
+
+
+func _shaker(amplitude: float, duration: float, decay: float) -> PhantomCameraNoiseEmitter2D:
+	var noise := PhantomCameraNoise2D.new()
+	noise.amplitude = amplitude
+	noise.frequency = 12.0
+	var emitter := PhantomCameraNoiseEmitter2D.new()
+	emitter.noise = noise
+	emitter.duration = duration
+	emitter.decay_time = decay
+	emitter.noise_emitter_layer = 1
+	add_child(emitter)
+	return emitter
+
+
+# A shot flies from the weapon's muzzle to the target, tinted by the shooter's side, and lands a
+# moment later. The engine has already counted its damage; the effects follow it.
+func _on_weapon_fired(attacker: BattleMech, weapon: ActivePart, target: BattleMech, damage: int) -> void:
+	if not _animate:
+		return
+	var left := attacker == engine.left
+	var tag := _weapons_of(attacker).get_tag(weapon)
+	if tag:
+		tag.fire()
+	var nth: int = _shots_this_tick.get(weapon, 0)
+	_shots_this_tick[weapon] = nth + 1
+	var to := _fighter_of(target).get_center() + Vector2(0, _rng.randf_range(-24.0, 24.0))
+	var tint := CombatColors.accent(left).lerp(Color.WHITE, 0.25)
+	var landed := _land_shot.bind(target, damage, weapon.damage - damage, weapon.damage >= HEAVY_HIT)
+	_effects.shoot(weapon.part.projectile_sprite, _fighter_of(attacker).get_muzzle(weapon), to, tint, not left,
+		FLIGHT_TIME / speed, landed, nth * SHOT_STAGGER / speed)
+
+
+func _land_shot(target: BattleMech, damage: int, blocked: int, heavy: bool) -> void:
+	_fighter_of(target).hit(1.0 if heavy else LIGHT_HIT)
+	_pop_damage(target, damage, blocked, _hit_color(target))
+	if heavy:
+		_small_shake.emit()
+
+
+# Adds a hit to [param target]'s next popup. Popups go up once a frame, so hits landing together
+# share one.
+func _pop_damage(target: BattleMech, damage: int, blocked: int, color: Color) -> void:
+	var pending: Array = _pending_popups.get(target, [0, 0, color])
+	pending[0] += damage
+	pending[1] += blocked
+	pending[2] = color
+	_pending_popups[target] = pending
+
+
+# Shows [param target]'s summed damage, with what plating blocked just under it, once its last
+# popup is POPUP_GAP old.
+func _flush_popup(target: BattleMech) -> void:
+	var now := Time.get_ticks_msec()
+	if not _pending_popups.has(target) or now - _last_popup.get(target, -100000) < POPUP_GAP * 1000.0:
+		return
+	var pending: Array = _pending_popups[target]
+	_pending_popups.erase(target)
+	_last_popup[target] = now
+	var spot := _popup_spot(_fighter_of(target))
+	if pending[0] > 0:
+		_effects.popup("-%d" % pending[0], spot, pending[2], _popup_time())
+	if pending[1] > 0:
+		_effects.popup("BLOCK %d" % pending[1], spot + Vector2(0, 24), CombatColors.FRAME, _popup_time(), 16)
+
+
+# Each mech's hits since its last popup go up together, once the gap has passed.
+func _process(_delta: float) -> void:
+	for target: BattleMech in _pending_popups.keys():
+		_flush_popup(target)
+
+
+func _on_meltdown(_mech: BattleMech, target: BattleMech, damage: int) -> void:
+	if not _animate:
+		return
+	var view := _fighter_of(target)
+	view.hit()
+	_effects.popup("MELTDOWN -%d" % damage, _popup_spot(view), CombatColors.DANGER, _popup_time())
+	_big_shake.emit()
+
+
+# Each strike flashes the stage and hits both mechs, through any plating.
+func _on_storm_struck(damage: int) -> void:
+	if not _animate:
+		return
+	_effects.flash(Color(CombatColors.STORM, 0.35), 0.25)
+	for mech: BattleMech in [engine.left, engine.right]:
+		_fighter_of(mech).hit(LIGHT_HIT)
+		_pop_damage(mech, mech.get_damage_taken(damage), 0, CombatColors.STORM)
+	_small_shake.emit()
+
+
+# The camera shakes hard and punches in on the fallen mech, or between them on a draw.
+func _on_battle_ended(winner: BattleMech) -> void:
+	if not _animate:
+		return
+	_big_shake.emit()
+	var focus := (_left_fighter.get_rest_center() + _right_fighter.get_rest_center()) / 2.0
+	if winner != null:
+		focus = _fighter_of(engine.right if winner == engine.left else engine.left).get_rest_center()
+	_ko_pcam.position = get_ko_focus(_stage.position + focus)
+	_ko_pcam.zoom = Vector2.ONE * KO_ZOOM
+	_ko_pcam.priority = _main_pcam.priority + 10
+	_slow_time()
+
+
+# Slows everything to KO_SLOW_MO, then eases back to full speed, on real time so the slowdown
+# doesn't stretch itself.
+func _slow_time() -> void:
+	Engine.time_scale = KO_SLOW_MO
+	var recover := create_tween().set_ignore_time_scale(true)
+	recover.tween_interval(KO_SLOW_TIME)
+	recover.tween_method(func(rate: float) -> void: Engine.time_scale = rate, KO_SLOW_MO, 1.0, KO_RECOVER_TIME) \
+		.set_ease(Tween.EASE_IN)
+
+
+## Returns where the KO camera centers to punch in on [param point]: as close to it as the zoomed
+## view can get while staying inside the stage, so the stage's edges never show. Along an axis
+## where the view is bigger than the stage, it centers on the stage.
+func get_ko_focus(point: Vector2) -> Vector2:
+	var half := size / (2.0 * KO_ZOOM)
+	var stage := Rect2(_stage.position, _stage.size)
+	var focus := point
+	for axis in 2:
+		var low := stage.position[axis] + half[axis]
+		var high := stage.end[axis] - half[axis]
+		focus[axis] = clampf(point[axis], low, high) if low <= high else stage.get_center()[axis]
+	return focus
+
+
+# A random spot over the top of a mech's body.
+func _popup_spot(view: FighterView) -> Vector2:
+	var box := Rect2(view.position, view.size)
+	return box.position + box.size * Vector2(_rng.randf_range(0.28, 0.72), _rng.randf_range(0.08, 0.38))
+
+
+# Hits on the opponent pop up in the player's accent, hits on the player in pink.
+func _hit_color(target: BattleMech) -> Color:
+	return CombatColors.HIT_ON_OPPONENT if target == engine.right else CombatColors.HIT_ON_PLAYER
+
+
+func _popup_time() -> float:
+	return maxf(0.5, POPUP_TIME / speed)
+
+
+func _fighter_of(mech: BattleMech) -> FighterView:
+	return _left_fighter if mech == engine.left else _right_fighter
+
+
+func _weapons_of(mech: BattleMech) -> WeaponTags:
+	return _left_weapons if mech == engine.left else _right_weapons
 
 
 func _mech_status(side: String, mech: BattleMech) -> String:

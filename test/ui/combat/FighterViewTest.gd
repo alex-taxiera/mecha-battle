@@ -50,6 +50,9 @@ func test_each_side_faces_the_other() -> void:
 	# The right side is mirrored inside the same 256-pixel box.
 	assert_that(right.get_muzzle(gun)).is_equal(Vector2(256 - 276, 144))
 	assert_float(right.get_muzzle(gun).x).is_less(right.get_center().x)
+	# At rest, before any bob or shake, the middle is the same on both sides.
+	assert_vector(left.get_rest_center()).is_equal_approx(Vector2(128, 140.8), Vector2(0.01, 0.01))
+	assert_vector(right.get_rest_center()).is_equal_approx(left.get_rest_center(), Vector2(0.01, 0.01))
 
 
 func test_greys_out_while_shut_down_and_darkens_once_destroyed() -> void:
@@ -58,15 +61,23 @@ func test_greys_out_while_shut_down_and_darkens_once_destroyed() -> void:
 	view.setup(mech, true)
 	assert_float(view.get_shader_parameter("desaturate")).is_equal(0.0)
 	assert_float(view.get_shader_parameter("brightness")).is_equal(1.0)
-	mech.shutdown_left = 1.0
+	assert_str(view.get_overheat_text()).is_empty()
+	mech.shutdown_left = 2.4
 	view.refresh()
 	assert_float(view.get_shader_parameter("desaturate")).is_equal(0.7)
 	assert_float(view.get_shader_parameter("brightness")).is_equal(0.7)
+	assert_str(view.get_overheat_text()).is_equal("OVERHEAT 2.4s")
 	mech.current_health = 0
 	view.refresh()
 	assert_bool(view.is_destroyed()).is_true()
 	assert_float(view.get_shader_parameter("desaturate")).is_equal(1.0)
 	assert_float(view.get_shader_parameter("brightness")).is_equal(0.45)
+	assert_str(view.get_overheat_text()).is_empty()
+	assert_bool(view.is_marked_destroyed()).is_true()
+	# Out of the tree it's already toppled back, away from the fight.
+	var pose: Control = view.get_node("Pose")
+	assert_float(pose.rotation_degrees).is_equal_approx(-FighterView.FALL_DEGREES, 1e-3)
+	assert_float(pose.position.y).is_equal(FighterView.FALL_DROP)
 
 
 func test_a_mech_without_sprites_draws_nothing() -> void:
@@ -83,7 +94,7 @@ func test_bobs_in_the_tree_until_destroyed() -> void:
 	var mech := _mech()
 	add_child(view)
 	view.setup(mech, true)
-	var rig: Control = view.get_child(0)
+	var rig: Control = view.get_node("Pose/Rig")
 	assert_float(rig.position.y).is_equal(0.0)
 	# A quarter of the way in it's on its way up, on a whole pixel.
 	await await_millis(int(FighterView.BOB_TIME * 250))
@@ -92,6 +103,46 @@ func test_bobs_in_the_tree_until_destroyed() -> void:
 	mech.current_health = 0
 	view.refresh()
 	assert_float(rig.position.y).is_equal(0.0)
+
+
+func test_a_hit_shakes_and_flashes_the_mech() -> void:
+	var view: FighterView = auto_free(FighterView.new())
+	add_child(view)
+	view.setup(_mech(), true)
+	var pose: Control = view.get_node("Pose")
+	view.hit()
+	assert_float(view.get_shader_parameter("flash")).is_equal(FighterView.FLASH)
+	await await_millis(80)
+	assert_float(pose.position.x).is_not_equal(0.0)
+	# Both settle once the hit is over.
+	await await_millis(int(FighterView.SHAKE_TIME * 1000) + 100)
+	assert_float(pose.position.x).is_equal(0.0)
+	assert_float(view.get_shader_parameter("flash")).is_equal_approx(0.0, 1e-3)
+	# A lighter hit flashes less.
+	view.hit(0.4)
+	assert_float(view.get_shader_parameter("flash")).is_equal_approx(FighterView.FLASH * 0.4, 1e-6)
+	await await_millis(int(FighterView.SHAKE_TIME * 1000) + 100)
+
+
+func test_a_destroyed_mech_topples_away_from_the_fight() -> void:
+	var left: FighterView = auto_free(FighterView.new())
+	var right: FighterView = auto_free(FighterView.new())
+	add_child(left)
+	add_child(right)
+	var left_mech := _mech()
+	var right_mech := _mech()
+	left.setup(left_mech, true)
+	right.setup(right_mech, false)
+	left_mech.current_health = 0
+	right_mech.current_health = 0
+	left.refresh()
+	right.refresh()
+	await await_millis(int(FighterView.FALL_TIME * 1000) + 150)
+	# Each falls back toward its own edge of the stage, and sinks.
+	assert_float((left.get_node("Pose") as Control).rotation_degrees).is_equal_approx(-FighterView.FALL_DEGREES, 1e-3)
+	assert_float((right.get_node("Pose") as Control).rotation_degrees).is_equal_approx(FighterView.FALL_DEGREES, 1e-3)
+	assert_float((right.get_node("Pose") as Control).position.y).is_equal_approx(FighterView.FALL_DROP, 1e-3)
+	assert_bool(right.is_marked_destroyed()).is_true()
 
 
 # The armed cross with sprites: a gatling in each arm, the left one behind the body, and a pod
@@ -120,7 +171,7 @@ func _texture(width: int, height: int) -> Texture2D:
 
 
 func _sprites(view: FighterView) -> Array:
-	return view.get_child(0).get_children()
+	return view.get_node("Pose/Rig").get_children()
 
 
 func _active(mech: BattleMech, part: MechPart) -> ActivePart:
