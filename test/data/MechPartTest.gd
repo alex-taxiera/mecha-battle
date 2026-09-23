@@ -43,7 +43,25 @@ func test_can_rotate() -> void:
 	assert_bool(_make_part([Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]).can_rotate()).is_false()
 
 
+func test_weapons_never_rotate() -> void:
+	# The same 1x3 turns as a plain part but not as a weapon, which must match its hardpoint.
+	var weapon := _make_part(VERTICAL_1X3)
+	assert_bool(weapon.can_rotate()).is_true()
+	weapon.type = MechPart.PartType.WEAPON
+	assert_bool(weapon.can_rotate()).is_false()
+
+
+func test_normalized() -> void:
+	# Anchored at the top-left and sorted row by row, so equal footprints compare equal.
+	var cells: Array[Vector2i] = [Vector2i(-1, 3), Vector2i(-1, 1), Vector2i(-1, 2)]
+	assert_array(MechPart.normalized(cells)).contains_exactly(VERTICAL_1X3)
+	assert_array(cells).contains_exactly([Vector2i(-1, 3), Vector2i(-1, 1), Vector2i(-1, 2)]) # left as it was
+
+
+# A plain grid part. Not a weapon (a new MechPart's default type), since weapons only mount on
+# hardpoints and never turn.
 func _make_part(shape: Array[Vector2i]) -> MechPart:
 	var part := MechPart.new()
+	part.type = MechPart.PartType.UTILITY
 	part.grid_shape = shape
 	return part

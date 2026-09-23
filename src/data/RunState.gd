@@ -46,6 +46,7 @@ var gold: int
 var round_income: int
 var grid: MechGridData
 var slots: Array[ShopSlot] = []
+## The parts the shop can offer: every non-weapon, and the weapons some hardpoint can mount.
 var catalog: Array[MechPart] = []
 var rules: Array[SynergyRule] = []
 
@@ -55,11 +56,12 @@ var _fresh: Array[MechPart] = []
 
 
 ## Starts a run on [param chassis] with [param start_gold], which is also each round's income.
-## The first shop shows distinct parts from [param p_catalog]. Pass a seeded [param rng] for
-## repeatable shops.
+## The first shop shows distinct parts from [param p_catalog], leaving out weapons that no
+## hardpoint on the chassis can mount. Pass a seeded [param rng] for repeatable shops.
 func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[SynergyRule], start_gold := 10, rng: RandomNumberGenerator = null) -> void:
 	grid = MechGridData.new(chassis)
-	catalog.assign(p_catalog)
+	catalog.assign(p_catalog.filter(func(part: MechPart) -> bool:
+		return part.type != MechPart.PartType.WEAPON or chassis.can_mount(part)))
 	rules.assign(p_rules)
 	gold = start_gold
 	round_income = start_gold
@@ -136,10 +138,11 @@ func rotate_placed(coords: Vector2i) -> bool:
 	return true
 
 
-## Turns the offer in shop slot [param slot_index] a quarter-turn clockwise.
+## Turns the offer in shop slot [param slot_index] a quarter-turn clockwise. Parts that can't
+## turn (weapons, and shapes a turn doesn't change) stay as they are.
 func rotate_slot(slot_index: int) -> bool:
 	var slot := _open_slot(slot_index)
-	if slot == null:
+	if slot == null or not slot.part.can_rotate():
 		return false
 	slot.rotation = posmod(slot.rotation + 1, 4)
 	changed.emit()

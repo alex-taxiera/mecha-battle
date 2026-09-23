@@ -149,7 +149,7 @@ text = "Parts Shop"
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.72156864, 0.7372549, 0.7764706, 1)
-text = "Drag a part onto the chassis to buy it. Drag installed parts back here to sell."
+text = "Drag a part onto the chassis to buy it. Weapons mount on the hardpoints around it. Drag installed parts back here to sell."
 autowrap_mode = 3
 
 [node name="RerollButton" type="Button" parent="Margin/Screen/Layout/ShopArea/ShopMargin/ShopPanel/ShopHeader" unique_id=1789523966]

@@ -3,6 +3,9 @@ extends GdUnitTestSuite
 
 const __source: String = "res://src/ui/StatsPanel.gd"
 const Fixtures := preload("res://test/TestFixtures.gd")
+# The armed cross's arms. Only (0, 1) and (0, 2) touch the left one.
+const LEFT_ARM := Vector2i(-1, 1)
+const RIGHT_ARM := Vector2i(4, 1)
 
 var _panel: StatsPanel
 var _chassis: MechChassis
@@ -12,12 +15,12 @@ var _rules: Array[SynergyRule] = []
 func before_test() -> void:
 	_panel = auto_free(StatsPanel.new())
 	add_child(_panel)
-	_chassis = Fixtures.cross_chassis()
+	_chassis = Fixtures.armed_cross()
 	_rules = Fixtures.rules()
 
 
 func test_shows_totals_and_notes() -> void:
-	var grid := _grid_with([[Fixtures.gatling(), Vector2i(1, 0)]])
+	var grid := _grid_with([[Fixtures.gatling(), LEFT_ARM]])
 	_panel.show_stats(MechStats.calculate(grid, _rules), null, _chassis)
 	assert_str(_panel.hp.value.text).is_equal("30")
 	assert_str(_panel.hp.note.text).is_equal("30 from chassis")
@@ -31,7 +34,7 @@ func test_shows_totals_and_notes() -> void:
 
 func test_shows_what_a_preview_would_change() -> void:
 	var current := MechStats.calculate(_grid_with([]), _rules)
-	var preview := MechStats.calculate(_grid_with([[Fixtures.gatling(), Vector2i(1, 0)]]), _rules)
+	var preview := MechStats.calculate(_grid_with([[Fixtures.gatling(), LEFT_ARM]]), _rules)
 	_panel.show_stats(current, preview, _chassis)
 	assert_bool(_panel.damage.delta.visible).is_true()
 	assert_str(_panel.damage.delta.text).is_equal("+8")
@@ -45,7 +48,7 @@ func test_power_notes() -> void:
 	_panel.show_stats(MechStats.calculate(_grid_with([]), _rules), null, _chassis)
 	assert_str(_panel.damage.note.text).is_equal("No weapons mounted")
 	# Two gatlings draw 6 energy against 3.
-	var grid := _grid_with([[Fixtures.gatling(), Vector2i(1, 0)], [Fixtures.gatling(), Vector2i(2, 0)]])
+	var grid := _grid_with([[Fixtures.gatling(), LEFT_ARM], [Fixtures.gatling(), RIGHT_ARM]])
 	_panel.show_stats(MechStats.calculate(grid, _rules), null, _chassis)
 	assert_str(_panel.damage.note.text).is_equal("Underpowered · 50% fire rate")
 	assert_str(_panel.energy.value.text).is_equal("-3")
@@ -59,14 +62,14 @@ func test_lists_rules_and_active_links() -> void:
 		"Heatsink + Reactor +2 energy", "Laser + Laser +4 HP each")
 	_panel.show_stats(MechStats.calculate(_grid_with([]), _rules), null, _chassis)
 	assert_array(_panel.get_link_rows()).contains_exactly(StatsPanel.NO_LINKS_TEXT)
-	# A heatsink touching a gatling: one Cooled link.
-	var grid := _grid_with([[Fixtures.gatling(), Vector2i(1, 0)], [Fixtures.heatsink(), Vector2i(2, 1)]])
+	# A heatsink touching a gatling's bay: one Cooled link.
+	var grid := _grid_with([[Fixtures.gatling(), LEFT_ARM], [Fixtures.heatsink(), Vector2i(0, 1)]])
 	_panel.show_stats(MechStats.calculate(grid, _rules), null, _chassis)
 	assert_array(_panel.get_link_rows()).contains_exactly("Heatsink + Weapon → weapon dmg ×1.5 ×1")
 	await await_idle_frame() # free the rows the lists replaced
 
 
-# A cross-chassis grid with each [part, origin] placed.
+# An armed-cross grid with each [part, origin] placed.
 func _grid_with(placements: Array) -> MechGridData:
 	var grid := MechGridData.new(_chassis)
 	for entry in placements:

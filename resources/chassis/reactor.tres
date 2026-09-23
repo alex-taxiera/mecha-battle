@@ -1,6 +1,21 @@
 [gd_resource type="Resource" script_class="MechChassis" format=3]
 
 [ext_resource type="Script" path="res://src/data/MechChassis.gd" id="1_nuhbi"]
+[ext_resource type="Script" path="res://src/data/Hardpoint.gd" id="1_p50bv"]
+
+[sub_resource type="Resource" id="Resource_4okba"]
+script = ExtResource("1_p50bv")
+id = "left_arm"
+hardpoint_name = "Left Arm"
+origin = Vector2i(-1, 1)
+shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+
+[sub_resource type="Resource" id="Resource_32nhj"]
+script = ExtResource("1_p50bv")
+id = "right_arm"
+hardpoint_name = "Right Arm"
+origin = Vector2i(5, 1)
+shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
 
 [resource]
 script = ExtResource("1_nuhbi")
@@ -11,6 +26,7 @@ playstyle = "Synergy / Combo"
 size = Vector2i(5, 5)
 disabled_cells = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(3, 0), Vector2i(4, 0), Vector2i(0, 1), Vector2i(4, 1), Vector2i(0, 3), Vector2i(4, 3), Vector2i(0, 4), Vector2i(1, 4), Vector2i(3, 4), Vector2i(4, 4)])
 base_hp = 30
+hardpoints = Array[ExtResource("1_p50bv")]([SubResource("Resource_4okba"), SubResource("Resource_32nhj")])
 passive = 3
 passive_name = "Meltdown"
 passive_text = "When heat reaches 100%, deal massive damage and shut down for 3 seconds."

@@ -55,12 +55,12 @@ func test_shows_the_fight_and_reports_the_winner_after_a_pause() -> void:
 
 
 func test_the_readout_shows_heat_and_shutdowns() -> void:
-	# A Reactor's gatling at (2, 0)-(2, 2) making 20 heat a shot, against a 200 HP target.
+	# A gatling in a Reactor's left arm making 20 heat a shot, against a 200 HP target.
 	var gatling := Fixtures.gatling()
 	gatling.cooldown_max = 1.0
 	gatling.heat = 20
 	var grid := MechGridData.new(Fixtures.reactor_frame())
-	assert_bool(grid.place_part(gatling, Vector2i(2, 0))).is_true()
+	assert_bool(grid.place_part(gatling, Vector2i(-1, 1))).is_true()
 	var target_chassis := Fixtures.cross_chassis()
 	target_chassis.base_hp = 200
 	var screen := _screen(BattleMech.new(grid), BattleMech.new(MechGridData.new(target_chassis)))
@@ -114,12 +114,13 @@ func _tick_until_over(screen: CombatScreen) -> int:
 	return ticks
 
 
-# 30 HP; a gatling firing 8 damage every second on the Skirmisher's 3 energy a turn.
+# 30 HP; a gatling in the left arm firing 8 damage every second on the Skirmisher's 3 energy a
+# turn.
 func _gunner() -> BattleMech:
 	var gatling := Fixtures.gatling()
 	gatling.cooldown_max = 1.0
-	var grid := MechGridData.new(Fixtures.cross_chassis())
-	assert_bool(grid.place_part(gatling, Vector2i(1, 0))).is_true()
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	assert_bool(grid.place_part(gatling, Vector2i(-1, 1))).is_true()
 	return BattleMech.new(grid)
 
 

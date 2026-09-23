@@ -36,6 +36,34 @@ func test_the_bastion_is_wide_and_the_striker_tall() -> void:
 	assert_bool(striker.contains(Vector2i(2, 0))).is_false() # only 2 columns
 
 
+func test_hardpoints() -> void:
+	var chassis := Fixtures.armed_cross()
+	var left_arm := chassis.hardpoints[0]
+	var back := chassis.hardpoints[2]
+	assert_object(chassis.get_hardpoint_at(Vector2i(-1, 3))).is_same(left_arm)
+	assert_object(chassis.get_hardpoint_at(Vector2i(2, -1))).is_same(back)
+	assert_object(chassis.get_hardpoint_at(Vector2i(-1, 0))).is_null() # just above the arm
+	assert_object(chassis.get_hardpoint_at(Vector2i(0, 1))).is_null()  # the frame beside it
+	# A bay is off the frame, so no grid part can use its cells.
+	assert_bool(chassis.is_usable(Vector2i(-1, 2))).is_false()
+	assert_bool(chassis.can_mount(Fixtures.gatling())).is_true()
+	assert_bool(chassis.can_mount(Fixtures.missile_pod())).is_true()
+	assert_bool(chassis.can_mount(Fixtures.laser())).is_false()
+	# The Bastion only has a back bay.
+	assert_bool(Fixtures.bastion().can_mount(Fixtures.gatling())).is_false()
+	assert_bool(Fixtures.bastion().can_mount(Fixtures.missile_pod())).is_true()
+
+
+func test_layout_rect_covers_the_frame_and_its_bays() -> void:
+	# Arms at x = -1 and 4, the back two rows above the 4x4 frame.
+	assert_that(Fixtures.armed_cross().get_layout_rect()).is_equal(Rect2i(-1, -2, 6, 6))
+	assert_that(Fixtures.cross_chassis().get_layout_rect()).is_equal(Rect2i(0, 0, 4, 4))
+	# The Striker: both arms and a back around its 2x5 frame, 4 wide and 7 tall.
+	assert_that(Fixtures.striker().get_layout_rect()).is_equal(Rect2i(-1, -2, 4, 7))
+	assert_that(Fixtures.bastion().get_layout_rect()).is_equal(Rect2i(0, -2, 4, 5))
+	assert_that(Fixtures.reactor_frame().get_layout_rect()).is_equal(Rect2i(-1, 0, 7, 5))
+
+
 func test_the_reactor_is_a_diamond_around_a_connected_center() -> void:
 	var reactor := Fixtures.reactor_frame()
 	assert_int(reactor.get_usable_cell_count()).is_equal(13)

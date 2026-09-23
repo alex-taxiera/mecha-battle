@@ -13,15 +13,15 @@ func test_lists_everything_about_a_part() -> void:
 	numbers.energy_draw = 3
 	numbers.bonuses[Fixtures.overcharge()] = 3.0
 	numbers.bonuses[Fixtures.cooled()] = 1.5
-	var info: PartInfo = auto_free(PartInfo.new(gatling, 1, numbers))
+	var info: PartInfo = auto_free(PartInfo.new(gatling, 0, numbers))
 	assert_array(info.get_rows()).contains_exactly([
 		"Twin Gatling",
-		"Weapon · 3×1",
+		"Weapon · 1×3",
 		"17 DMG · -3 EN",
 		"Overcharge +3 · Cooled ×1.5",
 		"8 dmg, draws 3 EN. Heatsink touching: ×1.5. Each reactor touching: +3.",
 	])
-	assert_str(PartInfo.text_for(gatling, 1, numbers)).is_equal("\n".join(info.get_rows()))
+	assert_str(PartInfo.text_for(gatling, 0, numbers)).is_equal("\n".join(info.get_rows()))
 
 
 func test_skips_rows_a_part_has_nothing_for() -> void:
@@ -34,8 +34,8 @@ func test_skips_rows_a_part_has_nothing_for() -> void:
 
 func test_summary_names_the_type_and_size() -> void:
 	assert_str(PartInfo.summary(Fixtures.gatling(), 0)).is_equal("Weapon · 1×3")
-	assert_str(PartInfo.summary(Fixtures.gatling(), 1)).is_equal("Weapon · 3×1")
 	assert_str(PartInfo.summary(Fixtures.reactor(), 0)).is_equal("Generator · 2×1")
+	assert_str(PartInfo.summary(Fixtures.reactor(), 1)).is_equal("Generator · 1×2")
 	assert_str(PartInfo.summary(Fixtures.laser(), 0)).is_equal("Defense · 1 block")
 	assert_str(PartInfo.summary(Fixtures.heatsink(), 0)).is_equal("Utility · 3 blocks")
 

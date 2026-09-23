@@ -3,12 +3,14 @@ extends GdUnitTestSuite
 
 const __source: String = "res://src/combat/BattleMech.gd"
 const Fixtures := preload("res://test/TestFixtures.gd")
+# The armed cross's left arm, touching (0, 1) and (0, 2).
+const LEFT_ARM := Vector2i(-1, 1)
 
 var _chassis: MechChassis # the Skirmisher: 30 base HP
 
 
 func before_test() -> void:
-	_chassis = Fixtures.cross_chassis()
+	_chassis = Fixtures.armed_cross()
 
 
 func test_max_hp_is_the_chassis_plus_its_parts() -> void:
@@ -65,8 +67,8 @@ func test_makes_one_active_part_per_placed_part() -> void:
 	var gatling := _with_cooldown(Fixtures.gatling(), 1.5)
 	var reactor := Fixtures.reactor()
 	var laser := Fixtures.laser()
-	# Gatling (1, 0)-(1, 2), reactor (2, 1)-(3, 1), laser (2, 2).
-	var mech := BattleMech.new(_grid_with([[gatling, Vector2i(1, 0)], [reactor, Vector2i(2, 1)], [laser, Vector2i(2, 2)]]))
+	# Gatling in the left arm, reactor (2, 1)-(3, 1), laser (2, 2).
+	var mech := BattleMech.new(_grid_with([[gatling, LEFT_ARM], [reactor, Vector2i(2, 1)], [laser, Vector2i(2, 2)]]))
 	assert_array(mech.active_parts).has_size(3)
 	assert_array(mech.active_parts.map(func(active: ActivePart) -> MechPart: return active.part)) \
 		.contains_same_exactly_in_any_order(gatling, reactor, laser)
@@ -78,9 +80,10 @@ func test_makes_one_active_part_per_placed_part() -> void:
 
 
 func test_active_parts_fight_with_their_link_bonuses() -> void:
-	# A gatling (1, 0)-(1, 2) cooled by a heatsink at (2, 1), (2, 2), (3, 2): 8 × 1.5.
+	# The left arm's gatling cooled by a heatsink touching its bay at (0, 1), (0, 2), (1, 2):
+	# 8 × 1.5.
 	var gatling := Fixtures.gatling()
-	var cooled := _grid_with([[gatling, Vector2i(1, 0)], [Fixtures.heatsink(), Vector2i(2, 1)]])
+	var cooled := _grid_with([[gatling, LEFT_ARM], [Fixtures.heatsink(), Vector2i(0, 1)]])
 	var active := _active_for(BattleMech.new(cooled, Fixtures.rules()), gatling)
 	assert_int(active.damage).is_equal(12)
 	assert_int(active.energy_cost).is_equal(3)
@@ -111,7 +114,7 @@ func test_copies_of_one_part_keep_separate_state() -> void:
 func test_a_fight_leaves_the_grid_and_its_resources_untouched() -> void:
 	var gatling := _with_cooldown(Fixtures.gatling(), 1.5)
 	var laser := Fixtures.laser()
-	var grid := _grid_with([[gatling, Vector2i(1, 0)], [laser, Vector2i(2, 1)]])
+	var grid := _grid_with([[gatling, LEFT_ARM], [laser, Vector2i(2, 1)]])
 	var before := [_saved(gatling), _saved(laser), _saved(_chassis)]
 	var mech := BattleMech.new(grid, Fixtures.rules())
 	# Play out some combat on the live state.
@@ -122,14 +125,14 @@ func test_a_fight_leaves_the_grid_and_its_resources_untouched() -> void:
 		active.is_active = false
 	assert_array([_saved(gatling), _saved(laser), _saved(_chassis)]).is_equal(before)
 	assert_array(grid.get_placements()).has_size(2)
-	assert_object(grid.get_part_at(Vector2i(1, 2))).is_same(gatling)
+	assert_object(grid.get_part_at(Vector2i(-1, 3))).is_same(gatling)
 	assert_object(grid.get_part_at(Vector2i(2, 1))).is_same(laser)
 	# Positive control: the snapshot does catch a change to a part.
 	gatling.cooldown_max = 0.5
 	assert_that(_saved(gatling)).is_not_equal(before[0])
 
 
-# A cross-chassis grid with each [part, origin] placed.
+# An armed-cross grid with each [part, origin] placed.
 func _grid_with(placements: Array) -> MechGridData:
 	var grid := MechGridData.new(_chassis)
 	for entry in placements:

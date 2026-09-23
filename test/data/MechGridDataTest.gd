@@ -335,8 +335,121 @@ func test_other_chassis_sizes() -> void:
 	assert_int(grid.get_used_cell_count()).is_equal(4)
 
 
+# --- Hardpoints ---
+
+func test_weapons_mount_only_on_a_bay_of_their_shape() -> void:
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	var gatling := Fixtures.gatling()
+	# Exactly over the left arm, (-1, 1)-(-1, 3), it mounts.
+	assert_int(grid.check_placement(gatling, Vector2i(-1, 1))).is_equal(MechGridData.Fit.OK)
+	assert_bool(grid.place_part(gatling, Vector2i(-1, 1))).is_true()
+	for cell: Vector2i in [Vector2i(-1, 1), Vector2i(-1, 2), Vector2i(-1, 3)]:
+		assert_object(grid.get_part_at(cell)).is_same(gatling)
+	# On the frame it doesn't, even where a plain 1x3 fits.
+	assert_bool(grid.can_place_part(_make_part(VERTICAL_1X3), Vector2i(1, 0))).is_true()
+	_assert_rejected(grid, Fixtures.gatling(), Vector2i(1, 0))
+	assert_int(grid.check_placement(Fixtures.gatling(), Vector2i(1, 0))).is_equal(MechGridData.Fit.NEEDS_HARDPOINT)
+	# Hanging off a bay, or in a bay of another shape, is the wrong shape.
+	assert_int(grid.check_placement(Fixtures.gatling(), Vector2i(4, 2))).is_equal(MechGridData.Fit.WRONG_SHAPE) # (4, 2)-(4, 4)
+	assert_int(grid.check_placement(Fixtures.gatling(), Vector2i(1, -2))).is_equal(MechGridData.Fit.WRONG_SHAPE) # the 2x2 back
+	assert_int(grid.check_placement(Fixtures.missile_pod(), Vector2i(4, 1))).is_equal(MechGridData.Fit.WRONG_SHAPE) # the right arm
+	assert_bool(grid.can_place_part(Fixtures.missile_pod(), Vector2i(1, -2))).is_true()
+	# A bay holds one weapon.
+	assert_int(grid.check_placement(Fixtures.gatling(), Vector2i(-1, 1))).is_equal(MechGridData.Fit.OCCUPIED)
+	# A weapon never turns, even a half-turn that keeps its footprint.
+	assert_bool(grid.can_place_part(Fixtures.gatling(), Vector2i(4, 1))).is_true()
+	assert_int(grid.check_placement(Fixtures.gatling(), Vector2i(4, 1), 2)).is_equal(MechGridData.Fit.WRONG_SHAPE)
+	assert_bool(grid.rotate_part(Vector2i(-1, 2))).is_false()
+	assert_int(grid.get_placement_at(Vector2i(-1, 2)).rotation).is_equal(0)
+
+
+func test_bays_only_hold_weapons() -> void:
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	# A laser fits beside the left arm but not on it.
+	assert_bool(grid.can_place_part(Fixtures.laser(), Vector2i(0, 1))).is_true()
+	_assert_rejected(grid, Fixtures.laser(), Vector2i(-1, 1))
+	assert_int(grid.check_placement(Fixtures.laser(), Vector2i(-1, 1))).is_equal(MechGridData.Fit.WEAPONS_ONLY)
+	# A part hanging over a bay and off the frame is told about the bay first.
+	assert_int(grid.check_placement(_make_part(HORIZONTAL_2X1), Vector2i(3, 2))).is_equal(MechGridData.Fit.WEAPONS_ONLY)
+	# Off the frame away from every bay is still out of bounds.
+	assert_int(grid.check_placement(Fixtures.laser(), Vector2i(-1, 0))).is_equal(MechGridData.Fit.OUT_OF_BOUNDS)
+
+
+func test_move_a_weapon_between_arms() -> void:
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	var gatling := Fixtures.gatling()
+	assert_bool(grid.place_part(gatling, Vector2i(-1, 1))).is_true()
+	assert_int(grid.check_move(Vector2i(-1, 2), Vector2i(1, -2))).is_equal(MechGridData.Fit.WRONG_SHAPE) # not the back
+	assert_int(grid.check_move(Vector2i(-1, 2), Vector2i(1, 0))).is_equal(MechGridData.Fit.NEEDS_HARDPOINT) # not the frame
+	assert_int(grid.check_move(Vector2i(-1, 2), Vector2i(-1, 1))).is_equal(MechGridData.Fit.OK) # its own bay is free to it
+	assert_bool(grid.move_part(Vector2i(-1, 2), Vector2i(4, 1))).is_true()
+	assert_object(grid.get_part_at(Vector2i(4, 3))).is_same(gatling)
+	assert_object(grid.get_part_at(Vector2i(-1, 1))).is_null()
+
+
+func test_weapons_link_through_their_bay() -> void:
+	#    -1 0 1 2 3
+	#  0     # . . #
+	#  1  G  L . . .    G: the gatling in the left arm
+	#  2  G  . R R .
+	#  3  G  # . . #
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	var gatling := Fixtures.gatling()
+	var laser := Fixtures.laser()
+	var reactor := Fixtures.reactor()
+	assert_bool(grid.place_part(gatling, Vector2i(-1, 1))).is_true()
+	assert_bool(grid.place_part(laser, Vector2i(0, 1))).is_true()
+	assert_bool(grid.place_part(reactor, Vector2i(1, 2))).is_true()
+	# The laser touches the bay; the reactor is a cell away from it.
+	var contacts := grid.get_contacts()
+	assert_array(contacts).has_size(1)
+	_assert_contact(contacts[0], gatling, laser, Vector2i(-1, 1), Vector2i(0, 1))
+	assert_array(grid.get_adjacent_parts(Vector2i(-1, 3))).has_size(1).contains_same_exactly_in_any_order([laser])
+
+
+func test_open_edges_of_a_mounted_weapon() -> void:
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	assert_bool(grid.place_part(Fixtures.gatling(), Vector2i(-1, 1))).is_true()
+	var bay := grid.get_placement_at(Vector2i(-1, 1)).cells
+	# The frame cells touching the bay, where a part would link with it; (0, 3) is a corner.
+	assert_array(grid.get_open_edges(bay)).has_size(2).contains_exactly_in_any_order(Vector2i(0, 1), Vector2i(0, 2))
+	assert_bool(grid.place_part(Fixtures.laser(), Vector2i(0, 2))).is_true()
+	assert_array(grid.get_open_edges(bay)).has_size(1).contains_exactly(Vector2i(0, 1))
+
+
+func test_counts_frame_cells_and_mounted_weapons_apart() -> void:
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	assert_int(grid.get_mounted_count()).is_equal(0)
+	assert_bool(grid.place_part(Fixtures.gatling(), Vector2i(4, 1))).is_true()
+	assert_bool(grid.place_part(_make_part(L_SHAPE), Vector2i(2, 1))).is_true()
+	assert_int(grid.get_used_cell_count()).is_equal(3)
+	assert_int(grid.get_mounted_count()).is_equal(1)
+	# Both are still placements, so both fight and link.
+	assert_array(grid.get_placements()).has_size(2)
+
+
+func test_get_open_hardpoints() -> void:
+	var chassis := Fixtures.armed_cross()
+	var left_arm := chassis.hardpoints[0]
+	var right_arm := chassis.hardpoints[1]
+	var back := chassis.hardpoints[2]
+	var grid := MechGridData.new(chassis)
+	assert_array(grid.get_open_hardpoints(Fixtures.gatling())).has_size(2).contains_same_exactly_in_any_order([left_arm, right_arm])
+	assert_array(grid.get_open_hardpoints(Fixtures.missile_pod())).has_size(1).contains_same_exactly_in_any_order([back])
+	assert_array(grid.get_open_hardpoints(Fixtures.laser())).is_empty()
+	# A full bay isn't open, except to the weapon moving out of it.
+	var gatling := Fixtures.gatling()
+	assert_bool(grid.place_part(gatling, left_arm.origin)).is_true()
+	assert_array(grid.get_open_hardpoints(Fixtures.gatling())).has_size(1).contains_same_exactly_in_any_order([right_arm])
+	var moving := grid.get_placement_at(left_arm.origin)
+	assert_array(grid.get_open_hardpoints(gatling, moving)).has_size(2).contains_same_exactly_in_any_order([left_arm, right_arm])
+
+
+# A plain grid part. Not a weapon (a new MechPart's default type), since weapons only mount on
+# hardpoints and never turn.
 func _make_part(shape: Array[Vector2i]) -> MechPart:
 	var part := MechPart.new()
+	part.type = MechPart.PartType.UTILITY
 	part.grid_shape = shape
 	return part
 

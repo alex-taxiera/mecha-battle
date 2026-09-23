@@ -1,21 +1,28 @@
 class_name MechGridData
 extends RefCounted
 ## Pure grid math for a mech: tracks which [MechPart] occupies which cell of its
-## [MechChassis]. Holds no UI code. Views call into it and redraw on [signal grid_updated].
+## [MechChassis]. Weapons mount on the chassis's [Hardpoint]s instead of the frame; a bay's
+## cells share the frame's coordinates, so a mounted weapon is a placement like any other and
+## links with the parts touching its bay. Holds no UI code. Views call into it and redraw on
+## [signal grid_updated].
 
 ## Emitted whenever a part is placed, moved, rotated, or removed.
 signal grid_updated
 
-## Whether a footprint fits, or the first reason it doesn't, in the order they're checked.
-enum Fit { OK, OUT_OF_BOUNDS, DISABLED_CELL, OCCUPIED }
+## Whether a footprint fits, or the first reason it doesn't. Weapons only fit a hardpoint of
+## their exact shape: NEEDS_HARDPOINT when they're off every bay, WRONG_SHAPE over a bay they
+## don't match. Other parts only fit the frame: WEAPONS_ONLY over a bay, then OUT_OF_BOUNDS,
+## DISABLED_CELL, and OCCUPIED, in the order they're checked.
+enum Fit { OK, OUT_OF_BOUNDS, DISABLED_CELL, OCCUPIED, NEEDS_HARDPOINT, WRONG_SHAPE, WEAPONS_ONLY }
 
 const _NEIGHBOR_OFFSETS: Array[Vector2i] = [
 	Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT,
 ]
 
 
-## A part placed on the grid. Tracked separately from the [MechPart] because the
-## same resource (e.g. a shared .tres blueprint) may be placed more than once.
+## A part placed on the grid, or a weapon mounted on a hardpoint. Tracked separately from the
+## [MechPart] because the same resource (e.g. a shared .tres blueprint) may be placed more
+## than once.
 class Placement:
 	var part: MechPart
 	## The top-left of the part's turned shape.
@@ -58,12 +65,12 @@ func _init(p_chassis: MechChassis) -> void:
 
 
 ## Returns whether [param part], turned [param rotation] quarter-turns clockwise, fits with its
-## top-left at [param origin_coords], or the first problem: any cell outside the chassis, then
-## any disabled cell, then any occupied cell.
+## top-left at [param origin_coords], or the first problem (see [enum Fit]). A weapon fits
+## only unturned, exactly over an empty hardpoint of its shape.
 func check_placement(part: MechPart, origin_coords: Vector2i, rotation := 0) -> Fit:
 	if part == null:
 		return Fit.OUT_OF_BOUNDS
-	return _check(get_footprint(part, origin_coords, rotation), null)
+	return _check(part, get_footprint(part, origin_coords, rotation), posmod(rotation, 4), null)
 
 
 ## Returns whether [param part] fits with its shape anchored at [param origin_coords]:
@@ -100,7 +107,7 @@ func check_move(coords: Vector2i, new_origin: Vector2i) -> Fit:
 	var placement: Placement = _placements.get(coords)
 	if placement == null:
 		return Fit.OUT_OF_BOUNDS
-	return _check(get_footprint(placement.part, new_origin, placement.rotation), placement)
+	return _check(placement.part, get_footprint(placement.part, new_origin, placement.rotation), placement.rotation, placement)
 
 
 ## Moves the part covering [param coords] so its top-left is at [param new_origin], keeping
@@ -197,9 +204,34 @@ func get_contacts() -> Array[Contact]:
 	return contacts
 
 
-## Returns how many cells are occupied.
+## Returns how many of the frame's cells are occupied. Mounted weapons don't count.
 func get_used_cell_count() -> int:
-	return _placements.size()
+	var count := 0
+	for cell in _placements:
+		if chassis.is_usable(cell):
+			count += 1
+	return count
+
+
+## Returns how many hardpoints hold a weapon.
+func get_mounted_count() -> int:
+	var count := 0
+	for hardpoint in chassis.hardpoints:
+		if _placements.has(hardpoint.get_cells()[0]):
+			count += 1
+	return count
+
+
+## Returns the hardpoints [param part] could mount on right now: bays of its shape that are
+## empty, or that hold [param moving], the placement being moved.
+func get_open_hardpoints(part: MechPart, moving: Placement = null) -> Array[Hardpoint]:
+	var open: Array[Hardpoint] = []
+	if part == null:
+		return open
+	for hardpoint in chassis.hardpoints:
+		if _check(part, get_footprint(part, hardpoint.origin), 0, moving) == Fit.OK:
+			open.append(hardpoint)
+	return open
 
 
 ## Returns the cells [param part] would cover, turned [param rotation] quarter-turns clockwise
@@ -211,17 +243,39 @@ static func get_footprint(part: MechPart, origin_coords: Vector2i, rotation := 0
 	return cells
 
 
-# The first problem with [param cells], checking every cell for each problem in priority order.
-# The cells of [param ignoring] (a part being moved) count as free. No cells never fits.
-func _check(cells: Array[Vector2i], ignoring: Placement) -> Fit:
+# The first problem with [param part] covering [param cells] at [param rotation], checking every
+# cell for each problem in priority order. The cells of [param ignoring] (a part being moved)
+# count as free. No cells never fits.
+func _check(part: MechPart, cells: Array[Vector2i], rotation: int, ignoring: Placement) -> Fit:
 	if cells.is_empty():
 		return Fit.OUT_OF_BOUNDS
+	if part.type == MechPart.PartType.WEAPON:
+		return _check_mount(cells, rotation, ignoring)
+	for cell in cells:
+		if chassis.get_hardpoint_at(cell):
+			return Fit.WEAPONS_ONLY
 	for cell in cells:
 		if not chassis.contains(cell):
 			return Fit.OUT_OF_BOUNDS
 	for cell in cells:
 		if not chassis.is_usable(cell):
 			return Fit.DISABLED_CELL
+	return _check_free(cells, ignoring)
+
+
+# A weapon fits unturned, covering exactly the cells of one hardpoint's bay.
+func _check_mount(cells: Array[Vector2i], rotation: int, ignoring: Placement) -> Fit:
+	if rotation == 0:
+		for hardpoint in chassis.hardpoints:
+			if cells == hardpoint.get_cells():
+				return _check_free(cells, ignoring)
+	for cell in cells:
+		if chassis.get_hardpoint_at(cell):
+			return Fit.WRONG_SHAPE
+	return Fit.NEEDS_HARDPOINT
+
+
+func _check_free(cells: Array[Vector2i], ignoring: Placement) -> Fit:
 	for cell in cells:
 		var occupant: Placement = _placements.get(cell)
 		if occupant and occupant != ignoring:
@@ -233,7 +287,7 @@ func _check(cells: Array[Vector2i], ignoring: Placement) -> Fit:
 # counted as free. Emits grid_updated once; changes nothing on failure.
 func _relocate(placement: Placement, new_origin: Vector2i, new_rotation: int) -> bool:
 	var moved := Placement.new(placement.part, new_origin, new_rotation)
-	if _check(moved.cells, placement) != Fit.OK:
+	if _check(moved.part, moved.cells, new_rotation, placement) != Fit.OK:
 		return false
 	_erase(placement)
 	_add(moved)

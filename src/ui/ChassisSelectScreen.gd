@@ -12,8 +12,6 @@ const ORDER := ["bastion", "striker", "reactor"]
 const TEXT_COLOR := Color(0.93, 0.94, 0.96)
 const DIM_COLOR := Color(0.72, 0.74, 0.78)
 const PASSIVE_COLOR := Color(0.96, 0.83, 0.43)
-# Tall enough for the tallest layout, so every card's text lines up.
-const PREVIEW_HEIGHT := 5 * 25.0
 
 ## The frames to choose from. Left empty, every MechChassis in [constant CHASSIS_DIR].
 @export var options: Array[MechChassis] = []
@@ -26,8 +24,16 @@ func _ready() -> void:
 		var loaded := ShopScreen.load_dir(CHASSIS_DIR).filter(func(resource: Resource) -> bool: return resource is MechChassis)
 		loaded.sort_custom(_listed_before)
 		options.assign(loaded)
+	# Every preview gets the tallest layout's height, so the text under them lines up.
+	var previews: Array[ChassisPreview] = []
+	var preview_height := 0.0
 	for chassis in options:
-		_cards.add_child(_make_card(chassis))
+		var preview := ChassisPreview.new()
+		preview.chassis = chassis
+		previews.append(preview)
+		preview_height = maxf(preview_height, preview.get_minimum_size().y)
+	for i in options.size():
+		_cards.add_child(_make_card(options[i], previews[i], preview_height))
 
 
 ## Starts the run with [param chassis].
@@ -47,12 +53,14 @@ func get_card_texts() -> Array[PackedStringArray]:
 	return texts
 
 
-## A frame's numbers in a line, e.g. "45 HP · 2 EN a turn · 12 slots".
+## A frame's numbers in a line, e.g. "45 HP · 2 EN a turn · 12 slots · 1 hardpoint".
 static func stats_line(chassis: MechChassis) -> String:
-	return "%d HP · %d EN a turn · %d slots" % [chassis.base_hp, chassis.base_energy, chassis.get_usable_cell_count()]
+	var hardpoints := chassis.hardpoints.size()
+	return "%d HP · %d EN a turn · %d slots · %d hardpoint%s" % [chassis.base_hp, chassis.base_energy,
+		chassis.get_usable_cell_count(), hardpoints, "" if hardpoints == 1 else "s"]
 
 
-func _make_card(chassis: MechChassis) -> Control:
+func _make_card(chassis: MechChassis, preview: ChassisPreview, preview_height: float) -> Control:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = SIZE_EXPAND_FILL
 	var margin := MarginContainer.new()
@@ -65,9 +73,7 @@ func _make_card(chassis: MechChassis) -> Control:
 	box.add_child(_label(chassis.chassis_name, 22, TEXT_COLOR))
 	box.add_child(_label(chassis.playstyle, 13, DIM_COLOR))
 	var frame := CenterContainer.new()
-	frame.custom_minimum_size.y = PREVIEW_HEIGHT
-	var preview := ChassisPreview.new()
-	preview.chassis = chassis
+	frame.custom_minimum_size.y = preview_height
 	frame.add_child(preview)
 	box.add_child(frame)
 	box.add_child(_label(stats_line(chassis), 14, TEXT_COLOR))

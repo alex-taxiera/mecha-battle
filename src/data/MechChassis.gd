@@ -27,6 +27,8 @@ enum Passive {
 @export var base_hp: int
 ## Energy generated each turn before any generators.
 @export var base_energy := 3
+## The weapon bays around the grid. Weapons only mount here, never on the grid.
+@export var hardpoints: Array[Hardpoint] = []
 
 @export_group("Passive")
 @export var passive := Passive.NONE
@@ -58,3 +60,26 @@ func get_usable_cell_count() -> int:
 			if is_usable(Vector2i(x, y)):
 				count += 1
 	return count
+
+
+## Returns the hardpoint whose bay covers [param cell], or [code]null[/code].
+func get_hardpoint_at(cell: Vector2i) -> Hardpoint:
+	for hardpoint in hardpoints:
+		if cell in hardpoint.get_cells():
+			return hardpoint
+	return null
+
+
+## Returns whether any hardpoint can mount [param part].
+func can_mount(part: MechPart) -> bool:
+	return hardpoints.any(func(hardpoint: Hardpoint) -> bool: return hardpoint.fits(part))
+
+
+## Returns the smallest rectangle of cells holding the frame and every bay. Bays sit outside
+## the frame, so its top-left can be negative.
+func get_layout_rect() -> Rect2i:
+	var rect := Rect2i(Vector2i.ZERO, size)
+	for hardpoint in hardpoints:
+		for cell in hardpoint.get_cells():
+			rect = rect.expand(cell).expand(cell + Vector2i.ONE)
+	return rect

@@ -1,8 +1,9 @@
 class_name MechGridUI
 extends Control
-## Draws a run's mech grid and takes parts dragged onto it: bought from the shop or moved
-## around the grid. It never decides what fits or what anything is worth: it asks the
-## [RunState] and draws the answer. Parts carry no text; hovering one pops up its [PartInfo].
+## Draws a run's mech grid, with its hardpoint bays around it, and takes parts dragged onto it:
+## bought from the shop or moved around. It never decides what fits or what anything is worth:
+## it asks the [RunState] and draws the answer. Parts carry no text; hovering one pops up its
+## [PartInfo]. A weapon dragged over any cell of a bay snaps into that bay.
 
 ## Emitted when a drag's hover changes: the stats the drop would give, or null when nothing
 ## droppable is hovered.
@@ -10,7 +11,8 @@ signal preview_changed(stats: MechStats)
 ## Emitted with a short status line for the player, e.g. when a rotation has no room.
 signal message(text: String, good: bool)
 
-const CELL_SIZE := 80.0
+# Sized so the tallest layout, the Striker's 7 rows with its back bay, fits the shop's window.
+const CELL_SIZE := 56.0
 const CELL_GAP := 4.0
 const CELL_PITCH := CELL_SIZE + CELL_GAP
 ## How long a newly placed part's open edges stay lit.
@@ -18,6 +20,9 @@ const FLASH_SECONDS := 1.6
 
 const CELL_COLOR := Color(0.2, 0.22, 0.26)
 const DISABLED_CELL_COLOR := Color(0.07, 0.07, 0.09)
+const BAY_COLOR := Color(0.16, 0.13, 0.14)
+const BAY_EDGE_COLOR := Color(0.86, 0.33, 0.31, 0.45)
+const OPEN_BAY_COLOR := Color(0.4, 1.0, 0.5)
 const FITS_COLOR := Color(0.4, 1.0, 0.5, 0.45)
 const BLOCKED_COLOR := Color(1.0, 0.35, 0.35, 0.45)
 const EDGE_COLOR := Color(0.96, 0.83, 0.43)
@@ -29,6 +34,9 @@ const _FIT_REASONS := {
 	MechGridData.Fit.OUT_OF_BOUNDS: "Doesn't fit on the chassis",
 	MechGridData.Fit.DISABLED_CELL: "No frame there",
 	MechGridData.Fit.OCCUPIED: "Those slots are occupied",
+	MechGridData.Fit.NEEDS_HARDPOINT: "Weapons mount on hardpoints",
+	MechGridData.Fit.WRONG_SHAPE: "Doesn't fit this hardpoint",
+	MechGridData.Fit.WEAPONS_ONLY: "Only weapons mount here",
 }
 
 var run: RunState:
@@ -42,6 +50,11 @@ var run: RunState:
 
 # The run's current stats, refreshed on every change.
 var _stats: MechStats
+# The cells drawn: the frame and its bays. Bays sit outside the frame, so its top-left can be
+# negative; it's drawn at the control's top-left.
+var _layout: Rect2i
+# While a weapon is dragged: the bays it could drop into.
+var _open_bays: Array[Hardpoint] = []
 # While a drag hovers the grid: the drag, the origin it would drop at, and what that would do.
 var _drag: PartDragData
 var _drag_origin: Vector2i
@@ -69,13 +82,13 @@ func _ready() -> void:
 func _get_minimum_size() -> Vector2:
 	if run == null:
 		return Vector2.ZERO
-	return Vector2(run.grid.chassis.size) * CELL_PITCH - Vector2(CELL_GAP, CELL_GAP)
+	return Vector2(_layout.size) * CELL_PITCH - Vector2(CELL_GAP, CELL_GAP)
 
 
 func _get_drag_data(at_position: Vector2) -> Variant:
 	if run == null:
 		return null
-	var cell := _cell_at(at_position)
+	var cell := cell_at(at_position)
 	var placement := run.grid.get_placement_at(cell)
 	if placement == null:
 		return null
@@ -91,7 +104,7 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	if run == null or not data is PartDragData:
 		return false
 	var drag: PartDragData = data
-	var origin := _cell_at(at_position) - drag.grab_offset
+	var origin := _drop_origin(at_position, drag)
 	if drag != _drag or origin != _drag_origin:
 		_drag = drag
 		_drag_origin = origin
@@ -106,7 +119,7 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	var drag: PartDragData = data
-	var origin := _cell_at(at_position) - drag.grab_offset
+	var origin := _drop_origin(at_position, drag)
 	_clear_preview()
 	var first_cell := origin + drag.part.get_shape(drag.rotation)[0]
 	if drag.is_from_shop():
@@ -120,7 +133,7 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 func _gui_input(event: InputEvent) -> void:
 	var motion := event as InputEventMouseMotion
 	if motion and run:
-		var hovered := run.grid.get_placement_at(_cell_at(motion.position))
+		var hovered := run.grid.get_placement_at(cell_at(motion.position))
 		if hovered != _hovered:
 			_hovered = hovered
 			queue_redraw()
@@ -128,13 +141,16 @@ func _gui_input(event: InputEvent) -> void:
 
 # Godot asks for the text under the mouse, then for the popup to show it in. A part's text
 # changes with its links, so moving between parts with different numbers refreshes the popup.
+# An empty bay says what it mounts, in Godot's plain tooltip.
 func _get_tooltip(at_position: Vector2) -> String:
 	_tooltip_placement = null
 	if run == null or _moving or get_viewport().gui_is_dragging():
 		return ""
-	_tooltip_placement = run.grid.get_placement_at(_cell_at(at_position))
+	var cell := cell_at(at_position)
+	_tooltip_placement = run.grid.get_placement_at(cell)
 	if _tooltip_placement == null:
-		return ""
+		var hardpoint := run.grid.chassis.get_hardpoint_at(cell)
+		return bay_text(hardpoint) if hardpoint else ""
 	return PartInfo.text_for(_tooltip_placement.part, _tooltip_placement.rotation, _stats.part_stats[_tooltip_placement])
 
 
@@ -147,9 +163,12 @@ func _make_custom_tooltip(_for_text: String) -> Object:
 
 func _notification(what: int) -> void:
 	match what:
+		NOTIFICATION_DRAG_BEGIN:
+			show_open_bays(get_viewport().gui_get_drag_data())
 		NOTIFICATION_DRAG_END:
 			_set_moving(null)
 			_clear_preview()
+			show_open_bays(null)
 		NOTIFICATION_MOUSE_EXIT:
 			_hovered = null
 			_clear_preview()
@@ -164,17 +183,22 @@ func _draw() -> void:
 		for x in chassis.size.x:
 			var cell := Vector2i(x, y)
 			draw_rect(_cell_rect(cell), CELL_COLOR if chassis.is_usable(cell) else DISABLED_CELL_COLOR)
+	for hardpoint in chassis.hardpoints:
+		_draw_bay(hardpoint)
 	for cell in _shown_edges():
 		_draw_edge(cell)
 	for placement in run.grid.get_placements():
 		var color := PartShapeView.color_for(placement.part.type)
 		if placement == _moving:
 			color.a = MOVING_ALPHA
-		PartShapeView.draw_cells(self, placement.cells, CELL_SIZE, CELL_GAP, color)
+		var cells: Array[Vector2i] = []
+		for cell in placement.cells:
+			cells.append(cell - _layout.position)
+		PartShapeView.draw_cells(self, cells, CELL_SIZE, CELL_GAP, color)
 	if _preview:
 		var fill := FITS_COLOR if _accepts(_preview) else BLOCKED_COLOR
 		for cell in _preview.cells:
-			if chassis.contains(cell):
+			if _is_drawn(cell):
 				draw_rect(_cell_rect(cell), fill)
 	for link in _shown_links():
 		_draw_link(link)
@@ -199,8 +223,43 @@ func get_shown_edges() -> Array[Vector2i]:
 	return _shown_edges()
 
 
+## Outlines the bays that [param drag]'s weapon could drop into. Called when any drag starts,
+## and with null when it ends; anything but a dragged weapon lights no bays.
+func show_open_bays(drag: Variant) -> void:
+	_open_bays.clear()
+	if run and drag is PartDragData and drag.part.type == MechPart.PartType.WEAPON:
+		var moving: MechGridData.Placement = null
+		if not drag.is_from_shop():
+			moving = run.grid.get_placement_at(drag.from_cell)
+		_open_bays = run.grid.get_open_hardpoints(drag.part, moving)
+	queue_redraw()
+
+
+## Returns the bays outlined as open to the weapon being dragged.
+func get_open_bays() -> Array[Hardpoint]:
+	return _open_bays
+
+
+## Returns the cell under [param at_position], in the frame's coordinates: bays to the left of
+## or above the frame have negative ones.
+func cell_at(at_position: Vector2) -> Vector2i:
+	return Vector2i((at_position / CELL_PITCH).floor()) + _layout.position
+
+
+## Returns the center of [param cell], in this control's coordinates.
+func cell_center(cell: Vector2i) -> Vector2:
+	return _cell_rect(cell).get_center()
+
+
+## Returns what an empty bay's tooltip says, e.g. "Left Arm hardpoint\nMounts a 1×3 weapon".
+static func bay_text(hardpoint: Hardpoint) -> String:
+	var extent := PartShapeView.shape_extent(MechPart.normalized(hardpoint.shape))
+	return "%s hardpoint\nMounts a %d×%d weapon" % [hardpoint.hardpoint_name, extent.x, extent.y]
+
+
 func _on_run_changed() -> void:
 	_stats = run.stats() if run else null
+	_layout = run.grid.chassis.get_layout_rect() if run else Rect2i()
 	# Moves and rotations replace placements, so drop references to old ones.
 	_hovered = null
 	_moving = null
@@ -298,6 +357,26 @@ func _make_rotate_button(placement: MechGridData.Placement) -> RotateButton:
 	return button
 
 
+# A bay's cells, set apart from the frame's by their color and a weapon-red border. While a
+# weapon that fits it is dragged, the border lights up green.
+func _draw_bay(hardpoint: Hardpoint) -> void:
+	var edge := OPEN_BAY_COLOR if hardpoint in _open_bays else BAY_EDGE_COLOR
+	for cell in hardpoint.get_cells():
+		var rect := _cell_rect(cell)
+		draw_rect(rect, BAY_COLOR)
+		draw_rect(rect.grow(-1), edge, false, 2.0)
+
+
+# Where a drop at [param at_position] puts the dragged part's top-left: the grabbed cell stays
+# under the cursor, except that a weapon over any cell of a bay snaps to that bay.
+func _drop_origin(at_position: Vector2, drag: PartDragData) -> Vector2i:
+	var cell := cell_at(at_position)
+	var hardpoint := run.grid.chassis.get_hardpoint_at(cell)
+	if hardpoint and drag.part.type == MechPart.PartType.WEAPON:
+		return hardpoint.origin
+	return cell - drag.grab_offset
+
+
 func _draw_edge(cell: Vector2i) -> void:
 	var rect := _cell_rect(cell).grow(-2)
 	draw_rect(rect, Color(EDGE_COLOR, 0.13))
@@ -308,7 +387,7 @@ func _draw_edge(cell: Vector2i) -> void:
 
 # A dot in the rule's color on the edge the linked pair shares.
 func _draw_link(link: MechStats.Link) -> void:
-	var center := (_cell_center(link.contact.cell_a) + _cell_center(link.contact.cell_b)) / 2
+	var center := (cell_center(link.contact.cell_a) + cell_center(link.contact.cell_b)) / 2
 	draw_circle(center, 9.0, DISABLED_CELL_COLOR)
 	draw_circle(center, 7.0, link.rule.color)
 	draw_line(center - Vector2(3.5, 0), center + Vector2(3.5, 0), DISABLED_CELL_COLOR, 2.0)
@@ -325,21 +404,18 @@ func _draw_preview_label() -> void:
 	draw_string(font, anchor + Vector2(4, 2 + font.get_ascent(LABEL_FONT_SIZE)), text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_FONT_SIZE, color)
 
 
-# The first hovered cell inside the chassis, else the cell under the cursor.
+# The first hovered cell drawn on the frame or a bay, else the cell under the cursor.
 func _preview_label_cell() -> Vector2i:
 	for cell in _preview.cells:
-		if run.grid.chassis.contains(cell):
+		if _is_drawn(cell):
 			return cell
 	return _drag_origin + _drag.grab_offset
 
 
-func _cell_at(at_position: Vector2) -> Vector2i:
-	return Vector2i((at_position / CELL_PITCH).floor())
+# Whether [param cell] is drawn: inside the frame, disabled or not, or in a bay.
+func _is_drawn(cell: Vector2i) -> bool:
+	return run.grid.chassis.contains(cell) or run.grid.chassis.get_hardpoint_at(cell) != null
 
 
 func _cell_rect(cell: Vector2i) -> Rect2:
-	return Rect2(Vector2(cell) * CELL_PITCH, Vector2(CELL_SIZE, CELL_SIZE))
-
-
-func _cell_center(cell: Vector2i) -> Vector2:
-	return Vector2(cell) * CELL_PITCH + Vector2.ONE * CELL_SIZE / 2
+	return Rect2(Vector2(cell - _layout.position) * CELL_PITCH, Vector2(CELL_SIZE, CELL_SIZE))

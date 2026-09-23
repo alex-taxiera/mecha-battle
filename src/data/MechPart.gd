@@ -40,6 +40,19 @@ func get_shape(turns := 0) -> Array[Vector2i]:
 		for i in posmod(turns, 4):
 			turned = Vector2i(-turned.y, turned.x)
 		shape.append(turned)
+	return normalized(shape)
+
+
+## Returns whether the part can turn: a quarter-turn changes its footprint and it isn't a
+## weapon. Weapons mount on a hardpoint of their exact shape, so they never turn.
+func can_rotate() -> bool:
+	return type != PartType.WEAPON and get_shape(1) != get_shape()
+
+
+## Returns [param cells] shifted so their top-left is (0, 0) and sorted row by row, so two
+## shapes compare equal when they cover the same cells.
+static func normalized(cells: Array[Vector2i]) -> Array[Vector2i]:
+	var shape: Array[Vector2i] = cells.duplicate()
 	if shape.is_empty():
 		return shape
 	var top_left := shape[0]
@@ -49,8 +62,3 @@ func get_shape(turns := 0) -> Array[Vector2i]:
 		shape[i] -= top_left
 	shape.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y or (a.y == b.y and a.x < b.x))
 	return shape
-
-
-## Returns whether a quarter-turn changes this part's footprint.
-func can_rotate() -> bool:
-	return get_shape(1) != get_shape()

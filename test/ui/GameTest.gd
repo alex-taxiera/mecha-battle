@@ -26,22 +26,25 @@ func test_the_run_starts_by_choosing_a_chassis() -> void:
 	assert_bool(_game.chassis_select.is_inside_tree()).is_true()
 	assert_object(_game.shop).is_null()
 	assert_object(_game.combat).is_null()
-	# Choosing one opens the shop on it, with the run's parts.
+	# Choosing one opens the shop on it, with the run's parts: all but the gatling, since the
+	# Bastion's only bay is a 2x2 back.
 	var bastion := Fixtures.bastion()
 	await _choose(bastion)
 	assert_object(_game.chassis_select).is_null()
 	assert_bool(_game.shop.is_inside_tree()).is_true()
 	assert_object(_game.shop.run.grid.chassis).is_same(bastion)
-	assert_array(_game.shop.run.catalog).contains_same_exactly_in_any_order(_game.catalog)
+	assert_array(_game.shop.run.catalog).has_size(3) \
+		.contains_same_exactly_in_any_order(_game.catalog.filter(func(part: MechPart) -> bool: return part != _gatling))
 	await await_idle_frame() # free the select screen
 
 
 func test_next_round_fights_the_players_build_then_returns_to_the_shop() -> void:
-	await _choose(Fixtures.cross_chassis())
+	await _choose(Fixtures.armed_cross())
 	var run := _game.shop.run
-	# A gatling (1, 0)-(1, 2) cooled by a heatsink at (2, 1), (2, 2), (3, 2): 10 -> 2 gold.
-	assert_bool(run.buy(_slot_of(_gatling), Vector2i(1, 0))).is_true()
-	assert_bool(run.buy(_slot_of(_heatsink), Vector2i(2, 1))).is_true()
+	# A gatling in the left arm cooled by a heatsink touching its bay at (0, 1), (0, 2), (1, 2):
+	# 10 -> 2 gold.
+	assert_bool(run.buy(_slot_of(_gatling), Vector2i(-1, 1))).is_true()
+	assert_bool(run.buy(_slot_of(_heatsink), Vector2i(0, 1))).is_true()
 	await _press_next_round()
 	assert_object(_game.combat).is_not_null()
 	assert_bool(_game.combat.is_inside_tree()).is_true()
@@ -49,7 +52,7 @@ func test_next_round_fights_the_players_build_then_returns_to_the_shop() -> void
 	# The player's build fights on the left, with its link bonuses.
 	var player := _game.combat.engine.left
 	assert_array(player.active_parts).has_size(2)
-	var gun: ActivePart = player.active_parts.filter(func(active: ActivePart) -> bool: return active.part == run.grid.get_part_at(Vector2i(1, 1)))[0]
+	var gun: ActivePart = player.active_parts.filter(func(active: ActivePart) -> bool: return active.part == run.grid.get_part_at(Vector2i(-1, 2)))[0]
 	assert_int(gun.damage).is_equal(12)
 
 	await _finish_fight()
@@ -68,7 +71,7 @@ func test_next_round_fights_the_players_build_then_returns_to_the_shop() -> void
 func test_losing_is_recorded_and_the_next_round_fights_again() -> void:
 	# With nothing bought, the player's bare 30 HP falls to a gatling in 4 seconds.
 	_game.make_opponent = func() -> BattleMech: return _gun_mech()
-	await _choose(Fixtures.cross_chassis())
+	await _choose(Fixtures.armed_cross())
 	await _press_next_round()
 	await _finish_fight()
 	var run := _game.shop.run
@@ -132,8 +135,8 @@ static func _bare_mech() -> BattleMech:
 	return BattleMech.new(MechGridData.new(Fixtures.cross_chassis()))
 
 
-# 30 HP and a gatling at (1, 0)-(1, 2) firing on the Skirmisher's 3 energy a turn.
+# 30 HP and a gatling in the left arm firing on the Skirmisher's 3 energy a turn.
 func _gun_mech() -> BattleMech:
-	var grid := MechGridData.new(Fixtures.cross_chassis())
-	grid.place_part(_gun(), Vector2i(1, 0))
+	var grid := MechGridData.new(Fixtures.armed_cross())
+	grid.place_part(_gun(), Vector2i(-1, 1))
 	return BattleMech.new(grid)

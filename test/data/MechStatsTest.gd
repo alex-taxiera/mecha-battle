@@ -4,6 +4,9 @@ extends GdUnitTestSuite
 const __source: String = "res://src/data/MechStats.gd"
 const Fixtures := preload("res://test/TestFixtures.gd")
 
+const LEFT_ARM := Vector2i(-1, 0)
+const RIGHT_ARM := Vector2i(6, 0)
+
 var _cooled: SynergyRule
 var _overcharge: SynergyRule
 var _stable: SynergyRule
@@ -18,8 +21,11 @@ func before_test() -> void:
 	_stable = Fixtures.stable()
 	_plated = Fixtures.plated()
 	_rules = [_cooled, _overcharge, _stable, _plated]
-	# Roomy and open, with the Skirmisher's 30 base HP and 3 base energy.
-	_grid = MechGridData.new(Fixtures.open_chassis(Vector2i(6, 6)))
+	# Roomy and open, with the Skirmisher's 30 base HP and 3 base energy. Its arms touch the
+	# first three rows of its outer columns: (0, 0)-(0, 2) on the left, (5, 0)-(5, 2) on the right.
+	var chassis := Fixtures.open_chassis(Vector2i(6, 6))
+	chassis.hardpoints = [Fixtures.left_arm(LEFT_ARM), Fixtures.right_arm(RIGHT_ARM)]
+	_grid = MechGridData.new(chassis)
 
 
 func test_an_empty_mech_has_the_chassis_stats() -> void:
@@ -34,7 +40,7 @@ func test_an_empty_mech_has_the_chassis_stats() -> void:
 
 
 func test_parts_add_their_base_stats() -> void:
-	_place(Fixtures.gatling(), Vector2i(0, 0))  # 8 damage, draws 3 energy
+	_place(Fixtures.gatling(), LEFT_ARM)        # 8 damage, draws 3 energy
 	_place(Fixtures.reactor(), Vector2i(3, 0))  # +4 energy, +5 HP
 	_place(Fixtures.laser(), Vector2i(5, 5))    # +12 HP
 	_place(Fixtures.heatsink(), Vector2i(3, 3)) # nothing on its own
@@ -46,15 +52,34 @@ func test_parts_add_their_base_stats() -> void:
 	assert_int(stats.damage).is_equal(8)
 
 
+func test_weapons_link_through_their_bay() -> void:
+	#    -1 0 1 2
+	#  0  G  . H .    G: gatling in the left arm
+	#  1  G  . H H    H: heatsink
+	#  2  G  . . .
+	var gatling := _place(Fixtures.gatling(), LEFT_ARM)
+	var heatsink := _place(Fixtures.heatsink(), Vector2i(1, 0))
+	# A cell away from the bay, the heatsink doesn't cool the gun.
+	assert_array(_stats().links).is_empty()
+	assert_int(_stats().damage).is_equal(8)
+	# Touching the bay, it does.
+	assert_bool(_grid.move_part(heatsink.cells[0], Vector2i(0, 0))).is_true()
+	var stats := _stats()
+	assert_int(stats.damage).is_equal(12) # 8 x 1.5
+	assert_int(stats.part_stats[_grid.get_placement_at(LEFT_ARM)].links).is_equal(1)
+	assert_object(stats.links[0].contact.a.part).is_same(gatling.part)
+
+
 func test_cooled_multiplies_weapon_damage_once() -> void:
-	#     0 1 2 3 4
-	#  0  . . G H .    G: gatling
-	#  1  A A G H H    H, A: heatsinks
-	#  2  . A G . .
-	var gatling := _place(Fixtures.gatling(), Vector2i(2, 0))
-	_place(Fixtures.heatsink(), Vector2i(3, 0))
+	#    -1 0 1
+	#  0  G  H .    G: gatling in the left arm
+	#  1  G  H H    H, A: heatsinks
+	#  2  G  A A
+	#  3     . A
+	var gatling := _place(Fixtures.gatling(), LEFT_ARM)
+	_place(Fixtures.heatsink(), Vector2i(0, 0))
 	assert_int(_stats().damage).is_equal(12) # 8 x 1.5
-	_place(Fixtures.heatsink(), Vector2i(0, 1), 2)
+	_place(Fixtures.heatsink(), Vector2i(0, 2), 2)
 	var stats := _stats()
 	assert_int(stats.damage).is_equal(12) # a second heatsink doesn't cool it any further
 	assert_int(stats.get_rule_counts()[_cooled]).is_equal(2)
@@ -62,12 +87,12 @@ func test_cooled_multiplies_weapon_damage_once() -> void:
 
 
 func test_overcharge_adds_damage_per_reactor() -> void:
-	#     0 1 2 3 4
-	#  0  . . G . .
-	#  1  . . G R R    R: reactors
-	#  2  R R G . .
-	_place(Fixtures.gatling(), Vector2i(2, 0))
-	_place(Fixtures.reactor(), Vector2i(3, 1))
+	#    -1 0 1
+	#  0  G  R R    G: gatling in the left arm
+	#  1  G  . .    R: reactors
+	#  2  G  R R
+	_place(Fixtures.gatling(), LEFT_ARM)
+	_place(Fixtures.reactor(), Vector2i(0, 0))
 	_place(Fixtures.reactor(), Vector2i(0, 2))
 	var stats := _stats()
 	assert_int(stats.damage).is_equal(8 + 3 + 3)
@@ -77,12 +102,12 @@ func test_overcharge_adds_damage_per_reactor() -> void:
 
 
 func test_bonuses_add_before_they_multiply() -> void:
-	#     0 1 2 3 4
-	#  0  . . G R R
-	#  1  A A G . .
-	#  2  . A G . .
-	var gatling := _place(Fixtures.gatling(), Vector2i(2, 0))
-	_place(Fixtures.reactor(), Vector2i(3, 0))
+	#    -1 0 1
+	#  0  G  R R    G: gatling in the left arm
+	#  1  G  A A    R: reactor
+	#  2  G  . A    A: heatsink
+	var gatling := _place(Fixtures.gatling(), LEFT_ARM)
+	_place(Fixtures.reactor(), Vector2i(0, 0))
 	_place(Fixtures.heatsink(), Vector2i(0, 1), 2)
 	var stats := _stats()
 	assert_int(stats.part_stats[gatling].damage).is_equal(17) # (8 + 3) x 1.5 = 16.5, rounded
@@ -119,25 +144,25 @@ func test_plated_gives_every_touching_laser_hp() -> void:
 
 
 func test_a_touching_pair_links_once() -> void:
-	# The heatsink shares two edges with the gatling but makes one link.
-	_place(Fixtures.gatling(), Vector2i(2, 0))
-	_place(Fixtures.heatsink(), Vector2i(3, 0))
+	# The heatsink shares two edges with the gatling's bay but makes one link.
+	_place(Fixtures.gatling(), LEFT_ARM)
+	_place(Fixtures.heatsink(), Vector2i(0, 0))
 	var stats := _stats()
 	assert_array(stats.links).has_size(1)
 	assert_object(stats.links[0].rule).is_same(_cooled)
 
 
 func test_unmatched_pairs_do_not_link() -> void:
-	# No rule covers Weapon + Weapon.
-	_place(Fixtures.gatling(), Vector2i(0, 0))
-	_place(Fixtures.gatling(), Vector2i(1, 0))
+	# A laser touches the gatling's bay, but no rule covers Weapon + Defense.
+	_place(Fixtures.gatling(), LEFT_ARM)
+	_place(Fixtures.laser(), Vector2i(0, 1))
 	assert_array(_stats().links).is_empty()
 
 
 func test_underpowered_weapons_lose_damage() -> void:
 	# Two gatlings draw 6 energy against the chassis's 3: half power, half damage.
-	_place(Fixtures.gatling(), Vector2i(0, 0))
-	_place(Fixtures.gatling(), Vector2i(1, 0))
+	_place(Fixtures.gatling(), LEFT_ARM)
+	_place(Fixtures.gatling(), RIGHT_ARM)
 	var stats := _stats()
 	assert_int(stats.get_net_energy()).is_equal(-3)
 	assert_float(stats.power).is_equal(0.5)

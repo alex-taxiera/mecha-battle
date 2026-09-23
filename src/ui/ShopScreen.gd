@@ -1,8 +1,9 @@
 class_name ShopScreen
 extends Control
 ## Root of the shop phase: the round and gold up top, the mech on the left, the parts shop on
-## the right, and the mech's stats below. Drag parts from the shop onto the mech to buy them,
-## around the mech to move them, and back onto the shop to sell them. Next round asks for the
+## the right, and the mech's stats below. Drag parts from the shop onto the mech to buy them
+## (weapons onto the hardpoints around its grid), around the mech to move them, and back onto
+## the shop to sell them. Next round asks for the
 ## round's fight; [method finish_round] records it and opens the next round's shop.
 
 ## Emitted when the player is done shopping and wants this round's fight.
@@ -124,7 +125,8 @@ func _refresh() -> void:
 	_gold_label.text = "Gold: %d" % run.gold
 	var frame := run.grid.chassis
 	_chassis_label.text = "Chassis · %s" % frame.chassis_name
-	_chassis_info.text = "%s · %d / %d slots used" % [frame.frame_name, run.grid.get_used_cell_count(), frame.get_usable_cell_count()]
+	_chassis_info.text = "%s · %d / %d slots · %d / %d hardpoints" % [frame.frame_name, run.grid.get_used_cell_count(),
+		frame.get_usable_cell_count(), run.grid.get_mounted_count(), frame.hardpoints.size()]
 	_passive_label.visible = frame.passive != MechChassis.Passive.NONE
 	_passive_label.text = "%s: %s" % [frame.passive_name, frame.passive_text]
 	_reroll_button.text = "Reroll · %dg" % RunState.REROLL_COST

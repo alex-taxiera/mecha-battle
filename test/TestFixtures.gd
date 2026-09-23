@@ -4,13 +4,25 @@ extends RefCounted
 ## the tests. Preload it: [code]const Fixtures := preload("res://test/TestFixtures.gd")[/code].
 
 const CORNERS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(3, 0), Vector2i(0, 3), Vector2i(3, 3)]
+const ARM_SHAPE: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)]
+const BACK_SHAPE: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]
 
 
 ## The design doc's chassis: 4x4 with the corners disabled, with the Skirmisher's base stats.
+## It has no hardpoints, so section 5's bounds tests see only the frame.
 static func cross_chassis() -> MechChassis:
 	var chassis := _chassis(Vector2i(4, 4), CORNERS)
 	chassis.chassis_name = "The Skirmisher"
 	chassis.frame_name = "Cross frame"
+	return chassis
+
+
+## The cross with a bay of each kind for weapons: a left arm at (-1, 1) touching (0, 1) and
+## (0, 2), a right arm at (4, 1) touching (3, 1) and (3, 2), and a back at (1, -2) touching
+## (1, 0) and (2, 0).
+static func armed_cross() -> MechChassis:
+	var chassis := cross_chassis()
+	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(4, 1)), back(Vector2i(1, -2))]
 	return chassis
 
 
@@ -21,9 +33,11 @@ static func open_chassis(size: Vector2i) -> MechChassis:
 
 # The design doc's three frames.
 
-## Tank: 4 wide by 3 tall, 45 HP, 2 energy a turn, every hit taken 1 smaller.
+## Tank: 4 wide by 3 tall, 45 HP, 2 energy a turn, every hit taken 1 smaller. One back bay,
+## over (1, 0) and (2, 0).
 static func bastion() -> MechChassis:
 	var chassis := _frame("The Bastion", "Wide frame", Vector2i(4, 3), [], 45, 2)
+	chassis.hardpoints = [back(Vector2i(1, -2))]
 	chassis.playstyle = "Tank / Attrition"
 	chassis.passive = MechChassis.Passive.THICK_PLATING
 	chassis.passive_name = "Thick Plating"
@@ -32,9 +46,11 @@ static func bastion() -> MechChassis:
 	return chassis
 
 
-## Glass cannon: 2 wide by 5 tall, 22 HP, 4 energy a turn, its first shot fires twice.
+## Glass cannon: 2 wide by 5 tall, 22 HP, 4 energy a turn, its first shot fires twice. Arms
+## beside rows 1-3 and a back over row 0.
 static func striker() -> MechChassis:
 	var chassis := _frame("The Striker", "Tall frame", Vector2i(2, 5), [], 22, 4)
+	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(2, 1)), back(Vector2i(0, -2))]
 	chassis.playstyle = "Glass Cannon / Burst"
 	chassis.passive = MechChassis.Passive.OVERCLOCK
 	chassis.passive_name = "Overclock"
@@ -43,7 +59,7 @@ static func striker() -> MechChassis:
 
 
 ## Combo: a 13-cell diamond on 5x5, 30 HP, 3 energy a turn. At full heat it deals 25 and
-## shuts down for 3 seconds.
+## shuts down for 3 seconds. Arms beside rows 1-3, each touching only a tip, (0, 2) or (4, 2).
 static func reactor_frame() -> MechChassis:
 	var disabled: Array[Vector2i] = []
 	for y in 5:
@@ -51,6 +67,7 @@ static func reactor_frame() -> MechChassis:
 			if absi(x - 2) + absi(y - 2) > 2:
 				disabled.append(Vector2i(x, y))
 	var chassis := _frame("The Reactor", "Diamond frame", Vector2i(5, 5), disabled, 30, 3)
+	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(5, 1))]
 	chassis.playstyle = "Synergy / Combo"
 	chassis.passive = MechChassis.Passive.MELTDOWN
 	chassis.passive_name = "Meltdown"
@@ -60,10 +77,40 @@ static func reactor_frame() -> MechChassis:
 	return chassis
 
 
+# The design's hardpoints: arms are 1x3 vertical, backs 2x2.
+
+static func left_arm(origin: Vector2i) -> Hardpoint:
+	return hardpoint("left_arm", "Left Arm", origin, ARM_SHAPE)
+
+
+static func right_arm(origin: Vector2i) -> Hardpoint:
+	return hardpoint("right_arm", "Right Arm", origin, ARM_SHAPE)
+
+
+static func back(origin: Vector2i) -> Hardpoint:
+	return hardpoint("back", "Back", origin, BACK_SHAPE)
+
+
+static func hardpoint(id: String, hardpoint_name: String, origin: Vector2i, shape: Array[Vector2i]) -> Hardpoint:
+	var result := Hardpoint.new()
+	result.id = id
+	result.hardpoint_name = hardpoint_name
+	result.origin = origin
+	# A copy, so fixtures never share the read-only constant shapes.
+	result.shape = shape.duplicate()
+	return result
+
+
 # The mockup's parts. Shapes are (x, y): the gatling is 1x3 vertical, the reactor 2x1.
 
+## An arm weapon.
 static func gatling() -> MechPart:
-	return part("Twin Gatling", MechPart.PartType.WEAPON, [Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)], 4, {"damage": 8, "energy_cost": 3})
+	return part("Twin Gatling", MechPart.PartType.WEAPON, ARM_SHAPE, 4, {"damage": 8, "energy_cost": 3})
+
+
+## A back weapon: 2x2, 6 gold, 14 damage for 5 energy.
+static func missile_pod() -> MechPart:
+	return part("Missile Pod", MechPart.PartType.WEAPON, BACK_SHAPE, 6, {"damage": 14, "energy_cost": 5})
 
 
 static func laser() -> MechPart:
@@ -84,7 +131,7 @@ static func part(part_name: String, type: MechPart.PartType, shape: Array[Vector
 	var result := MechPart.new()
 	result.part_name = part_name
 	result.type = type
-	result.grid_shape = shape
+	result.grid_shape = shape.duplicate()
 	result.cost = cost
 	for stat in stats:
 		# set() ignores names MechPart doesn't have, which would quietly zero a stat.

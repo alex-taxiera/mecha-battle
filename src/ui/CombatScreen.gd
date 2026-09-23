@@ -8,12 +8,13 @@ extends Control
 ## is null for a draw.
 signal finished(winner: BattleMech)
 
-## The mech the player fights until there are real opponents: the gatling and heatsink build
-## from the first shop, as [part id, origin] pairs, on a training Bastion.
-const DUMMY := [["gatling", Vector2i(1, 0)], ["heatsink", Vector2i(2, 1)]]
+## The mech the player fights until there are real opponents, as [part id, origin] pairs on a
+## training Bastion: a missile pod in its back bay, cooled by a heatsink touching the bay.
+const DUMMY := [["missile_pod", Vector2i(1, -2)], ["heatsink", Vector2i(2, 0)]]
 const DUMMY_CHASSIS := preload("res://resources/chassis/bastion.tres")
-# Run on its own, the screen pits this stand-in for the player against the dummy.
-const DEMO_PLAYER := [["gatling", Vector2i(1, 0)], ["reactor", Vector2i(2, 1)], ["laser", Vector2i(2, 2)]]
+# Run on its own, the screen pits this stand-in for the player against the dummy, on the
+# screen's Bastion: a missile pod overcharged by a reactor touching its bay, and a laser.
+const DEMO_PLAYER := [["missile_pod", Vector2i(1, -2)], ["reactor", Vector2i(1, 0)], ["laser", Vector2i(1, 1)]]
 
 ## The chassis the demo mechs are built on.
 @export var chassis: MechChassis

@@ -7,7 +7,7 @@ const UP_COLOR := Color(0.49, 0.88, 0.63)
 const DOWN_COLOR := Color(0.94, 0.42, 0.42)
 const NOTE_COLOR := Color(0.6, 0.63, 0.66)
 const TEXT_COLOR := Color(0.91, 0.9, 0.88)
-const NO_LINKS_TEXT := "No links yet. Parts link when they share an edge. Open edges glow yellow while you drag or hover a part."
+const NO_LINKS_TEXT := "No links yet. Parts link when they share an edge, and weapons with the parts touching their hardpoint. Open edges glow yellow while you drag or hover a part."
 
 
 ## The labels of one stat box.

@@ -5,8 +5,15 @@ const __source: String = "res://src/combat/CombatEngine.gd"
 const Fixtures := preload("res://test/TestFixtures.gd")
 # Enough 0.1-second ticks for any fight here to end; stops a broken engine hanging the run.
 const MAX_TICKS := 10000
+# The armed cross's arms. Only (0, 1) and (0, 2) touch the left one.
+const LEFT_ARM := Vector2i(-1, 1)
+const RIGHT_ARM := Vector2i(4, 1)
+# The Striker's and the Reactor's left arms.
+const STRIKER_LEFT_ARM := Vector2i(-1, 1)
+const STRIKER_RIGHT_ARM := Vector2i(2, 1)
+const REACTOR_LEFT_ARM := Vector2i(-1, 1)
 
-# The Skirmisher's cross, 30 base HP, with no base energy so that only parts make energy.
+# The Skirmisher's armed cross, 30 base HP, with no base energy so that only parts make energy.
 # Tests of chassis energy use _energized_chassis().
 var _chassis: MechChassis
 # What engines made by _engine() emit: each weapon_fired as [attacker, target, damage], each
@@ -18,7 +25,7 @@ var _endings: Array = []
 
 
 func before_test() -> void:
-	_chassis = Fixtures.cross_chassis()
+	_chassis = Fixtures.armed_cross()
 	_chassis.base_energy = 0
 	_shots = []
 	_meltdowns = []
@@ -96,10 +103,10 @@ func test_a_generator_without_a_cooldown_makes_nothing() -> void:
 
 
 func test_a_weapon_fires_once_it_is_ready_and_paid_for() -> void:
-	# Gatling (1, 0)-(1, 2): 8 damage for 3 energy, every second. Reactor (2, 1)-(3, 1): +4
+	# Gatling in the left arm: 8 damage for 3 energy, every second. Reactor (2, 1)-(3, 1): +4
 	# every half second.
 	var gatling := _on_cooldown(Fixtures.gatling(), 1.0)
-	var attacker := _mech([[gatling, Vector2i(1, 0)], [_reactor(0.5), Vector2i(2, 1)]])
+	var attacker := _mech([[gatling, LEFT_ARM], [_reactor(0.5), Vector2i(2, 1)]])
 	var dummy := _mech([])
 	var engine := _engine(attacker, dummy)
 	var ticks := 0
@@ -120,7 +127,7 @@ func test_a_weapon_fires_once_it_is_ready_and_paid_for() -> void:
 
 func test_weapons_can_spend_energy_generated_the_same_tick() -> void:
 	# The reactor's first +4 and the gatling's first shot both come at 1 second.
-	var attacker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(1, 0)], [_reactor(1.0), Vector2i(2, 1)]])
+	var attacker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), LEFT_ARM], [_reactor(1.0), Vector2i(2, 1)]])
 	var engine := _engine(attacker, _mech([]))
 	for i in 10:
 		engine.process_tick(0.1)
@@ -130,7 +137,7 @@ func test_weapons_can_spend_energy_generated_the_same_tick() -> void:
 
 func test_a_weapon_waits_for_energy() -> void:
 	var gatling := _on_cooldown(Fixtures.gatling(), 0.5) # costs 3
-	var attacker := _mech([[gatling, Vector2i(1, 0)]])
+	var attacker := _mech([[gatling, LEFT_ARM]])
 	var dummy := _mech([])
 	var engine := _engine(attacker, dummy)
 	for i in 10:
@@ -150,8 +157,8 @@ func test_a_weapon_waits_for_energy() -> void:
 
 
 func test_both_mechs_shoot_each_other() -> void:
-	var left := _mech([[_peashooter(), Vector2i(1, 1)]])
-	var right := _mech([[_peashooter(), Vector2i(1, 1)]])
+	var left := _mech([[_peashooter(), LEFT_ARM]])
+	var right := _mech([[_peashooter(), LEFT_ARM]])
 	var engine := _engine(left, right)
 	for i in 10:
 		engine.process_tick(0.1)
@@ -166,7 +173,7 @@ func test_both_mechs_shoot_each_other() -> void:
 func test_a_switched_off_weapon_holds_fire() -> void:
 	var off := _peashooter()
 	var on := _peashooter()
-	var attacker := _mech([[off, Vector2i(1, 1)], [on, Vector2i(2, 1)]])
+	var attacker := _mech([[off, LEFT_ARM], [on, RIGHT_ARM]])
 	# Switched off while ready to fire, it still doesn't.
 	var off_active := _active_for(attacker, off)
 	off_active.current_cooldown = 0.0
@@ -233,8 +240,8 @@ func test_the_winner_does_not_depend_on_the_side() -> void:
 
 func test_both_mechs_going_down_in_the_same_tick_is_a_draw() -> void:
 	# Mirror match: 30 HP and 2 damage every half second each, so both drop on the 15th shot.
-	var left := _mech([[_peashooter(), Vector2i(1, 1)]])
-	var right := _mech([[_peashooter(), Vector2i(1, 1)]])
+	var left := _mech([[_peashooter(), LEFT_ARM]])
+	var right := _mech([[_peashooter(), LEFT_ARM]])
 	var engine := _engine(left, right)
 	assert_int(_fight(engine)).is_equal(75)
 	assert_array(_endings).has_size(1)
@@ -295,7 +302,7 @@ func test_each_chassis_adds_its_base_energy_every_turn() -> void:
 
 func test_a_weapon_can_run_on_chassis_energy_alone() -> void:
 	# The Skirmisher's 3 energy a turn pays for a gatling's 3 a second, with no generator.
-	var attacker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(1, 0)]], [], _energized_chassis(3))
+	var attacker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), LEFT_ARM]], [], _energized_chassis(3))
 	var dummy := _mech([])
 	var engine := _engine(attacker, dummy)
 	for i in 10:
@@ -310,8 +317,9 @@ func test_a_weapon_can_run_on_chassis_energy_alone() -> void:
 
 
 func test_weapons_hit_with_their_link_bonuses() -> void:
-	# Gatling (1, 0)-(1, 2) cooled by a heatsink at (2, 1), (2, 2), (3, 2): 8 × 1.5.
-	var placements := [[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(1, 0)], [Fixtures.heatsink(), Vector2i(2, 1)]]
+	# The left arm's gatling cooled by a heatsink touching its bay at (0, 1), (0, 2), (1, 2):
+	# 8 × 1.5.
+	var placements := [[_on_cooldown(Fixtures.gatling(), 1.0), LEFT_ARM], [Fixtures.heatsink(), Vector2i(0, 1)]]
 	var engine := _engine(_mech(placements, Fixtures.rules(), _energized_chassis(3)), _mech([]))
 	for i in 10:
 		engine.process_tick(0.1)
@@ -319,7 +327,7 @@ func test_weapons_hit_with_their_link_bonuses() -> void:
 	assert_int(_shots[0][2]).is_equal(12)
 	# Positive control: without the rules, the same build hits for 8.
 	_shots = []
-	placements = [[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(1, 0)], [Fixtures.heatsink(), Vector2i(2, 1)]]
+	placements = [[_on_cooldown(Fixtures.gatling(), 1.0), LEFT_ARM], [Fixtures.heatsink(), Vector2i(0, 1)]]
 	engine = _engine(_mech(placements, [], _energized_chassis(3)), _mech([]))
 	for i in 10:
 		engine.process_tick(0.1)
@@ -339,7 +347,7 @@ func test_generators_make_energy_with_their_link_bonuses() -> void:
 func test_thick_plating_shrinks_every_hit_the_bastion_takes() -> void:
 	# A peashooter's 2 damage lands as 1, twice a second.
 	var bastion := _mech([], [], Fixtures.bastion()) # 45 HP
-	var engine := _engine(_mech([[_peashooter(), Vector2i(1, 1)]]), bastion)
+	var engine := _engine(_mech([[_peashooter(), LEFT_ARM]]), bastion)
 	for i in 10:
 		engine.process_tick(0.1)
 	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([1, 1])
@@ -356,9 +364,9 @@ func test_thick_plating_shrinks_every_hit_the_bastion_takes() -> void:
 
 
 func test_overclock_fires_the_strikers_first_shot_twice() -> void:
-	# A gatling (0, 0)-(0, 2) on the Striker's 4 energy a turn: at 1 second it fires twice for
+	# A gatling in the Striker's left arm, on its 4 energy a turn: at 1 second it fires twice for
 	# one shot's energy, then once a second.
-	var striker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(0, 0)]], [], Fixtures.striker())
+	var striker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), STRIKER_LEFT_ARM]], [], Fixtures.striker())
 	var dummy := _mech([])
 	var engine := _engine(striker, dummy)
 	for i in 10:
@@ -371,16 +379,16 @@ func test_overclock_fires_the_strikers_first_shot_twice() -> void:
 	assert_array(_shots).has_size(3)
 	# Positive control: off the Striker, the same gun fires once.
 	_shots = []
-	engine = _engine(_mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(1, 0)]], [], _energized_chassis(4)), _mech([]))
+	engine = _engine(_mech([[_on_cooldown(Fixtures.gatling(), 1.0), LEFT_ARM]], [], _energized_chassis(4)), _mech([]))
 	for i in 10:
 		engine.process_tick(0.1)
 	assert_array(_shots).has_size(1)
 
 
 func test_overclock_goes_to_whichever_weapon_fires_first() -> void:
-	# The peashooter (1, 0), ready at 0.5 seconds, beats the gatling (0, 0)-(0, 2) to it; at
+	# The right arm's peashooter, ready at 0.5 seconds, beats the left arm's gatling to it; at
 	# 1 second both fire once, the gatling first as it was placed first.
-	var striker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(0, 0)], [_peashooter(), Vector2i(1, 0)]], [], Fixtures.striker())
+	var striker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), STRIKER_LEFT_ARM], [_peashooter(), STRIKER_RIGHT_ARM]], [], Fixtures.striker())
 	var engine := _engine(striker, _mech([]))
 	for i in 10:
 		engine.process_tick(0.1)
@@ -390,7 +398,7 @@ func test_overclock_goes_to_whichever_weapon_fires_first() -> void:
 func test_shots_heat_their_mech_and_heatsinks_vent_it() -> void:
 	# A gatling making 20 heat a shot beside a heatsink venting 10 a turn. Each second the
 	# heatsink vents, then the gatling fires: 20, 30, 40...
-	var mech := _mech([[_hot_gun(), Vector2i(1, 0)], [_venting_sink(), Vector2i(2, 1)]], [], _energized_chassis(3))
+	var mech := _mech([[_hot_gun(), LEFT_ARM], [_venting_sink(), Vector2i(2, 1)]], [], _energized_chassis(3))
 	var engine := _engine(mech, _tough_dummy())
 	var heat_per_second := []
 	for second in 3:
@@ -401,9 +409,9 @@ func test_shots_heat_their_mech_and_heatsinks_vent_it() -> void:
 
 
 func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
-	# The Reactor's gatling (2, 0)-(2, 2) fires once a second on its 3 energy a turn, 20 heat a
+	# The Reactor's left-arm gatling fires once a second on its 3 energy a turn, 20 heat a
 	# shot: the 5th shot, at 5 seconds, fills it.
-	var reactor := _mech([[_hot_gun(), Vector2i(2, 0)]], [], Fixtures.reactor_frame())
+	var reactor := _mech([[_hot_gun(), REACTOR_LEFT_ARM]], [], Fixtures.reactor_frame())
 	var target := _tough_dummy() # 200 HP
 	var engine := _engine(reactor, target)
 	for i in 50:
@@ -436,7 +444,7 @@ func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
 
 func test_only_the_reactor_melts_down() -> void:
 	# The same hot gatling on a plain chassis fills to 100 heat and stays there, firing on.
-	var mech := _mech([[_hot_gun(), Vector2i(1, 0)]], [], _energized_chassis(3))
+	var mech := _mech([[_hot_gun(), LEFT_ARM]], [], _energized_chassis(3))
 	var engine := _engine(mech, _tough_dummy())
 	for i in 100:
 		engine.process_tick(0.1)
@@ -476,15 +484,15 @@ func _fight(engine: CombatEngine) -> int:
 	return ticks
 
 
-# 35 HP (30 + the reactor's 5). The gatling (1, 0)-(1, 2) deals 8 for 3 energy every second;
-# the reactor (2, 1)-(3, 1) makes 4 every second, so it can always pay.
+# 35 HP (30 + the reactor's 5). The left arm's gatling deals 8 for 3 energy every second; the
+# reactor (2, 1)-(3, 1) makes 4 every second, so it can always pay.
 func _brawler() -> BattleMech:
-	return _mech([[_on_cooldown(Fixtures.gatling(), 1.0), Vector2i(1, 0)], [_reactor(1.0), Vector2i(2, 1)]])
+	return _mech([[_on_cooldown(Fixtures.gatling(), 1.0), LEFT_ARM], [_reactor(1.0), Vector2i(2, 1)]])
 
 
-# 42 HP (30 + the laser's 12), with a peashooter.
+# 42 HP (30 + the laser's 12), with a peashooter in the left arm.
 func _turtle() -> BattleMech:
-	return _mech([[_peashooter(), Vector2i(1, 1)], [Fixtures.laser(), Vector2i(2, 1)]])
+	return _mech([[_peashooter(), LEFT_ARM], [Fixtures.laser(), Vector2i(2, 1)]])
 
 
 # A Micro-Reactor (+4 energy) on a cooldown of [param seconds].
@@ -492,9 +500,9 @@ func _reactor(seconds: float) -> MechPart:
 	return _on_cooldown(Fixtures.reactor(), seconds)
 
 
-# A free 1x1 gun: 2 damage every half second, no energy needed.
+# A free arm gun: 2 damage every half second, no energy needed.
 func _peashooter() -> MechPart:
-	return Fixtures.part("Peashooter", MechPart.PartType.WEAPON, [Vector2i(0, 0)], 0, {"damage": 2, "cooldown_max": 0.5})
+	return Fixtures.part("Peashooter", MechPart.PartType.WEAPON, Fixtures.ARM_SHAPE, 0, {"damage": 2, "cooldown_max": 0.5})
 
 
 # A gatling firing every second that makes 20 heat a shot.
@@ -533,9 +541,9 @@ func _mech(placements: Array, rules: Array[SynergyRule] = [], chassis: MechChass
 	return BattleMech.new(grid, rules)
 
 
-# The cross chassis with [param energy] base energy a turn.
+# The armed cross with [param energy] base energy a turn.
 func _energized_chassis(energy: int) -> MechChassis:
-	var chassis := Fixtures.cross_chassis()
+	var chassis := Fixtures.armed_cross()
 	chassis.base_energy = energy
 	return chassis
 
