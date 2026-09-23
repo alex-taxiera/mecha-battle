@@ -38,6 +38,12 @@ Run the tests headlessly from the project root using this command:
 - In that harness, call `game_wait` for a frame after anything that rebuilds or reveals controls (a refresh, a drag that shows a drop zone) before pushing input at them. Containers lay out on the next frame, so earlier input hits the old rects.
 - `game_screenshot` returns a stale frame while the game window is minimized.
 
+## Addons
+- `addons/phantom_camera/` (Phantom Camera 0.11.0.3) is vendored for dynamic camera effects later: following and framing, tweened moves between shots, and shake from noise emitters (e.g. combat hits). Use it for camera work instead of hand-tweening a `Camera2D`/`Camera3D`.
+- It isn't enabled yet. Enable it when first used, from the editor's Plugins tab, which also adds its `PhantomCameraManager` autoload. Adding it to `[editor_plugins]` in `project.godot` by hand skips that autoload; add `PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"` under `[autoload]` too.
+- Setup: the scene's `Camera2D`/`Camera3D` gets a `PhantomCameraHost` child, and `PhantomCamera2D`/`PhantomCamera3D` nodes drive it by priority.
+- Don't edit files under `addons/`. To update an addon, replace its folder.
+
 ## Rules
 1. Read the output of the test command. If it fails, fix the code and run it again.
 2. Keep UI visuals separate from game logic so tests can run cleanly on scripts.
