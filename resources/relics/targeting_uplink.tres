@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TargetingUplink" format=3]
+
+[ext_resource type="Script" path="res://src/data/relics/TargetingUplink.gd" id="1_teg52"]
+
+[resource]
+script = ExtResource("1_teg52")
+id = "targeting_uplink"
+relic_name = "Targeting Uplink"
+description = "The first shot of every fight deals double damage."
+rarity = 1
+glyph = "T"
+color = Color(1, 0.5411765, 0.23921569, 1)

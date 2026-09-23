@@ -11,16 +11,18 @@ const MAP_SCENE := preload("res://src/ui/MapScreen.tscn")
 const LOADOUT_SCENE := preload("res://src/ui/LoadoutScreen.tscn")
 const COMBAT_SCENE := preload("res://src/ui/CombatScreen.tscn")
 const ACTS_DIR := "res://resources/acts"
+const RELICS_DIR := "res://resources/relics"
 const CLEAR_COLOR := Color("#5fd38a")
 const LOSS_COLOR := Color("#ff4d4d")
 
 ## Gold a run starts with.
 @export var start_gold := 20
-## Parts the run can offer, adjacency rules, and sectors in order. Left empty, they're loaded
-## from their folders (sectors in id order).
+## Parts the run can offer, adjacency rules, sectors in order, and the relics it can find. Left
+## empty, they're loaded from their folders (sectors in id order).
 var catalog: Array[MechPart] = []
 var rules: Array[SynergyRule] = []
 var acts: Array[ActData] = []
+var relics: Array[Relic] = []
 ## The seed for new runs; below 0, each run gets a random one.
 var run_seed := -1
 
@@ -46,6 +48,8 @@ func _ready() -> void:
 		var loaded := LoadoutScreen.load_dir(ACTS_DIR).filter(func(resource: Resource) -> bool: return resource is ActData)
 		loaded.sort_custom(func(a: ActData, b: ActData) -> bool: return a.id < b.id)
 		acts.assign(loaded)
+	if relics.is_empty():
+		relics.assign(LoadoutScreen.load_dir(RELICS_DIR).filter(func(resource: Resource) -> bool: return resource is Relic))
 	chassis_select = %ChassisSelectScreen
 	screen = chassis_select
 	# Every swap is deferred, so a screen isn't taken out of the tree while it's still emitting.
@@ -63,7 +67,7 @@ func show_map() -> void:
 
 func _start_run(chassis: MechChassis) -> void:
 	chassis_select = null
-	run = RunState.new(chassis, catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts)
+	run = RunState.new(chassis, catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts, relics)
 	show_map()
 
 

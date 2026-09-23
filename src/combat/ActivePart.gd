@@ -9,7 +9,7 @@ var part: MechPart
 var damage: int
 var energy_gen: int
 var energy_cost: int
-## Heat added per shot and vented per turn, straight from the part: no link changes them.
+## Heat added per shot and vented per turn: the part's own, as relics change them. No link does.
 var heat: int
 var cooling: int
 ## Seconds until the part activates. It starts a fight at the part's
@@ -22,6 +22,8 @@ var hardpoint: Hardpoint
 ## Shots the part has fired this fight, and the damage they did after the target's plating.
 var shots := 0
 var damage_dealt := 0
+## What the part's last shot hit for, before the target's plating: its damage as relics changed it.
+var last_shot := 0
 
 
 ## [param numbers] are the part's stats on its grid, links applied; without them the part
@@ -35,6 +37,8 @@ func _init(p_part: MechPart, numbers: MechStats.PartStats = null) -> void:
 		damage = numbers.damage
 		energy_gen = numbers.energy
 		energy_cost = numbers.energy_draw
+		heat = numbers.heat
+		cooling = numbers.cooling
 	else:
 		damage = p_part.damage
 		energy_gen = p_part.energy_gen

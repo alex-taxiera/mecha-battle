@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="SalvageDrone" format=3]
+
+[ext_resource type="Script" path="res://src/data/relics/SalvageDrone.gd" id="1_pp46w"]
+
+[resource]
+script = ExtResource("1_pp46w")
+id = "salvage_drone"
+relic_name = "Salvage Drone"
+description = "Fights drop 25% more gold."
+rarity = 1
+glyph = "$"
+color = Color(0.9490196, 0.69411767, 0.20392157, 1)

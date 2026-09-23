@@ -14,6 +14,8 @@ signal changed
 
 ## The share of the hull's damage repaired on reaching the next sector.
 const ACT_HEAL := 0.5
+## Boss relics a boss offers to choose from.
+const BOSS_RELIC_CHOICES := 3
 
 
 ## A spare part in the stash, and the way it's turned for installing.
@@ -61,6 +63,10 @@ var fights_won := 0
 var outcome := Outcome.ONGOING
 ## Rolls the run's loot, keeping its rare-part pity between fights.
 var loot := RewardRoller.new()
+## The relics the run has found, in the order it found them. They're the run's own copies.
+var relics: Array[Relic] = []
+## The relics still to be found.
+var relic_pool: RelicPool
 
 # Parts bought at the open shop, which still sell back for their full cost.
 var _fresh: Array[MechPart] = []
@@ -69,10 +75,10 @@ var _last_enemy: EnemyLoadout
 
 
 ## Starts a run on [param chassis], with its starter kit installed, [param start_gold], and the
-## first of [param p_acts]' maps. [param p_catalog] is filtered to the parts the chassis can use.
-## Pass a [RunRng] with a set seed to repeat a run.
+## first of [param p_acts]' maps. [param p_catalog] is filtered to the parts the chassis can use;
+## [param p_relics] are the relics it can find. Pass a [RunRng] with a set seed to repeat a run.
 func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[SynergyRule], start_gold := 10,
-		p_rng: RunRng = null, p_acts: Array[ActData] = []) -> void:
+		p_rng: RunRng = null, p_acts: Array[ActData] = [], p_relics: Array[Relic] = []) -> void:
 	grid = MechGridData.new(chassis)
 	LoadoutPart.place_all(grid, chassis.starter_lineup)
 	catalog.assign(p_catalog.filter(func(part: MechPart) -> bool:
@@ -80,6 +86,7 @@ func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[Syne
 	rules.assign(p_rules)
 	gold = start_gold
 	rng = p_rng if p_rng else RunRng.new()
+	relic_pool = RelicPool.new(p_relics, rng.stream("relics"))
 	acts.assign(p_acts)
 	if not acts.is_empty():
 		_start_act(0)
@@ -102,9 +109,9 @@ func get_floor_number() -> int:
 
 #region Hull
 
-## Returns the mech's stats as it's built now.
+## Returns the mech's stats as it's built now, relics included.
 func stats() -> MechStats:
-	return MechStats.calculate(grid, rules)
+	return MechStats.calculate(grid, rules, relics)
 
 
 func get_max_hp() -> int:
@@ -137,9 +144,10 @@ func damage_hull(amount: int) -> void:
 #endregion
 #region Fights
 
-## Returns the player's mech for a fight: the build as it is, starting at its current HP.
+## Returns the player's mech for a fight: the build as it is, with the run's relics, starting at
+## its current HP.
 func make_player_mech() -> BattleMech:
-	return BattleMech.new(grid, rules, 1.0, get_current_hp())
+	return BattleMech.new(grid, rules, 1.0, get_current_hp(), relics)
 
 
 ## Returns the enemy fought at [param node] (by default the current node): the node's own if it
@@ -168,25 +176,39 @@ func make_enemy_mech(node: MapNode = null) -> BattleMech:
 
 
 ## Records how a fight went, given the player's [param mech] as the fight left it: its damage
-## carries over to the hull. Anything but a win destroys the mech and ends the run.
+## carries over to the hull, then relics act on a win. Anything but a win destroys the mech and
+## ends the run.
 func record_fight(result: FightResult, mech: BattleMech) -> void:
 	hull_damage = maxi(0, mech.max_hp - mech.current_health)
 	if result == FightResult.WIN:
 		fights_won += 1
+		for relic in relics:
+			relic.on_fight_won(self)
 	else:
 		outcome = Outcome.DEFEAT
 	changed.emit()
 
 ## Rolls the loot for winning the fight at [param node] (by default the current node): gold from
-## the sector's range for the enemy's tier, added at once, and a draft of parts from the catalog
-## with that tier's odds. Take a part with [method take_reward_part].
+## the sector's range for the enemy's tier (as relics change it), added at once, and a draft of
+## parts from the catalog with that tier's odds. An elite also drops a relic, rolled with
+## [constant RelicPool.ELITE_WEIGHTS]; a boss offers three boss relics to choose from. Take a part
+## with [method take_reward_part] and a relic with [method take_reward_relic].
 func roll_reward(node: MapNode = null) -> FightReward:
 	node = node if node else map.current
 	var reward := FightReward.new()
 	reward.tier = node.get_tier()
 	var loot_rng := rng.stream("loot")
 	reward.gold = RewardRoller.roll_gold(loot_rng, get_act().get_gold_range(reward.tier))
+	for relic in relics:
+		reward.gold = relic.modify_gold(reward.gold)
 	reward.parts = loot.draft_parts(loot_rng, catalog, RewardRoller.table_for(reward.tier))
+	match reward.tier:
+		EnemyLoadout.Tier.ELITE:
+			var relic := relic_pool.roll(rng.stream("relics"), RelicPool.ELITE_WEIGHTS)
+			if relic:
+				reward.relics.append(relic)
+		EnemyLoadout.Tier.BOSS:
+			reward.relics = relic_pool.take(BOSS_RELIC_CHOICES, [Relic.Rarity.BOSS])
 	gold += reward.gold
 	changed.emit()
 	return reward
@@ -200,6 +222,26 @@ func take_reward_part(reward: FightReward, index: int) -> bool:
 	reward.taken = index
 	stash_part(reward.parts[index])
 	return true
+
+## Gives the run relic [param index] of [param reward]'s offer, closing it. Returns false,
+## taking nothing, if the offer is closed or there's no such relic.
+func take_reward_relic(reward: FightReward, index: int) -> bool:
+	if not reward.is_relic_open() or index < 0 or index >= reward.relics.size():
+		return false
+	reward.relic_taken = index
+	add_relic(reward.relics[index])
+	return true
+
+
+## Gives the run its own copy of [param relic], out of the pool, and runs its
+## [method Relic.on_obtain]. Returns the copy.
+func add_relic(relic: Relic) -> Relic:
+	var owned: Relic = relic.duplicate()
+	relic_pool.remove(relic)
+	relics.append(owned)
+	owned.on_obtain(self)
+	changed.emit()
+	return owned
 
 #endregion
 #region Map
@@ -463,6 +505,6 @@ func _preview_place(part: MechPart, origin: Vector2i, rotation: int) -> Preview:
 
 func _fill_preview(preview: Preview, hypothetical: MechGridData) -> void:
 	preview.open_edges = hypothetical.get_open_edges(preview.cells)
-	preview.stats = MechStats.calculate(hypothetical, rules)
+	preview.stats = MechStats.calculate(hypothetical, rules, relics)
 
 #endregion

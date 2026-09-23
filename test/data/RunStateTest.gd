@@ -457,6 +457,65 @@ func test_rare_pity_carries_between_fights() -> void:
 	assert_float(run.loot.rare_pity).is_equal(9.0)
 
 
+func test_relics_are_the_runs_own_copies_and_leave_the_pool() -> void:
+	var run := _loot_run()
+	var frame := ReinforcedFrame.new()
+	frame.hp = 40
+	var pooled := run.relic_pool.size()
+	var owned := run.add_relic(frame)
+	assert_object(owned).is_not_same(frame)
+	assert_array(run.relics).contains_same_exactly([owned])
+	# Not in the pool (it wasn't), and the pool keeps the rest.
+	assert_int(run.relic_pool.size()).is_equal(pooled)
+	# The hull and the fight both count it.
+	assert_int(run.get_max_hp()).is_equal(70)
+	assert_int(run.make_player_mech().max_hp).is_equal(70)
+	assert_array(run.make_player_mech().relics).contains_same_exactly([owned])
+	# A relic still in the pool leaves it once found.
+	var relics := Fixtures.relics()
+	var other := RunState.new(Fixtures.armed_cross(), [], [], 10, RunRng.new(1), [], relics)
+	assert_bool(other.relic_pool.has(relics[0])).is_true()
+	other.add_relic(relics[0])
+	assert_bool(other.relic_pool.has(relics[0])).is_false()
+	assert_int(other.relic_pool.size()).is_equal(relics.size() - 1)
+
+
+func test_elites_drop_a_relic_and_bosses_offer_three() -> void:
+	var run := _loot_run()
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	assert_array(run.roll_reward().relics).is_empty() # a battle drops none
+	var elite := run.roll_reward(MapNode.new(6, 0, MapNode.Type.ELITE))
+	assert_array(elite.relics).has_size(1)
+	assert_int(elite.relics[0].rarity).is_not_equal(Relic.Rarity.BOSS)
+	assert_bool(run.relic_pool.has(elite.relics[0])).is_false()
+	var boss := run.roll_reward(run.map.boss)
+	# The fixtures have two boss relics, so that's all the boss can offer.
+	assert_array(boss.relics).has_size(2)
+	for relic in boss.relics:
+		assert_int(relic.rarity).is_equal(Relic.Rarity.BOSS)
+	# Take one; the offer closes.
+	assert_bool(run.take_reward_relic(boss, 5)).is_false()
+	assert_bool(run.take_reward_relic(boss, 1)).is_true()
+	assert_str(run.relics[0].relic_name).is_equal(boss.relics[1].relic_name)
+	assert_bool(boss.is_relic_open()).is_false()
+	assert_bool(run.take_reward_relic(boss, 0)).is_false()
+	assert_array(run.relics).has_size(1)
+
+
+func test_relics_change_the_gold_a_fight_drops() -> void:
+	var run := _loot_run()
+	assert_bool(run.travel(run.get_reachable()[0])).is_true()
+	var chest := WarChest.new()
+	chest.gold = 0
+	chest.bonus = 1.0 # doubles it
+	run.add_relic(chest)
+	var gold_before := run.gold
+	var reward := run.roll_reward()
+	assert_int(reward.gold).is_between(16, 24) # 8-12, doubled
+	assert_int(reward.gold % 2).is_equal(0)
+	assert_int(run.gold).is_equal(gold_before + reward.gold)
+
+
 func test_stashed_parts_sell_at_a_shop() -> void:
 	_run.stash_part(_heatsink) # 4 gold, not bought here: half
 	assert_int(_run.stash_sell_value(0)).is_equal(2)
@@ -520,7 +579,8 @@ func _sector_run(act_count: int, rng_seed := 1) -> RunState:
 # A run through one fixture sector, with the four fixture parts (all common) to loot.
 func _loot_run() -> RunState:
 	var acts: Array[ActData] = [Fixtures.act()]
-	return RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink], [], 10, RunRng.new(3), acts)
+	return RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink], [], 10, RunRng.new(3), acts,
+		Fixtures.relics())
 
 
 # Each node's id, type, and links, to compare two maps.

@@ -11,6 +11,9 @@ const MAX_HEAT := 100
 const THROTTLE_HEAT := 50
 const MIN_FIRE_RATE := 0.5
 
+## Emitted when one of the mech's relics does something the player should see.
+signal relic_triggered(relic: Relic)
+
 ## The frame, for its passive. Only read.
 var chassis: MechChassis
 ## What the fight calls the mech: its chassis's name, or an enemy's own.
@@ -20,8 +23,10 @@ var max_hp: int
 var current_health: int
 ## Energy stored for parts to spend. A fight starts with none.
 var current_energy := 0
-## Energy the chassis adds every turn, on top of what generators make.
+## Energy the chassis adds every turn, on top of what generators make, with any relic bonus.
 var base_energy: int
+## The run's relics, for the player's mech. Enemies have none.
+var relics: Array[Relic] = []
 ## Heat built up by firing, from 0 to [constant MAX_HEAT]. Heatsinks vent it each turn. Above
 ## [constant THROTTLE_HEAT] it slows the mech's weapons (see [method get_fire_rate]).
 var heat := 0
@@ -41,14 +46,17 @@ var active_parts: Array[ActivePart] = []
 ## counts them: HP bonuses (e.g. Plated) toward [member max_hp], and damage and energy
 ## bonuses in each [ActivePart]. [param hp_scale] scales [member max_hp], rounded, for enemies
 ## that get tougher up the map. The mech starts at [param start_health], or full health if it's
-## below 0; the player's starts where their last fight left it.
-func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, start_health := -1) -> void:
-	var stats := MechStats.calculate(grid, rules)
+## below 0; the player's starts where their last fight left it. [param p_relics] change its stats
+## and hook into the fight.
+func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, start_health := -1,
+		p_relics: Array[Relic] = []) -> void:
+	relics.assign(p_relics)
+	var stats := MechStats.calculate(grid, rules, relics)
 	chassis = grid.chassis
 	mech_name = chassis.chassis_name
 	max_hp = roundi(stats.hp * hp_scale)
 	current_health = max_hp if start_health < 0 else clampi(start_health, 0, max_hp)
-	base_energy = chassis.base_energy
+	base_energy = stats.base_energy
 	for placement in grid.get_placements():
 		var active := ActivePart.new(placement.part, stats.part_stats[placement])
 		active.hardpoint = chassis.get_hardpoint_at(placement.origin)
@@ -56,10 +64,12 @@ func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, 
 
 
 ## Returns what a hit of [param amount] would take off, without taking it: a THICK_PLATING
-## chassis takes [member MechChassis.plating] less, never below 0.
+## chassis takes [member MechChassis.plating] less, never below 0, then relics have their say.
 func get_damage_taken(amount: int) -> int:
 	if chassis.passive == MechChassis.Passive.THICK_PLATING:
-		return maxi(0, amount - chassis.plating)
+		amount = maxi(0, amount - chassis.plating)
+	for relic in relics:
+		amount = relic.modify_damage_taken(self, amount)
 	return amount
 
 
@@ -69,6 +79,25 @@ func take_damage(amount: int) -> int:
 	amount = get_damage_taken(amount)
 	current_health = maxi(0, current_health - amount)
 	return amount
+
+
+## Starts a fight: each relic's [method Relic.on_fight_start], announcing the ones that act.
+func start_fight() -> void:
+	for relic in relics:
+		if relic.on_fight_start(self):
+			relic_triggered.emit(relic)
+
+
+## Returns the damage a shot from [param weapon] deals: its linked damage, changed by the
+## relics. A relic that changes it is announced.
+func get_shot_damage(weapon: ActivePart) -> int:
+	var damage := weapon.damage
+	for relic in relics:
+		var changed := relic.modify_shot_damage(self, weapon, damage)
+		if changed != damage:
+			relic_triggered.emit(relic)
+		damage = changed
+	return damage
 
 
 ## Adds [param amount] heat, or vents it when negative, keeping it between 0 and

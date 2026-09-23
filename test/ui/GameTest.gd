@@ -16,6 +16,7 @@ func before_test() -> void:
 	_game.catalog = [_gun(), Fixtures.laser(), Fixtures.reactor(), Fixtures.heatsink()]
 	_game.rules = Fixtures.rules()
 	_game.acts = [Fixtures.act(), Fixtures.act()]
+	_game.relics = Fixtures.relics()
 	_game.run_seed = 1
 	add_child(_game)
 
@@ -167,6 +168,30 @@ func test_fights_drop_loot_for_the_stash_and_the_loadout_installs_it() -> void:
 	assert_array(_map_screen().get_view().reachable).contains_same_exactly(run.map.current.next)
 	assert_int(run.grid.get_used_cell_count()).is_greater(0)
 	assert_array(run.stash).is_empty()
+	await await_idle_frame()
+
+
+func test_an_elite_drops_a_relic_that_joins_the_run() -> void:
+	await _choose(_armed())
+	var run := _game.run
+	var node: MapNode = run.get_reachable()[0]
+	node.type = MapNode.Type.ELITE
+	await _go(node)
+	assert_str((_game.combat.get_node("%RoundBadge") as RoundBadge).get_text()).is_equal("SECTOR 1 · FLOOR 1  0W  ELITE")
+	await _finish_fight()
+	var loot := _game.screen as RewardScreen
+	assert_str(loot.title_label.text).is_equal("ELITE SALVAGE")
+	assert_array(loot.reward.relics).has_size(1)
+	assert_bool(loot.take_relic(0)).is_true()
+	await _collect_loot()
+	assert_array(run.relics).has_size(1)
+	# The map's HUD shows it.
+	assert_int((_map_screen().get_node("%RunHud") as RunHud).relic_bar.get_child_count()).is_equal(1)
+	# The next fight's mech carries it.
+	await _go(run.get_reachable()[0])
+	assert_array(_game.combat.engine.left.relics).contains_same_exactly(run.relics)
+	await _finish_fight()
+	await _collect_loot()
 	await await_idle_frame()
 
 

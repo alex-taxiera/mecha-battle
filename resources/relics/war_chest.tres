@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WarChest" format=3]
+
+[ext_resource type="Script" path="res://src/data/relics/WarChest.gd" id="1_dwycy"]
+
+[resource]
+script = ExtResource("1_dwycy")
+id = "war_chest"
+relic_name = "War Chest"
+description = "Gain 100 gold now. Fights drop 10% more gold."
+rarity = 3
+glyph = "W"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

@@ -1,7 +1,7 @@
 class_name RunHud
 extends HBoxContainer
 ## The run at a glance, along the top of the screens between fights: the sector and floor, the
-## hull's HP, and gold. Follows its [RunState] as it changes.
+## relics found, the hull's HP, and gold. Follows its [RunState] as it changes.
 
 const TEXT_COLOR := Color(0.93, 0.94, 0.96)
 const DIM_COLOR := Color(0.72, 0.74, 0.78)
@@ -25,6 +25,8 @@ var floor_label := Label.new()
 var hp_bar := ProgressBar.new()
 var hp_label := Label.new()
 var gold_label := Label.new()
+## The run's relics, one icon each.
+var relic_bar := HBoxContainer.new()
 
 
 func _init() -> void:
@@ -37,6 +39,9 @@ func _init() -> void:
 	place.add_child(floor_label)
 	place.add_child(sector_label)
 	add_child(place)
+	relic_bar.add_theme_constant_override("separation", 6)
+	relic_bar.size_flags_vertical = SIZE_SHRINK_CENTER
+	add_child(relic_bar)
 
 	var hull := VBoxContainer.new()
 	hull.add_theme_constant_override("separation", 2)
@@ -72,6 +77,12 @@ func refresh() -> void:
 	fill.bg_color = LOW_HP_COLOR if hp < max_hp * LOW_HP else HP_COLOR
 	hp_bar.add_theme_stylebox_override("fill", fill)
 	gold_label.text = "%d gold" % run.gold
+	if relic_bar.get_child_count() != run.relics.size():
+		for icon in relic_bar.get_children():
+			relic_bar.remove_child(icon)
+			icon.queue_free()
+		for relic in run.relics:
+			relic_bar.add_child(RelicIcon.new(relic))
 
 
 func _style(label: Label, font_size: int, color: Color) -> void:

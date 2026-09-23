@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ReinforcedFrame" format=3]
+
+[ext_resource type="Script" path="res://src/data/relics/ReinforcedFrame.gd" id="1_0nqn2"]
+
+[resource]
+script = ExtResource("1_0nqn2")
+id = "reinforced_frame"
+relic_name = "Reinforced Frame"
+description = "+40 max HP."
+glyph = "H"
+color = Color(0.37254903, 0.827451, 0.5411765, 1)

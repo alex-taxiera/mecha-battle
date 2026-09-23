@@ -115,6 +115,8 @@ func _ready() -> void:
 	engine.meltdown.connect(_on_meltdown)
 	engine.storm_struck.connect(_on_storm_struck)
 	engine.battle_ended.connect(_on_battle_ended)
+	for mech: BattleMech in [engine.left, engine.right]:
+		mech.relic_triggered.connect(_on_relic_triggered.bind(mech))
 	_rng.randomize()
 	_set_up_camera()
 	resized.connect(_center_camera)
@@ -393,7 +395,7 @@ func _on_weapon_fired(attacker: BattleMech, weapon: ActivePart, target: BattleMe
 	_shots_this_tick[weapon] = nth + 1
 	var to := _fighter_of(target).get_center() + Vector2(0, _rng.randf_range(-24.0, 24.0))
 	var tint := CombatColors.accent(left).lerp(Color.WHITE, 0.25)
-	var landed := _land_shot.bind(target, damage, weapon.damage - damage, weapon.damage >= HEAVY_HIT)
+	var landed := _land_shot.bind(target, damage, weapon.last_shot - damage, weapon.last_shot >= HEAVY_HIT)
 	_effects.shoot(weapon.part.projectile_sprite, _fighter_of(attacker).get_muzzle(weapon), to, tint, not left,
 		FLIGHT_TIME / speed, landed, nth * SHOT_STAGGER / speed)
 
@@ -458,6 +460,14 @@ func _on_storm_struck(damage: int) -> void:
 
 
 # The camera shakes hard and punches in on the fallen mech, or between them on a draw.
+# A relic that acts pops its name up over its mech, in the tag yellow.
+func _on_relic_triggered(relic: Relic, mech: BattleMech) -> void:
+	if not _animate:
+		return
+	var view := _fighter_of(mech)
+	_effects.popup(relic.relic_name.to_upper(), view.position + Vector2(view.size.x / 2.0, 0), CombatColors.TAG, _popup_time(), 16)
+
+
 func _on_battle_ended(winner: BattleMech) -> void:
 	if not _animate:
 		return

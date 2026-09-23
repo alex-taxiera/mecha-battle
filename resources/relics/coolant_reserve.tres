@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CoolantReserve" format=3]
+
+[ext_resource type="Script" path="res://src/data/relics/CoolantReserve.gd" id="1_0t55i"]
+
+[resource]
+script = ExtResource("1_0t55i")
+id = "coolant_reserve"
+relic_name = "Coolant Reserve"
+description = "Every heatsink vents 5 more heat a turn."
+glyph = "C"
+color = Color(0.56078434, 0.827451, 1, 1)

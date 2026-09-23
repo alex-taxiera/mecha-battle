@@ -39,6 +39,18 @@ func test_follows_the_run_as_it_changes() -> void:
 	assert_str(_hud.floor_label.text).is_equal("Sector 2 of 3")
 
 
+func test_shows_each_relic_with_a_tooltip() -> void:
+	assert_int(_hud.relic_bar.get_child_count()).is_equal(0)
+	var relic := Fixtures.relic("Lucky Bolt", Relic.Rarity.RARE)
+	_run.add_relic(relic)
+	var icons := _hud.relic_bar.get_children()
+	assert_array(icons).has_size(1)
+	var icon: RelicIcon = icons[0]
+	assert_str(icon.relic.relic_name).is_equal("Lucky Bolt")
+	assert_str(icon.tooltip_text).is_equal("Lucky Bolt (Rare)\nDoes nothing.")
+	await await_idle_frame()
+
+
 func test_a_run_without_sectors_shows_its_frame() -> void:
 	var hud: RunHud = auto_free(RunHud.new())
 	hud.run = RunState.new(Fixtures.bastion(), [], [])

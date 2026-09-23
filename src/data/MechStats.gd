@@ -34,6 +34,8 @@ class Link:
 var hp := 0
 ## The chassis's share of [member hp].
 var base_hp := 0
+## Energy the chassis adds each turn, with any relic bonus.
+var base_energy := 0
 ## Energy a turn: the chassis's, plus its generators' and its weapons' at their cadence.
 var energy_generated := 0
 var energy_drawn := 0
@@ -76,8 +78,8 @@ func get_rule_counts() -> Dictionary[SynergyRule, int]:
 
 
 ## Returns the stats of the parts on [param grid], with [param rules] applied to every touching
-## pair. A pair links once, however many edges it shares.
-static func calculate(grid: MechGridData, rules: Array[SynergyRule]) -> MechStats:
+## pair, then [param relics]' changes. A pair links once, however many edges it shares.
+static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Array[Relic] = []) -> MechStats:
 	var stats := MechStats.new()
 	for placement in grid.get_placements():
 		stats.part_stats[placement] = PartStats.new()
@@ -109,6 +111,8 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule]) -> MechStat
 		numbers.damage = _with_bonuses(part.damage, numbers, SynergyRule.Stat.DAMAGE)
 		numbers.heat = part.heat
 		numbers.cooling = part.cooling
+		for relic in relics:
+			relic.modify_part_stats(part, numbers)
 		stats.hp += numbers.hp
 		var rate := activations_per_turn(part)
 		generated += numbers.energy * rate
@@ -116,12 +120,17 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule]) -> MechStat
 		raw_damage += numbers.damage * rate
 		raw_heat += numbers.heat * rate
 		stats.heat_vented += numbers.cooling
-	stats.energy_generated = grid.chassis.base_energy + roundi(generated)
+	stats.base_energy = grid.chassis.base_energy
+	stats.energy_generated = stats.base_energy + roundi(generated)
 	stats.energy_drawn = roundi(drawn)
 	if stats.energy_drawn > 0:
 		stats.power = minf(1.0, float(stats.energy_generated) / stats.energy_drawn)
 	stats.damage = roundi(raw_damage * stats.power)
 	stats.heat_made = roundi(raw_heat * stats.power)
+	for relic in relics:
+		relic.modify_stats(stats)
+	if stats.energy_drawn > 0:
+		stats.power = minf(1.0, float(stats.energy_generated) / stats.energy_drawn)
 	return stats
 
 

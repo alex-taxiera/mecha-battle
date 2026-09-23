@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="OverdriveCore" format=3]
+
+[ext_resource type="Script" path="res://src/data/relics/OverdriveCore.gd" id="1_mweys"]
+
+[resource]
+script = ExtResource("1_mweys")
+id = "overdrive_core"
+relic_name = "Overdrive Core"
+description = "+20 energy a turn. Every shot makes 5 more heat."
+rarity = 3
+glyph = "O"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

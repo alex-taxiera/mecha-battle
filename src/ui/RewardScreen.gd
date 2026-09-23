@@ -1,7 +1,8 @@
 class_name RewardScreen
 extends Control
-## What a won fight dropped: the gold (already collected) and a draft of parts, one of which the
-## player can take into their stash, or skip. The button at the bottom emits [signal finished].
+## What a won fight dropped: the gold (already collected), an elite's relic or a boss's choice of
+## three, and a draft of parts, one of which the player can take into their stash. Anything left
+## is skipped. The button at the bottom emits [signal finished].
 
 ## Emitted when the player is done with the loot.
 signal finished
@@ -28,6 +29,8 @@ var reward: FightReward
 var hud := RunHud.new()
 var title_label := Label.new()
 var gold_label := Label.new()
+var relic_label := Label.new()
+var relic_cards := HBoxContainer.new()
 var draft_label := Label.new()
 var cards := HBoxContainer.new()
 var done_button := Button.new()
@@ -54,10 +57,14 @@ func _init(p_run: RunState = null, p_reward: FightReward = null) -> void:
 	center.size_flags_vertical = SIZE_EXPAND_FILL
 	column.add_child(center)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
+	box.add_theme_constant_override("separation", 10)
 	center.add_child(box)
-	_add_label(box, title_label, 40, TITLE_COLOR)
-	_add_label(box, gold_label, 22, GOLD_COLOR)
+	_add_label(box, title_label, 32, TITLE_COLOR)
+	_add_label(box, gold_label, 20, GOLD_COLOR)
+	_add_label(box, relic_label, 15, DIM_COLOR)
+	relic_cards.add_theme_constant_override("separation", 18)
+	relic_cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(relic_cards)
 	_add_label(box, draft_label, 15, DIM_COLOR)
 	cards.add_theme_constant_override("separation", 18)
 	cards.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -80,6 +87,21 @@ func take(index: int) -> bool:
 	return true
 
 
+## Gives the run relic [param index] of the offer. Returns false if the offer is closed.
+func take_relic(index: int) -> bool:
+	if not run.take_reward_relic(reward, index):
+		return false
+	_refresh()
+	return true
+
+
+## Returns the relic offer's cards, left to right.
+func get_relic_cards() -> Array[PanelContainer]:
+	var found: Array[PanelContainer] = []
+	found.assign(relic_cards.get_children())
+	return found
+
+
 ## Returns the draft's cards, left to right.
 func get_cards() -> Array[PanelContainer]:
 	var found: Array[PanelContainer] = []
@@ -88,9 +110,18 @@ func get_cards() -> Array[PanelContainer]:
 
 
 func _refresh() -> void:
-	for card in cards.get_children():
-		cards.remove_child(card)
+	for card in cards.get_children() + relic_cards.get_children():
+		card.get_parent().remove_child(card)
 		card.queue_free()
+	relic_label.visible = not reward.relics.is_empty()
+	if reward.relic_taken >= 0:
+		relic_label.text = "%s is yours." % reward.relics[reward.relic_taken].relic_name
+	elif reward.relics.size() > 1:
+		relic_label.text = "Choose a relic:"
+	else:
+		relic_label.text = "Recovered a relic:"
+	for i in reward.relics.size():
+		relic_cards.add_child(_make_relic_card(i))
 	if reward.parts.is_empty():
 		draft_label.text = "Nothing else worth salvaging."
 	elif reward.taken >= 0:
@@ -99,19 +130,19 @@ func _refresh() -> void:
 		draft_label.text = "Salvage one part for your stash:"
 	for i in reward.parts.size():
 		cards.add_child(_make_card(i))
-	done_button.text = "Skip parts" if reward.is_draft_open() else "Continue"
+	done_button.text = "Skip the rest" if reward.is_draft_open() or reward.is_relic_open() else "Continue"
 
 
 func _make_card(index: int) -> PanelContainer:
 	var part := reward.parts[index]
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(220, 230)
+	card.custom_minimum_size = Vector2(220, 0)
 	var margin := MarginContainer.new()
 	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 14)
+		margin.add_theme_constant_override("margin_" + side, 10)
 	card.add_child(margin)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 6)
 	margin.add_child(box)
 	var name_label := Label.new()
 	_add_label(box, name_label, 17, RARITY_COLORS[part.rarity])
@@ -120,7 +151,7 @@ func _make_card(index: int) -> PanelContainer:
 	_add_label(box, rarity_label, 12, DIM_COLOR)
 	rarity_label.text = "%s · %s" % [MechPart.Rarity.find_key(part.rarity).capitalize(), PartInfo.summary(part, 0)]
 	var shape_frame := CenterContainer.new()
-	shape_frame.custom_minimum_size.y = 70
+	shape_frame.custom_minimum_size.y = 58
 	var shape := PartShapeView.new()
 	shape.cell_size = 18.0
 	shape.part = part
@@ -145,6 +176,48 @@ func _make_card(index: int) -> PanelContainer:
 		button.text = "Take"
 		# Deferred: taking rebuilds the cards, this button included.
 		button.pressed.connect(take.bind(index), CONNECT_DEFERRED)
+	box.add_child(button)
+	return card
+
+
+func _make_relic_card(index: int) -> PanelContainer:
+	var relic := reward.relics[index]
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(220, 0)
+	var margin := MarginContainer.new()
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 10)
+	card.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	margin.add_child(box)
+	var icon_frame := CenterContainer.new()
+	icon_frame.add_child(RelicIcon.new(relic, 36.0))
+	box.add_child(icon_frame)
+	var name_label := Label.new()
+	_add_label(box, name_label, 17, relic.color)
+	name_label.text = relic.relic_name
+	var rarity_label := Label.new()
+	_add_label(box, rarity_label, 12, DIM_COLOR)
+	rarity_label.text = "%s relic" % Relic.Rarity.find_key(relic.rarity).capitalize()
+	var description := Label.new()
+	_add_label(box, description, 12, DIM_COLOR)
+	description.text = relic.description
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.custom_minimum_size.x = 190
+	var button := Button.new()
+	button.custom_minimum_size.y = 36
+	if reward.relic_taken == index:
+		button.text = "Taken"
+		button.disabled = true
+	elif reward.relic_taken >= 0:
+		button.text = "Left behind"
+		button.disabled = true
+		card.modulate = Color(1, 1, 1, 0.45)
+	else:
+		button.text = "Take"
+		# Deferred: taking rebuilds the cards, this button included.
+		button.pressed.connect(take_relic.bind(index), CONNECT_DEFERRED)
 	box.add_child(button)
 	return card
 

@@ -7,7 +7,7 @@ extends RefCounted
 ## heats its mech up. A hot mech's weapons cool down slower (thermal throttling). Chassis
 ## passives change this: Thick Plating shrinks every hit taken,
 ## Overclock doubles the first shot, and Meltdown turns full heat into a big hit and a
-## shutdown. A fight that runs long brings the electrical storm, a sudden death that drains both
+## shutdown. The player's relics can change shots, hits taken, and the fight's start. A fight that runs long brings the electrical storm, a sudden death that drains both
 ## mechs harder and harder. The fight ends on the tick a mech's health reaches 0.
 
 enum State { PRE_GAME, RUNNING, FINISHED }
@@ -62,10 +62,13 @@ func _init(p_left: BattleMech, p_right: BattleMech) -> void:
 	_carry = {left: [0.0, 0.0], right: [0.0, 0.0]}
 
 
-## Starts the fight. Only a fight that hasn't started yet can start.
+## Starts the fight, and each mech's relics' fight-start effects. Only a fight that hasn't
+## started yet can start.
 func start() -> void:
 	if state == State.PRE_GAME:
 		state = State.RUNNING
+		left.start_fight()
+		right.start_fight()
 
 
 ## Advances a running fight by [param delta] seconds. Shutdowns count down first. Then both
@@ -175,7 +178,8 @@ func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> 
 
 func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> void:
 	attacker.add_heat(active.heat)
-	var taken := target.take_damage(active.damage)
+	active.last_shot = attacker.get_shot_damage(active)
+	var taken := target.take_damage(active.last_shot)
 	active.shots += 1
 	active.damage_dealt += taken
 	attacker.damage_dealt += taken

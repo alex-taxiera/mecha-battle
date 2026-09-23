@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TitanPlating" format=3]
+
+[ext_resource type="Script" path="res://src/data/relics/TitanPlating.gd" id="1_srfc3"]
+
+[resource]
+script = ExtResource("1_srfc3")
+id = "titan_plating"
+relic_name = "Titan Plating"
+description = "+100 max HP. Every hit you take is 3 smaller."
+rarity = 3
+glyph = "P"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

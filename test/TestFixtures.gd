@@ -192,6 +192,24 @@ static func enemy(enemy_name: String, tier: EnemyLoadout.Tier, lineup: Array[Loa
 	return result
 
 
+# Relics for run tests: plain ones that do nothing, so tests only see the rarities.
+
+## Two common relics, an uncommon, a rare, and two boss relics, none with any effect.
+static func relics() -> Array[Relic]:
+	return [relic("Common A", Relic.Rarity.COMMON), relic("Common B", Relic.Rarity.COMMON),
+		relic("Uncommon", Relic.Rarity.UNCOMMON), relic("Rare", Relic.Rarity.RARE),
+		relic("Boss A", Relic.Rarity.BOSS), relic("Boss B", Relic.Rarity.BOSS)]
+
+
+static func relic(relic_name: String, rarity: Relic.Rarity) -> Relic:
+	var result := Relic.new()
+	result.id = relic_name.to_snake_case()
+	result.relic_name = relic_name
+	result.rarity = rarity
+	result.description = "Does nothing."
+	return result
+
+
 static func _chassis(size: Vector2i, disabled: Array[Vector2i]) -> MechChassis:
 	var chassis := MechChassis.new()
 	chassis.size = size
