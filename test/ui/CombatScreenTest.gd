@@ -67,11 +67,12 @@ func test_the_readout_shows_heat_and_shutdowns() -> void:
 	var timer: Timer = screen.get_node("%TickTimer")
 	for i in 40:
 		timer.timeout.emit()
-	assert_str(screen.status_line()).is_equal("[ 4.0s] Left HP 30/30 EN 0 HEAT 80 | Right HP 168/200 EN 12 HEAT 0")
-	# The 5th shot fills it: 25 damage, and the Reactor shuts down.
+	# The Reactor banks 27 of its 30 energy a turn.
+	assert_str(screen.status_line()).is_equal("[ 4.0s] Left HP 300/300 EN 108 HEAT 80 | Right HP 168/200 EN 12 HEAT 0")
+	# The 5th shot fills it: 100 damage, and the Reactor shuts down.
 	for i in 10:
 		timer.timeout.emit()
-	assert_str(screen.status_line()).is_equal("[ 5.0s] Left HP 30/30 EN 0 HEAT 0 OFF | Right HP 135/200 EN 15 HEAT 0")
+	assert_str(screen.status_line()).is_equal("[ 5.0s] Left HP 300/300 EN 135 HEAT 0 OFF | Right HP 60/200 EN 15 HEAT 0")
 
 
 func test_a_draw_says_so() -> void:
@@ -94,6 +95,12 @@ func test_fights_the_demo_builds_by_default() -> void:
 	assert_array(screen.engine.left.active_parts).has_size(CombatScreen.DEMO_PLAYER.size())
 	assert_array(screen.engine.right.active_parts).has_size(CombatScreen.DUMMY.size())
 	assert_array(screen.rules).is_not_empty()
+
+
+func test_built_mechs_grow_with_the_round() -> void:
+	# An empty lineup loads no parts: just the chassis's HP for the round.
+	assert_int(CombatScreen.build_mech(Fixtures.cross_chassis(), [], [], 2).max_hp).is_equal(34)
+	assert_int(CombatScreen.build_mech(Fixtures.cross_chassis(), [], []).max_hp).is_equal(30)
 
 
 func _screen(left: BattleMech, right: BattleMech) -> CombatScreen:

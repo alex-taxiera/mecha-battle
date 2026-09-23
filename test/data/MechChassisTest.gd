@@ -64,6 +64,21 @@ func test_layout_rect_covers_the_frame_and_its_bays() -> void:
 	assert_that(Fixtures.reactor_frame().get_layout_rect()).is_equal(Rect2i(-1, 0, 7, 5))
 
 
+func test_base_hp_grows_15_percent_a_round() -> void:
+	# The Bastion's 450, compounding and rounded down.
+	var bastion := Fixtures.bastion()
+	var by_round := range(1, 6).map(func(round_number: int) -> int: return bastion.get_base_hp(round_number))
+	assert_array(by_round).is_equal([450, 517, 595, 684, 787])
+	assert_int(bastion.get_base_hp()).is_equal(450) # round 1 by default
+	# Float error doesn't round an exact result down: 100 × 1.15 is 115, not 114.
+	var hundred := Fixtures.open_chassis(Vector2i(1, 1))
+	hundred.base_hp = 100
+	assert_int(hundred.get_base_hp(2)).is_equal(115)
+	# The growth is the frame's hp_growth: at 0 it stays flat.
+	hundred.hp_growth = 0.0
+	assert_int(hundred.get_base_hp(5)).is_equal(100)
+
+
 func test_the_reactor_is_a_diamond_around_a_connected_center() -> void:
 	var reactor := Fixtures.reactor_frame()
 	assert_int(reactor.get_usable_cell_count()).is_equal(13)

@@ -6,9 +6,9 @@
 script = ExtResource("1_2jfa4")
 id = "stable"
 label = "Heatsink + Reactor"
-effect_text = "+2 energy"
+effect_text = "+20 energy"
 color = Color(0.9411765, 0.7058824, 0.23529412, 1)
 first_type = 1
 second_type = 3
 stat = 1
-amount = 2.0
+amount = 20.0

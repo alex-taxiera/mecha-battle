@@ -10,7 +10,8 @@ const COMBAT_SCENE := preload("res://src/ui/CombatScreen.tscn")
 ## Parts and adjacency rules for the run's shop. Left empty, the shop loads its folders.
 var catalog: Array[MechPart] = []
 var rules: Array[SynergyRule] = []
-## Builds the mech the player fights each round. Left unset, it's the combat screen's dummy.
+## Builds the mech the player fights each round. Left unset, it's the combat screen's dummy,
+## grown for the round.
 var make_opponent: Callable
 ## The run's shop, once a chassis is chosen.
 var shop: ShopScreen
@@ -39,12 +40,13 @@ func _start_run(chassis: MechChassis) -> void:
 	chassis_select = null
 	add_child(shop)
 	if not make_opponent.is_valid():
-		make_opponent = func() -> BattleMech: return CombatScreen.make_dummy(shop.run.rules)
+		make_opponent = func() -> BattleMech: return CombatScreen.make_dummy(shop.run.rules, shop.run.round_number)
 
 
-# The player's build, as it is when they press Next round, fights on the left.
+# The player's build, as it is when they press Next round, fights on the left. Both mechs' chassis
+# HP is grown for the round.
 func _start_fight() -> void:
-	_player = BattleMech.new(shop.run.grid, shop.run.rules)
+	_player = BattleMech.new(shop.run.grid, shop.run.rules, shop.run.round_number)
 	combat = COMBAT_SCENE.instantiate()
 	combat.setup(_player, make_opponent.call())
 	combat.finished.connect(_end_fight, CONNECT_DEFERRED)

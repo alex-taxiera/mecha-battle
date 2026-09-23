@@ -88,6 +88,25 @@ func test_losing_is_recorded_and_the_next_round_fights_again() -> void:
 	await await_idle_frame()
 
 
+func test_both_mechs_fight_with_the_rounds_hp() -> void:
+	_game.make_opponent = Callable() # the combat screen's dummy
+	await _choose(Fixtures.armed_cross())
+	var rules := _game.shop.run.rules
+	await _press_next_round()
+	# Round 1: the player's bare cross has its 30 base HP, and the dummy its own.
+	assert_int(_game.combat.engine.left.max_hp).is_equal(30)
+	assert_int(_game.combat.engine.right.max_hp).is_equal(CombatScreen.make_dummy(rules).max_hp)
+	await _finish_fight()
+	await _press_next_round()
+	# Round 2: both grow. The dummy's build is content, so it's compared with its own round-2 build.
+	assert_int(_game.combat.engine.left.max_hp).is_equal(34) # 30 × 1.15 = 34.5, rounded down
+	var dummy_round_2 := CombatScreen.make_dummy(rules, 2).max_hp
+	assert_int(_game.combat.engine.right.max_hp).is_equal(dummy_round_2)
+	assert_int(dummy_round_2).is_greater(CombatScreen.make_dummy(rules).max_hp)
+	await _finish_fight()
+	await await_idle_frame()
+
+
 # Picks [param chassis] on the select screen and waits for the deferred switch to the shop.
 func _choose(chassis: MechChassis) -> void:
 	_game.chassis_select.choose(chassis)

@@ -9,5 +9,5 @@ part_name = "L-Shaped Heatsink"
 type = 3
 cost = 4
 grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1)])
-description = "Vents 10 heat a second. Cools the weapons and reactors it touches."
-cooling = 10
+description = "Vents 15 heat a second. Cools the weapons and reactors it touches."
+cooling = 15

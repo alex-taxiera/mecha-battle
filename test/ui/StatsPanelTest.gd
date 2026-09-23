@@ -21,7 +21,7 @@ func before_test() -> void:
 
 func test_shows_totals_and_notes() -> void:
 	var grid := _grid_with([[Fixtures.gatling(), LEFT_ARM]])
-	_panel.show_stats(MechStats.calculate(grid, _rules), null, _chassis)
+	_panel.show_stats(MechStats.calculate(grid, _rules), null)
 	assert_str(_panel.hp.value.text).is_equal("30")
 	assert_str(_panel.hp.note.text).is_equal("30 from chassis")
 	assert_str(_panel.energy.value.text).is_equal("0")
@@ -35,7 +35,7 @@ func test_shows_totals_and_notes() -> void:
 func test_shows_what_a_preview_would_change() -> void:
 	var current := MechStats.calculate(_grid_with([]), _rules)
 	var preview := MechStats.calculate(_grid_with([[Fixtures.gatling(), LEFT_ARM]]), _rules)
-	_panel.show_stats(current, preview, _chassis)
+	_panel.show_stats(current, preview)
 	assert_bool(_panel.damage.delta.visible).is_true()
 	assert_str(_panel.damage.delta.text).is_equal("+8")
 	assert_bool(_panel.energy.delta.visible).is_true()
@@ -44,12 +44,19 @@ func test_shows_what_a_preview_would_change() -> void:
 	assert_str(_panel.damage.value.text).is_equal("0") # the totals stay current
 
 
+func test_the_hp_note_shows_the_rounds_chassis_hp() -> void:
+	# Round 2: the chassis's 30 grown to 34.
+	_panel.show_stats(MechStats.calculate(_grid_with([]), _rules, 2), null)
+	assert_str(_panel.hp.value.text).is_equal("34")
+	assert_str(_panel.hp.note.text).is_equal("34 from chassis")
+
+
 func test_power_notes() -> void:
-	_panel.show_stats(MechStats.calculate(_grid_with([]), _rules), null, _chassis)
+	_panel.show_stats(MechStats.calculate(_grid_with([]), _rules), null)
 	assert_str(_panel.damage.note.text).is_equal("No weapons mounted")
 	# Two gatlings draw 6 energy against 3.
 	var grid := _grid_with([[Fixtures.gatling(), LEFT_ARM], [Fixtures.gatling(), RIGHT_ARM]])
-	_panel.show_stats(MechStats.calculate(grid, _rules), null, _chassis)
+	_panel.show_stats(MechStats.calculate(grid, _rules), null)
 	assert_str(_panel.damage.note.text).is_equal("Underpowered · 50% fire rate")
 	assert_str(_panel.energy.value.text).is_equal("-3")
 	await await_idle_frame() # free the link rows the second call replaced
@@ -60,11 +67,11 @@ func test_lists_rules_and_active_links() -> void:
 	assert_array(_panel.get_rule_rows()).contains_exactly(
 		"Heatsink + Weapon weapon dmg ×1.5", "Reactor + Weapon +3 weapon dmg",
 		"Heatsink + Reactor +2 energy", "Laser + Laser +4 HP each")
-	_panel.show_stats(MechStats.calculate(_grid_with([]), _rules), null, _chassis)
+	_panel.show_stats(MechStats.calculate(_grid_with([]), _rules), null)
 	assert_array(_panel.get_link_rows()).contains_exactly(StatsPanel.NO_LINKS_TEXT)
 	# A heatsink touching a gatling's bay: one Cooled link.
 	var grid := _grid_with([[Fixtures.gatling(), LEFT_ARM], [Fixtures.heatsink(), Vector2i(0, 1)]])
-	_panel.show_stats(MechStats.calculate(grid, _rules), null, _chassis)
+	_panel.show_stats(MechStats.calculate(grid, _rules), null)
 	assert_array(_panel.get_link_rows()).contains_exactly("Heatsink + Weapon → weapon dmg ×1.5 ×1")
 	await await_idle_frame() # free the rows the lists replaced
 

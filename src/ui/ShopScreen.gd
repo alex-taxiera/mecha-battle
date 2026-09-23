@@ -143,11 +143,11 @@ func _refresh() -> void:
 		item.affordable = run.can_afford(slot.part)
 		item.rotate_requested.connect(run.rotate_slot.bind(i))
 		_slots.add_child(item)
-	_stats_panel.show_stats(_stats, null, frame)
+	_stats_panel.show_stats(_stats, null)
 
 
 func _on_preview_changed(preview: MechStats) -> void:
-	_stats_panel.show_stats(_stats, preview, run.grid.chassis)
+	_stats_panel.show_stats(_stats, preview)
 
 
 func _on_reroll_pressed() -> void:

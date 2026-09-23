@@ -9,7 +9,7 @@ const MAX_HEAT := 100
 
 ## The frame, for its passive. Only read.
 var chassis: MechChassis
-## Hull points at full health: the chassis's base HP plus every part's HP.
+## Hull points at full health: the chassis's base HP for the round plus every part's HP.
 var max_hp: int
 var current_health: int
 ## Energy stored for parts to spend. A fight starts with none.
@@ -29,9 +29,10 @@ var active_parts: Array[ActivePart] = []
 
 ## Pass the run's [param rules] so link bonuses count, the same way the shop's stats panel
 ## counts them: HP bonuses (e.g. Plated) toward [member max_hp], and damage and energy
-## bonuses in each [ActivePart].
-func _init(grid: MechGridData, rules: Array[SynergyRule] = []) -> void:
-	var stats := MechStats.calculate(grid, rules)
+## bonuses in each [ActivePart]. The chassis's HP is its [param round_number]'s, grown each
+## round (see [method MechChassis.get_base_hp]).
+func _init(grid: MechGridData, rules: Array[SynergyRule] = [], round_number := 1) -> void:
+	var stats := MechStats.calculate(grid, rules, round_number)
 	chassis = grid.chassis
 	max_hp = stats.hp
 	current_health = max_hp

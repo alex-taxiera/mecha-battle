@@ -10,11 +10,11 @@ func test_shows_a_card_per_frame() -> void:
 	var screen := _screen([Fixtures.bastion(), Fixtures.striker(), Fixtures.reactor_frame()])
 	var cards := screen.get_card_texts()
 	assert_array(cards).has_size(3)
-	assert_array(cards[0]).contains_exactly(["The Bastion", "Tank / Attrition", "45 HP · 2 EN a turn · 12 slots · 1 hardpoint",
-		"Thick Plating", "Reduces all incoming flat damage by 1.", "Choose The Bastion"])
-	assert_array(cards[1]).contains_exactly(["The Striker", "Glass Cannon / Burst", "22 HP · 4 EN a turn · 10 slots · 3 hardpoints",
+	assert_array(cards[0]).contains_exactly(["The Bastion", "Tank / Attrition", "450 HP · 20 EN a turn · 12 slots · 1 hardpoint",
+		"Thick Plating", "Reduces all incoming flat damage by 2.", "Choose The Bastion"])
+	assert_array(cards[1]).contains_exactly(["The Striker", "Glass Cannon / Burst", "220 HP · 40 EN a turn · 10 slots · 3 hardpoints",
 		"Overclock", "The first weapon to fire each battle fires twice.", "Choose The Striker"])
-	assert_array(cards[2]).contains_exactly(["The Reactor", "Synergy / Combo", "30 HP · 3 EN a turn · 13 slots · 2 hardpoints",
+	assert_array(cards[2]).contains_exactly(["The Reactor", "Synergy / Combo", "300 HP · 30 EN a turn · 13 slots · 2 hardpoints",
 		"Meltdown", "When heat reaches 100%, deal massive damage and shut down for 3 seconds.", "Choose The Reactor"])
 	# Each card draws its frame's layout.
 	var previews := screen.find_children("*", "Control", true, false).filter(func(node: Node) -> bool: return node is ChassisPreview)

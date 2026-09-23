@@ -44,7 +44,7 @@ func test_shows_the_chassis_passive_under_the_grid() -> void:
 	add_child(screen)
 	var label: Label = screen.get_node("%PassiveLabel")
 	assert_bool(label.visible).is_true()
-	assert_str(label.text).is_equal("Thick Plating: Reduces all incoming flat damage by 1.")
+	assert_str(label.text).is_equal("Thick Plating: Reduces all incoming flat damage by 2.")
 	assert_str((screen.get_node("%ChassisLabel") as Label).text).is_equal("Chassis · The Bastion")
 	assert_str((screen.get_node("%ChassisInfo") as Label).text).is_equal("Wide frame · 0 / 12 slots · 0 / 1 hardpoints")
 

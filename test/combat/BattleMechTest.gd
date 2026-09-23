@@ -35,14 +35,24 @@ func test_take_damage_lowers_health_down_to_zero() -> void:
 	assert_int(mech.max_hp).is_equal(30)
 
 
-func test_thick_plating_takes_1_off_every_hit() -> void:
-	var bastion := BattleMech.new(MechGridData.new(Fixtures.bastion())) # 45 HP
-	assert_int(bastion.take_damage(8)).is_equal(7)
-	assert_int(bastion.current_health).is_equal(38)
-	# A 1-damage hit does nothing, and it never heals.
+func test_thick_plating_takes_2_off_every_hit() -> void:
+	var bastion := BattleMech.new(MechGridData.new(Fixtures.bastion())) # 450 HP
+	assert_int(bastion.take_damage(8)).is_equal(6)
+	assert_int(bastion.current_health).is_equal(444)
+	# Hits of 2 or less do nothing, and it never heals.
+	assert_int(bastion.take_damage(2)).is_equal(0)
 	assert_int(bastion.take_damage(1)).is_equal(0)
 	assert_int(bastion.take_damage(0)).is_equal(0)
-	assert_int(bastion.current_health).is_equal(38)
+	assert_int(bastion.current_health).is_equal(444)
+
+
+func test_max_hp_uses_the_rounds_chassis_hp() -> void:
+	var grid := _grid_with([[Fixtures.laser(), Vector2i(1, 1)]])
+	# Round 3: 30 × 1.15² = 39.675, rounded down, plus the laser's 12.
+	var mech := BattleMech.new(grid, [], 3)
+	assert_int(mech.max_hp).is_equal(51)
+	assert_int(mech.current_health).is_equal(51)
+	assert_int(BattleMech.new(grid).max_hp).is_equal(42) # round 1 by default
 
 
 func test_heat_stays_between_empty_and_full() -> void:

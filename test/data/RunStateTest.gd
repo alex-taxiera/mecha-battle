@@ -135,6 +135,16 @@ func test_end_round_carries_gold_over_and_adds_income() -> void:
 	assert_int(_run.grid.get_used_cell_count()).is_equal(1) # the mech keeps its parts
 
 
+func test_the_chassis_hp_grows_each_round() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	assert_int(_run.stats().hp).is_equal(30 + 12)
+	_run.end_round()
+	assert_int(_run.stats().base_hp).is_equal(34) # 30 × 1.15 = 34.5, rounded down
+	assert_int(_run.stats().hp).is_equal(34 + 12)
+	# Previews count the same round.
+	assert_int(_run.preview_move(Vector2i(1, 1), Vector2i(2, 1)).stats.hp).is_equal(34 + 12)
+
+
 func test_records_each_fight() -> void:
 	assert_int(_run.wins).is_equal(0)
 	assert_int(_run.losses).is_equal(0)

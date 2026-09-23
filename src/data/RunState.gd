@@ -182,8 +182,9 @@ func end_round() -> void:
 	changed.emit()
 
 
+## Returns the mech's stats this round: its chassis HP grows each round.
 func stats() -> MechStats:
-	return MechStats.calculate(grid, rules)
+	return MechStats.calculate(grid, rules, round_number)
 
 
 ## Returns what buying shop slot [param slot_index] with its top-left at [param origin] would
@@ -221,7 +222,7 @@ func preview_move(coords: Vector2i, new_origin: Vector2i) -> Preview:
 
 func _fill_preview(preview: Preview, hypothetical: MechGridData) -> void:
 	preview.open_edges = hypothetical.get_open_edges(preview.cells)
-	preview.stats = MechStats.calculate(hypothetical, rules)
+	preview.stats = MechStats.calculate(hypothetical, rules, round_number)
 
 
 func _open_slot(slot_index: int) -> ShopSlot:

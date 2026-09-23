@@ -345,26 +345,29 @@ func test_generators_make_energy_with_their_link_bonuses() -> void:
 
 
 func test_thick_plating_shrinks_every_hit_the_bastion_takes() -> void:
-	# A peashooter's 2 damage lands as 1, twice a second.
-	var bastion := _mech([], [], Fixtures.bastion()) # 45 HP
-	var engine := _engine(_mech([[_peashooter(), LEFT_ARM]]), bastion)
+	# A 5-damage peashooter lands 3 through the plating's 2, twice a second.
+	var bastion := _mech([], [], Fixtures.bastion()) # 450 HP
+	var gun := _peashooter()
+	gun.damage = 5
+	var engine := _engine(_mech([[gun, LEFT_ARM]]), bastion)
 	for i in 10:
 		engine.process_tick(0.1)
-	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([1, 1])
-	assert_int(bastion.current_health).is_equal(43)
-	# Storm strikes of 1 and 2 land as 0 and 1; the bare mech beside it takes them in full.
+	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([3, 3])
+	assert_int(bastion.current_health).is_equal(444)
+	# Storm strikes of 4 and 8 land as 2 and 6; the bare mech beside it takes them in full.
 	bastion = _mech([], [], Fixtures.bastion())
 	var bare := _mech([])
 	engine = _stormy_engine(bastion, bare)
+	engine.storm_damage = 4.0
 	for i in 12:
 		engine.process_tick(0.1)
-	assert_array(_strikes).is_equal([1, 2])
-	assert_int(bastion.current_health).is_equal(44)
-	assert_int(bare.current_health).is_equal(27)
+	assert_array(_strikes).is_equal([4, 8])
+	assert_int(bastion.current_health).is_equal(442)
+	assert_int(bare.current_health).is_equal(18)
 
 
 func test_overclock_fires_the_strikers_first_shot_twice() -> void:
-	# A gatling in the Striker's left arm, on its 4 energy a turn: at 1 second it fires twice for
+	# A gatling in the Striker's left arm, on its 40 energy a turn: at 1 second it fires twice for
 	# one shot's energy, then once a second.
 	var striker := _mech([[_on_cooldown(Fixtures.gatling(), 1.0), STRIKER_LEFT_ARM]], [], Fixtures.striker())
 	var dummy := _mech([])
@@ -372,7 +375,7 @@ func test_overclock_fires_the_strikers_first_shot_twice() -> void:
 	for i in 10:
 		engine.process_tick(0.1)
 	assert_array(_shots.map(func(shot: Array) -> int: return shot[2])).is_equal([8, 8])
-	assert_int(striker.current_energy).is_equal(1) # 4 - 3, paid once
+	assert_int(striker.current_energy).is_equal(37) # 40 - 3, paid once
 	assert_int(dummy.current_health).is_equal(14)
 	for i in 10:
 		engine.process_tick(0.1)
@@ -409,8 +412,8 @@ func test_shots_heat_their_mech_and_heatsinks_vent_it() -> void:
 
 
 func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
-	# The Reactor's left-arm gatling fires once a second on its 3 energy a turn, 20 heat a
-	# shot: the 5th shot, at 5 seconds, fills it.
+	# The Reactor's left-arm gatling fires once a second on its 30 energy a turn, banking 27 a
+	# turn, and makes 20 heat a shot: the 5th shot, at 5 seconds, fills it.
 	var reactor := _mech([[_hot_gun(), REACTOR_LEFT_ARM]], [], Fixtures.reactor_frame())
 	var target := _tough_dummy() # 200 HP
 	var engine := _engine(reactor, target)
@@ -420,21 +423,22 @@ func test_meltdown_hits_hard_then_shuts_the_reactor_down() -> void:
 	assert_array(_meltdowns).has_size(1)
 	assert_object(_meltdowns[0][0]).is_same(reactor)
 	assert_object(_meltdowns[0][1]).is_same(target)
-	assert_int(_meltdowns[0][2]).is_equal(25)
-	assert_int(target.current_health).is_equal(135) # 200 - 5 × 8 - 25
+	assert_int(_meltdowns[0][2]).is_equal(100)
+	assert_int(target.current_health).is_equal(60) # 200 - 5 × 8 - 100
+	assert_int(reactor.current_energy).is_equal(135) # 5 × (30 - 3)
 	assert_int(reactor.heat).is_equal(0)
 	assert_bool(reactor.is_shut_down()).is_true()
 	# Shut down for 3 seconds: no shots and no chassis energy, even at 6 and 7 seconds.
 	for i in 29:
 		engine.process_tick(0.1)
 	assert_array(_shots).has_size(5)
-	assert_int(reactor.current_energy).is_equal(0)
+	assert_int(reactor.current_energy).is_equal(135)
 	assert_bool(reactor.is_shut_down()).is_true()
 	# At 8 seconds it's back: the turn's energy arrives, and the gatling's frozen cooldown
 	# resumes, so it fires at 8.9 seconds.
 	engine.process_tick(0.1)
 	assert_bool(reactor.is_shut_down()).is_false()
-	assert_int(reactor.current_energy).is_equal(3)
+	assert_int(reactor.current_energy).is_equal(165)
 	for i in 8:
 		engine.process_tick(0.1)
 	assert_array(_shots).has_size(5)

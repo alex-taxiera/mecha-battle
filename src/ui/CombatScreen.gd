@@ -75,19 +75,21 @@ func get_status_text() -> String:
 
 
 ## Returns a mech built on [param p_chassis] from [param lineup], [part id, origin] pairs of
-## part files in [constant ShopScreen.PARTS_DIR], fighting with [param p_rules]' link bonuses.
-static func build_mech(p_chassis: MechChassis, lineup: Array, p_rules: Array[SynergyRule]) -> BattleMech:
+## part files in [constant ShopScreen.PARTS_DIR], fighting with [param p_rules]' link bonuses
+## and its chassis HP for round [param round_number].
+static func build_mech(p_chassis: MechChassis, lineup: Array, p_rules: Array[SynergyRule], round_number := 1) -> BattleMech:
 	var grid := MechGridData.new(p_chassis)
 	for entry in lineup:
 		var part: MechPart = load(ShopScreen.PARTS_DIR.path_join("%s.tres" % entry[0]))
 		if not grid.place_part(part, entry[1]):
 			push_error("CombatScreen: can't place %s at %s" % [entry[0], entry[1]])
-	return BattleMech.new(grid, p_rules)
+	return BattleMech.new(grid, p_rules, round_number)
 
 
-## Returns the [constant DUMMY] build on [constant DUMMY_CHASSIS].
-static func make_dummy(p_rules: Array[SynergyRule]) -> BattleMech:
-	return build_mech(DUMMY_CHASSIS, DUMMY, p_rules)
+## Returns the [constant DUMMY] build on [constant DUMMY_CHASSIS], its HP grown for round
+## [param round_number] like the player's.
+static func make_dummy(p_rules: Array[SynergyRule], round_number := 1) -> BattleMech:
+	return build_mech(DUMMY_CHASSIS, DUMMY, p_rules, round_number)
 
 
 func _on_tick_timer_timeout() -> void:

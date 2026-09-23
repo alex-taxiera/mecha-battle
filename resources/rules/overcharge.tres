@@ -6,8 +6,8 @@
 script = ExtResource("1_8u78l")
 id = "overcharge"
 label = "Reactor + Weapon"
-effect_text = "+3 weapon dmg"
+effect_text = "+5 weapon dmg"
 color = Color(0.64705884, 0.54509807, 0.9411765, 1)
 second_type = 1
 stat = 2
-amount = 3.0
+amount = 5.0

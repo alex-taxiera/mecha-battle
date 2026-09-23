@@ -174,6 +174,17 @@ func test_underpowered_weapons_lose_damage() -> void:
 	assert_int(stats.damage).is_equal(16)
 
 
+func test_the_chassis_hp_grows_with_the_round() -> void:
+	_place(Fixtures.laser(), Vector2i(2, 2)) # +12 HP, which doesn't grow
+	var first := MechStats.calculate(_grid, _rules)
+	assert_int(first.base_hp).is_equal(30)
+	assert_int(first.hp).is_equal(42)
+	# Round 2: 30 × 1.15 = 34.5, rounded down.
+	var second := MechStats.calculate(_grid, _rules, 2)
+	assert_int(second.base_hp).is_equal(34)
+	assert_int(second.hp).is_equal(46)
+
+
 func test_rules_match_their_types_in_either_order() -> void:
 	assert_bool(_cooled.matches(MechPart.PartType.WEAPON, MechPart.PartType.UTILITY)).is_true()
 	assert_bool(_cooled.matches(MechPart.PartType.UTILITY, MechPart.PartType.WEAPON)).is_true()

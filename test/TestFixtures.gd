@@ -31,25 +31,26 @@ static func open_chassis(size: Vector2i) -> MechChassis:
 	return _chassis(size, [])
 
 
-# The design doc's three frames.
+# The design doc's three frames, at the hundreds-of-HP scale. Each one's base HP grows 15% a
+# round (MechChassis.hp_growth's default).
 
-## Tank: 4 wide by 3 tall, 45 HP, 2 energy a turn, every hit taken 1 smaller. One back bay,
+## Tank: 4 wide by 3 tall, 450 HP, 20 energy a turn, every hit taken 2 smaller. One back bay,
 ## over (1, 0) and (2, 0).
 static func bastion() -> MechChassis:
-	var chassis := _frame("The Bastion", "Wide frame", Vector2i(4, 3), [], 45, 2)
+	var chassis := _frame("The Bastion", "Wide frame", Vector2i(4, 3), [], 450, 20)
 	chassis.hardpoints = [back(Vector2i(1, -2))]
 	chassis.playstyle = "Tank / Attrition"
 	chassis.passive = MechChassis.Passive.THICK_PLATING
 	chassis.passive_name = "Thick Plating"
-	chassis.passive_text = "Reduces all incoming flat damage by 1."
-	chassis.plating = 1
+	chassis.passive_text = "Reduces all incoming flat damage by 2."
+	chassis.plating = 2
 	return chassis
 
 
-## Glass cannon: 2 wide by 5 tall, 22 HP, 4 energy a turn, its first shot fires twice. Arms
+## Glass cannon: 2 wide by 5 tall, 220 HP, 40 energy a turn, its first shot fires twice. Arms
 ## beside rows 1-3 and a back over row 0.
 static func striker() -> MechChassis:
-	var chassis := _frame("The Striker", "Tall frame", Vector2i(2, 5), [], 22, 4)
+	var chassis := _frame("The Striker", "Tall frame", Vector2i(2, 5), [], 220, 40)
 	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(2, 1)), back(Vector2i(0, -2))]
 	chassis.playstyle = "Glass Cannon / Burst"
 	chassis.passive = MechChassis.Passive.OVERCLOCK
@@ -58,7 +59,7 @@ static func striker() -> MechChassis:
 	return chassis
 
 
-## Combo: a 13-cell diamond on 5x5, 30 HP, 3 energy a turn. At full heat it deals 25 and
+## Combo: a 13-cell diamond on 5x5, 300 HP, 30 energy a turn. At full heat it deals 100 and
 ## shuts down for 3 seconds. Arms beside rows 1-3, each touching only a tip, (0, 2) or (4, 2).
 static func reactor_frame() -> MechChassis:
 	var disabled: Array[Vector2i] = []
@@ -66,13 +67,13 @@ static func reactor_frame() -> MechChassis:
 		for x in 5:
 			if absi(x - 2) + absi(y - 2) > 2:
 				disabled.append(Vector2i(x, y))
-	var chassis := _frame("The Reactor", "Diamond frame", Vector2i(5, 5), disabled, 30, 3)
+	var chassis := _frame("The Reactor", "Diamond frame", Vector2i(5, 5), disabled, 300, 30)
 	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(5, 1))]
 	chassis.playstyle = "Synergy / Combo"
 	chassis.passive = MechChassis.Passive.MELTDOWN
 	chassis.passive_name = "Meltdown"
 	chassis.passive_text = "When heat reaches 100%, deal massive damage and shut down for 3 seconds."
-	chassis.meltdown_damage = 25
+	chassis.meltdown_damage = 100
 	chassis.meltdown_shutdown = 3.0
 	return chassis
 
