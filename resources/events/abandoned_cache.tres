@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_nng7o"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_hfyu3"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_mr28b"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="4_p2yy4"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="5_0v7oe"]
+
+[sub_resource type="Resource" id="Resource_s7a2x"]
+script = ExtResource("4_p2yy4")
+amount = 15
+
+[sub_resource type="Resource" id="Resource_26e3w"]
+script = ExtResource("2_hfyu3")
+text = "Better than nothing."
+effects = Array[ExtResource("3_mr28b")]([SubResource("Resource_s7a2x")])
+
+[sub_resource type="Resource" id="Resource_eaye2"]
+script = ExtResource("1_nng7o")
+label = "Take what's left"
+hint = "Gain 15 gold."
+outcomes = Array[ExtResource("2_hfyu3")]([SubResource("Resource_26e3w")])
+
+[resource]
+script = ExtResource("5_0v7oe")
+id = "abandoned_cache"
+title = "Abandoned Cache"
+text = "A supply cache, long forgotten. Most of it has been picked over."
+fallback = true
+choices = Array[ExtResource("1_nng7o")]([SubResource("Resource_eaye2")])

@@ -32,6 +32,8 @@ var visited := false
 ## The enemy fought here, for fights. A boss's is picked with the map; the others are picked
 ## the first time the node's fight is needed.
 var enemy: EnemyLoadout
+## The event here, for events: picked the first time it's needed.
+var event: GameEvent
 ## Where the node is drawn, off its lattice point, in fractions of the spacing between points,
 ## so the map doesn't look like a grid. Rolled with the map.
 var jitter := Vector2.ZERO

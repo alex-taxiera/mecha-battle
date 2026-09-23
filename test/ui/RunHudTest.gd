@@ -51,6 +51,18 @@ func test_shows_each_relic_with_a_tooltip() -> void:
 	await await_idle_frame()
 
 
+func test_statuses_show_with_their_fights_left() -> void:
+	var storm := TimedStatus.new()
+	storm.relic_name = "Radiation Storm"
+	storm.description = "start fights hot."
+	storm.fights = 2
+	_run.add_status(storm)
+	var icons := _hud.relic_bar.get_children()
+	assert_array(icons).has_size(1)
+	assert_str((icons[0] as RelicIcon).tooltip_text).is_equal("Radiation Storm (2 fights left)\nStart fights hot.")
+	await await_idle_frame()
+
+
 func test_a_run_without_sectors_shows_its_frame() -> void:
 	var hud: RunHud = auto_free(RunHud.new())
 	hud.run = RunState.new(Fixtures.bastion(), [], [])

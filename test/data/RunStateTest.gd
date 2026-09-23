@@ -516,6 +516,78 @@ func test_relics_change_the_gold_a_fight_drops() -> void:
 	assert_int(run.gold).is_equal(gold_before + reward.gold)
 
 
+func test_a_hangar_repairs_or_reinforces() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true() # 42 max HP
+	_run.hull_damage = 30
+	# Repair: 30% of 42 is 12.6, rounded up to 13.
+	assert_int(_run.repair_at_hangar()).is_equal(13)
+	assert_int(_run.hull_damage).is_equal(17)
+	# Never more than what's missing.
+	_run.hull_damage = 5
+	assert_int(_run.repair_at_hangar()).is_equal(5)
+	# Reinforce: +25 max HP for good, as an upgrade rather than a relic.
+	_run.reinforce_at_hangar()
+	assert_int(_run.get_max_hp()).is_equal(67)
+	assert_array(_run.relics).is_empty()
+	assert_array(_run.get_modifiers()).has_size(1)
+
+
+func test_a_shop_sells_relics_from_the_back_of_the_pool() -> void:
+	var run := _loot_run()
+	run.open_shop()
+	var offers := run.shop.relic_offers
+	assert_array(offers).has_size(2)
+	for offer in offers:
+		assert_bool(offer.relic.rarity in [Relic.Rarity.COMMON, Relic.Rarity.UNCOMMON, Relic.Rarity.RARE]).is_true()
+		assert_bool(run.relic_pool.has(offer.relic)).is_false()
+	# Buying one pays its price and gives the relic.
+	run.gold = offers[0].price
+	assert_bool(run.buy_relic(0)).is_true()
+	assert_int(run.gold).is_equal(0)
+	assert_str(run.relics[0].relic_name).is_equal(offers[0].relic.relic_name)
+	assert_bool(offers[0].sold).is_true()
+	# Sold, unaffordable, or no such offer: nothing.
+	run.gold = 1000
+	assert_bool(run.buy_relic(0)).is_false()
+	assert_bool(run.buy_relic(5)).is_false()
+	run.gold = offers[1].price - 1
+	assert_bool(run.buy_relic(1)).is_false()
+	assert_array(run.relics).has_size(1)
+
+
+func test_buying_into_the_stash() -> void:
+	var slot := _slot_of(_heatsink)
+	assert_bool(_run.rotate_slot(slot)).is_true()
+	assert_bool(_run.buy_to_stash(slot)).is_true()
+	assert_int(_run.gold).is_equal(6)
+	assert_array(_run.stash).has_size(1)
+	assert_int(_run.stash[0].rotation).is_equal(1)
+	assert_bool(_run.shop.slots[slot].sold).is_true()
+	# Bought here, so it sells back in full.
+	assert_bool(_run.is_stash_fresh(0)).is_true()
+	assert_int(_run.stash_sell_value(0)).is_equal(4)
+	# A sold slot or too little gold buys nothing.
+	assert_bool(_run.buy_to_stash(slot)).is_false()
+	_run.gold = 0
+	assert_bool(_run.buy_to_stash(_slot_of(_laser))).is_false()
+	assert_array(_run.stash).has_size(1)
+
+
+func test_unsellable_parts_stay() -> void:
+	var junk := Fixtures.part("Glitch", MechPart.PartType.JUNK, [Vector2i(0, 0)], 4)
+	junk.sellable = false
+	_run.stash_part(junk)
+	assert_bool(_run.can_sell_part(_run.stash[0].part)).is_false()
+	assert_int(_run.sell_stashed(0)).is_equal(0)
+	assert_array(_run.stash).has_size(1)
+	assert_bool(_run.install(0, Vector2i(1, 1))).is_true()
+	assert_int(_run.sell(Vector2i(1, 1))).is_equal(0)
+	assert_object(_run.grid.get_part_at(Vector2i(1, 1))).is_not_null()
+	# Positive control: a sellable part sells.
+	_run.stash_part(_laser)
+	assert_int(_run.sell_stashed(0)).is_equal(1)
+
+
 func test_stashed_parts_sell_at_a_shop() -> void:
 	_run.stash_part(_heatsink) # 4 gold, not bought here: half
 	assert_int(_run.stash_sell_value(0)).is_equal(2)

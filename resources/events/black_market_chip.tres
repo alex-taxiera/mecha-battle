@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_ei4uu"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_65c2b"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_t7sfm"]
+[ext_resource type="Resource" path="res://resources/parts/event/overdrive_logic_chip.tres" id="4_7sehy"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="5_de3oe"]
+[ext_resource type="Resource" path="res://resources/parts/event/glitch.tres" id="6_rcaag"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="7_mtpse"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="8_m0seq"]
+
+[sub_resource type="Resource" id="Resource_6yue0"]
+script = ExtResource("5_de3oe")
+part = ExtResource("4_7sehy")
+
+[sub_resource type="Resource" id="Resource_5qqpr"]
+script = ExtResource("5_de3oe")
+part = ExtResource("6_rcaag")
+
+[sub_resource type="Resource" id="Resource_aa7eh"]
+script = ExtResource("2_65c2b")
+text = "The chip hums to life. Something else comes with it."
+effects = Array[ExtResource("3_t7sfm")]([SubResource("Resource_6yue0"), SubResource("Resource_5qqpr")])
+
+[sub_resource type="Resource" id="Resource_ol4w8"]
+script = ExtResource("1_ei4uu")
+label = "Install the chip"
+hint = "Gain the Overdrive Logic Chip, and a Glitch no shop will take."
+outcomes = Array[ExtResource("2_65c2b")]([SubResource("Resource_aa7eh")])
+
+[sub_resource type="Resource" id="Resource_xtn0a"]
+script = ExtResource("7_mtpse")
+amount = 40
+
+[sub_resource type="Resource" id="Resource_vfra3"]
+script = ExtResource("2_65c2b")
+text = "The bounty clears before the vendor does."
+effects = Array[ExtResource("3_t7sfm")]([SubResource("Resource_xtn0a")])
+
+[sub_resource type="Resource" id="Resource_p8nbl"]
+script = ExtResource("1_ei4uu")
+label = "Report the vendor"
+hint = "Gain 40 gold bounty."
+outcomes = Array[ExtResource("2_65c2b")]([SubResource("Resource_vfra3")])
+
+[resource]
+script = ExtResource("8_m0seq")
+id = "black_market_chip"
+title = "The Black Market AI Chip"
+text = "A vendor offers a glowing neural processor ripped from a banned combat drone."
+choices = Array[ExtResource("1_ei4uu")]([SubResource("Resource_ol4w8"), SubResource("Resource_p8nbl")])

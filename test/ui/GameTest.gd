@@ -17,6 +17,7 @@ func before_test() -> void:
 	_game.rules = Fixtures.rules()
 	_game.acts = [Fixtures.act(), Fixtures.act()]
 	_game.relics = Fixtures.relics()
+	_game.events = [Fixtures.gold_event("Windfall", 10)]
 	_game.run_seed = 1
 	add_child(_game)
 
@@ -213,24 +214,64 @@ func test_a_shop_opens_the_scrap_shop_in_the_run() -> void:
 	await await_idle_frame()
 
 
-func test_hangars_and_events_show_a_placeholder_for_now() -> void:
+func test_a_hangar_repairs_the_hull() -> void:
 	await _choose(_armed())
 	var run := _game.run
+	run.hull_damage = 20
 	var hangar: MapNode = run.get_reachable()[0]
 	hangar.type = MapNode.Type.HANGAR
 	await _go(hangar)
-	assert_str(_message().title_label.text).is_equal("Hangar / Refit Bay")
-	assert_object(_message().hud.run).is_same(run)
-	_message().button.pressed.emit()
+	var rest := _game.screen as RestScreen
+	assert_object(rest).is_not_null()
+	assert_bool(rest.repair()).is_true()
+	assert_int(run.hull_damage).is_equal(11) # 30% of 30 repaired
+	rest.button.pressed.emit()
 	await await_idle_frame()
-	var event: MapNode = run.get_reachable()[0]
-	event.type = MapNode.Type.EVENT
-	await _go(event)
-	assert_str(_message().title_label.text).is_equal("Unknown Signal")
-	_message().button.pressed.emit()
+	assert_array(_map_screen().get_view().reachable).contains_same_exactly(hangar.next)
 	await await_idle_frame()
-	assert_object(_map_screen()).is_not_null()
-	assert_int(run.fights_won).is_equal(0)
+
+
+func test_an_event_plays_its_choice_then_returns_to_the_map() -> void:
+	await _choose(_armed())
+	var run := _game.run
+	var node: MapNode = run.get_reachable()[0]
+	node.type = MapNode.Type.EVENT
+	await _go(node)
+	var screen := _game.screen as EventScreen
+	assert_object(screen).is_not_null()
+	assert_str(screen.event.title).is_equal("Windfall")
+	assert_bool(screen.choose(0)).is_true()
+	assert_int(run.gold).is_equal(30)
+	screen.button.pressed.emit()
+	await await_idle_frame()
+	assert_array(_map_screen().get_view().reachable).contains_same_exactly(node.next)
+	await await_idle_frame()
+
+
+func test_an_event_can_start_a_fight_with_its_loot() -> void:
+	var fight := FightEffect.new()
+	fight.tier = EnemyLoadout.Tier.ELITE
+	_game.events = [Fixtures.event("Ambush", [Fixtures.choice("Fight", [Fixtures.outcome("They attack!", [fight])])])]
+	await _choose(_armed())
+	var run := _game.run
+	var node: MapNode = run.get_reachable()[0]
+	node.type = MapNode.Type.EVENT
+	await _go(node)
+	var screen := _game.screen as EventScreen
+	assert_bool(screen.choose(0)).is_true()
+	assert_str(screen.button.text).is_equal("Fight!")
+	screen.button.pressed.emit()
+	await await_idle_frame()
+	# An elite from the sector, with an elite's loot, and then the map from the event's node.
+	assert_object(_game.combat).is_not_null()
+	_game.combat.print_ticks = false
+	(_game.combat.get_node("%TickTimer") as Timer).stop()
+	assert_str(_game.combat.engine.right.mech_name).is_equal("Elite")
+	await _finish_fight()
+	assert_str((_game.screen as RewardScreen).title_label.text).is_equal("ELITE SALVAGE")
+	await _collect_loot()
+	assert_object(run.map.current).is_same(node)
+	assert_array(_map_screen().get_view().reachable).contains_same_exactly(node.next)
 	await await_idle_frame()
 
 

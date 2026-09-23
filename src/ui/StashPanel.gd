@@ -1,7 +1,8 @@
 class_name StashPanel
 extends PanelContainer
 ## The run's stash: spare parts, wrapping into rows that scroll. Drag one onto the mech to
-## install it; drag an installed part here to take it off the mech and store it.
+## install it; drag an installed part here to take it off the mech and store it, or, at a shop, a
+## shop part here to buy it into the stash.
 
 ## Emitted with a short status line for the player, e.g. when a part is stored.
 signal message(text: String, good: bool)
@@ -77,13 +78,20 @@ func get_items() -> Array[StashItem]:
 	return found
 
 
-## Returns whether [param data] is an installed part that can be stored by dropping it here.
+## Returns whether [param data] can be dropped here: an installed part to store, or a shop part
+## the player can afford.
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	return run != null and data is PartDragData and data.is_from_grid()
+	if run == null or not data is PartDragData:
+		return false
+	var drag: PartDragData = data
+	return drag.is_from_grid() or (drag.is_from_shop() and run.shop != null and run.can_afford(drag.part))
 
 
-## Stores the installed part being dropped here.
+## Stores the installed part being dropped here, or buys the shop part into the stash.
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	var drag: PartDragData = data
-	if run.unequip(drag.from_cell):
+	if drag.is_from_shop():
+		if run.buy_to_stash(drag.slot_index):
+			message.emit("Bought %s · -%dg" % [drag.part.part_name, drag.part.cost], true)
+	elif run.unequip(drag.from_cell):
 		message.emit("Stored %s in the stash" % drag.part.part_name, true)

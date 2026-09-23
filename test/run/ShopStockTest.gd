@@ -57,6 +57,42 @@ func test_open_slots_and_turning_offers() -> void:
 	assert_bool(shop.rotate_slot(reactor)).is_false()
 
 
+func test_relics_are_priced_by_rarity() -> void:
+	var relics: Array[Relic] = [Fixtures.relic("Common", Relic.Rarity.COMMON), Fixtures.relic("Rare", Relic.Rarity.RARE)]
+	var shop := ShopStock.new(_catalog, _seeded(2), relics)
+	assert_array(shop.relic_offers).has_size(2)
+	# Slay-The-Robot's ranges, scaled by a quarter: common 12-20, rare 30-35.
+	assert_int(shop.relic_offers[0].price).is_between(12, 20)
+	assert_int(shop.relic_offers[1].price).is_between(30, 35)
+	assert_object(shop.get_open_relic(1)).is_same(shop.relic_offers[1])
+	shop.relic_offers[1].sold = true
+	assert_object(shop.get_open_relic(1)).is_null()
+	assert_object(shop.get_open_relic(7)).is_null()
+	# Restocking rerolls the parts, not the relics.
+	shop.restock()
+	assert_array(shop.relic_offers).has_size(2)
+
+
+func test_parts_follow_the_shop_odds() -> void:
+	# One rare among many commons: the shop's 5% rare odds keep it scarce.
+	var rare := Fixtures.laser()
+	rare.part_name = "Rare"
+	rare.rarity = MechPart.Rarity.RARE
+	var catalog: Array[MechPart] = [rare]
+	for i in 12:
+		var common := Fixtures.laser()
+		common.part_name = "Common %d" % i
+		catalog.append(common)
+	var rng := _seeded(4)
+	var rare_slots := 0
+	for i in 200:
+		for part in _parts(ShopStock.new(catalog, rng)):
+			if part == rare:
+				rare_slots += 1
+	# A 5% roll for each of 4 slots: about 1 shop in 5 shows it, so near 37 of 200.
+	assert_int(rare_slots).is_between(15, 70)
+
+
 func _parts(shop: ShopStock) -> Array[MechPart]:
 	var parts: Array[MechPart] = []
 	for slot in shop.slots:

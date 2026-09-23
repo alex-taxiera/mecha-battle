@@ -25,7 +25,7 @@ var floor_label := Label.new()
 var hp_bar := ProgressBar.new()
 var hp_label := Label.new()
 var gold_label := Label.new()
-## The run's relics, one icon each.
+## The run's relics, then its statuses, one icon each.
 var relic_bar := HBoxContainer.new()
 
 
@@ -77,12 +77,13 @@ func refresh() -> void:
 	fill.bg_color = LOW_HP_COLOR if hp < max_hp * LOW_HP else HP_COLOR
 	hp_bar.add_theme_stylebox_override("fill", fill)
 	gold_label.text = "%d gold" % run.gold
-	if relic_bar.get_child_count() != run.relics.size():
-		for icon in relic_bar.get_children():
-			relic_bar.remove_child(icon)
-			icon.queue_free()
-		for relic in run.relics:
-			relic_bar.add_child(RelicIcon.new(relic))
+	for icon in relic_bar.get_children():
+		relic_bar.remove_child(icon)
+		icon.queue_free()
+	for relic in run.relics:
+		relic_bar.add_child(RelicIcon.new(relic))
+	for status in run.statuses:
+		relic_bar.add_child(RelicIcon.new(status))
 
 
 func _style(label: Label, font_size: int, color: Color) -> void:

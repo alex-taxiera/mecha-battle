@@ -16,6 +16,12 @@ signal changed
 const ACT_HEAL := 0.5
 ## Boss relics a boss offers to choose from.
 const BOSS_RELIC_CHOICES := 3
+## Relics a Scrap Shop puts up for sale.
+const SHOP_RELICS := 2
+## A Hangar's Repair: this share of max HP, rounded up.
+const REPAIR_SHARE := 0.3
+## A Hangar's Reinforce: this much max HP, for good.
+const REINFORCE_HP := 25
 
 
 ## A spare part in the stash, and the way it's turned for installing.
@@ -67,6 +73,13 @@ var loot := RewardRoller.new()
 var relics: Array[Relic] = []
 ## The relics still to be found.
 var relic_pool: RelicPool
+## Lasting changes that aren't relics, e.g. max HP from a Hangar's Reinforce. They work like
+## relics but don't show as ones.
+var upgrades: Array[Relic] = []
+## Effects from events that last a few fights (see [TimedStatus]).
+var statuses: Array[TimedStatus] = []
+## The events the run can still come across.
+var event_pool: EventPool
 
 # Parts bought at the open shop, which still sell back for their full cost.
 var _fresh: Array[MechPart] = []
@@ -76,9 +89,11 @@ var _last_enemy: EnemyLoadout
 
 ## Starts a run on [param chassis], with its starter kit installed, [param start_gold], and the
 ## first of [param p_acts]' maps. [param p_catalog] is filtered to the parts the chassis can use;
-## [param p_relics] are the relics it can find. Pass a [RunRng] with a set seed to repeat a run.
+## [param p_relics] are the relics it can find and [param p_events] the events it can come
+## across. Pass a [RunRng] with a set seed to repeat a run.
 func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[SynergyRule], start_gold := 10,
-		p_rng: RunRng = null, p_acts: Array[ActData] = [], p_relics: Array[Relic] = []) -> void:
+		p_rng: RunRng = null, p_acts: Array[ActData] = [], p_relics: Array[Relic] = [],
+		p_events: Array[GameEvent] = []) -> void:
 	grid = MechGridData.new(chassis)
 	LoadoutPart.place_all(grid, chassis.starter_lineup)
 	catalog.assign(p_catalog.filter(func(part: MechPart) -> bool:
@@ -87,6 +102,7 @@ func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[Syne
 	gold = start_gold
 	rng = p_rng if p_rng else RunRng.new()
 	relic_pool = RelicPool.new(p_relics, rng.stream("relics"))
+	event_pool = EventPool.new(p_events, rng.stream("events"))
 	acts.assign(p_acts)
 	if not acts.is_empty():
 		_start_act(0)
@@ -109,9 +125,18 @@ func get_floor_number() -> int:
 
 #region Hull
 
-## Returns the mech's stats as it's built now, relics included.
+## Returns everything that changes the mech's rules: its relics, upgrades, and statuses.
+func get_modifiers() -> Array[Relic]:
+	var modifiers: Array[Relic] = []
+	modifiers.append_array(relics)
+	modifiers.append_array(upgrades)
+	modifiers.append_array(statuses)
+	return modifiers
+
+
+## Returns the mech's stats as it's built now, relics and upgrades included.
 func stats() -> MechStats:
-	return MechStats.calculate(grid, rules, relics)
+	return MechStats.calculate(grid, rules, get_modifiers())
 
 
 func get_max_hp() -> int:
@@ -147,7 +172,7 @@ func damage_hull(amount: int) -> void:
 ## Returns the player's mech for a fight: the build as it is, with the run's relics, starting at
 ## its current HP.
 func make_player_mech() -> BattleMech:
-	return BattleMech.new(grid, rules, 1.0, get_current_hp(), relics)
+	return BattleMech.new(grid, rules, 1.0, get_current_hp(), get_modifiers())
 
 
 ## Returns the enemy fought at [param node] (by default the current node): the node's own if it
@@ -182,8 +207,8 @@ func record_fight(result: FightResult, mech: BattleMech) -> void:
 	hull_damage = maxi(0, mech.max_hp - mech.current_health)
 	if result == FightResult.WIN:
 		fights_won += 1
-		for relic in relics:
-			relic.on_fight_won(self)
+		for modifier in get_modifiers():
+			modifier.on_fight_won(self)
 	else:
 		outcome = Outcome.DEFEAT
 	changed.emit()
@@ -199,8 +224,9 @@ func roll_reward(node: MapNode = null) -> FightReward:
 	reward.tier = node.get_tier()
 	var loot_rng := rng.stream("loot")
 	reward.gold = RewardRoller.roll_gold(loot_rng, get_act().get_gold_range(reward.tier))
-	for relic in relics:
-		reward.gold = relic.modify_gold(reward.gold)
+	for modifier in get_modifiers():
+		reward.gold = modifier.modify_gold(reward.gold)
+	_tick_statuses()
 	reward.parts = loot.draft_parts(loot_rng, catalog, RewardRoller.table_for(reward.tier))
 	match reward.tier:
 		EnemyLoadout.Tier.ELITE:
@@ -233,6 +259,28 @@ func take_reward_relic(reward: FightReward, index: int) -> bool:
 	return true
 
 
+## Adds a lasting change that isn't a relic, e.g. a [HullUpgrade].
+func add_upgrade(upgrade: Relic) -> void:
+	upgrades.append(upgrade)
+	upgrade.on_obtain(self)
+	changed.emit()
+
+
+## Puts a copy of [param status] on the run for its [member TimedStatus.fights]. Returns the copy.
+func add_status(status: TimedStatus) -> TimedStatus:
+	var owned: TimedStatus = status.duplicate()
+	statuses.append(owned)
+	changed.emit()
+	return owned
+
+
+# A won fight's loot uses up a fight of each status; spent ones leave.
+func _tick_statuses() -> void:
+	for status in statuses:
+		status.fights -= 1
+	statuses.assign(statuses.filter(func(status: TimedStatus) -> bool: return status.fights > 0))
+
+
 ## Gives the run its own copy of [param relic], out of the pool, and runs its
 ## [method Relic.on_obtain]. Returns the copy.
 func add_relic(relic: Relic) -> Relic:
@@ -242,6 +290,53 @@ func add_relic(relic: Relic) -> Relic:
 	owned.on_obtain(self)
 	changed.emit()
 	return owned
+
+#endregion
+#region Stops
+
+## A Hangar's Repair: repairs [constant REPAIR_SHARE] of max HP, rounded up. Returns how much it
+## repaired.
+func repair_at_hangar() -> int:
+	return heal(ceili(get_max_hp() * REPAIR_SHARE))
+
+
+## A Hangar's Reinforce: [constant REINFORCE_HP] more max HP for the rest of the run.
+func reinforce_at_hangar() -> void:
+	var upgrade := HullUpgrade.new()
+	upgrade.hp = REINFORCE_HP
+	add_upgrade(upgrade)
+
+
+## Returns the event at [param node] (by default the current node), drawing it from the pool the
+## first time it's needed.
+func get_event(node: MapNode = null) -> GameEvent:
+	node = node if node else map.current
+	if node.event == null:
+		node.event = event_pool.next(self)
+	return node.event
+
+
+## Picks choice [param index] of [param event]: rolls one of its outcomes by weight, applies it,
+## and returns what happened. Returns [code]null[/code], doing nothing, if the choice doesn't
+## exist or its requirement isn't met.
+func choose_event_option(event: GameEvent, index: int) -> EventResult:
+	if index < 0 or index >= event.choices.size() or not event.choices[index].is_available(self):
+		return null
+	var choice := event.choices[index]
+	var result := EventResult.new()
+	if choice.outcomes.is_empty():
+		return result
+	var weights := {}
+	for option_outcome in choice.outcomes:
+		weights[option_outcome] = option_outcome.weight
+	var picked: EventOutcome = RunRng.weighted_pick(rng.stream("events"), weights)
+	if picked == null:
+		picked = choice.outcomes[0]
+	result.text = picked.text
+	for effect in picked.effects:
+		effect.apply(self, result)
+	changed.emit()
+	return result
 
 #endregion
 #region Map
@@ -330,9 +425,12 @@ func preview_install(index: int, origin: Vector2i) -> Preview:
 #endregion
 #region Shop
 
-## Opens a Scrap Shop, stocked from the catalog.
+## Opens a Scrap Shop, stocked from the catalog, with [constant SHOP_RELICS] relics from the
+## back of the pool.
 func open_shop() -> void:
-	shop = ShopStock.new(catalog, rng.stream("shop"))
+	var for_sale := relic_pool.take(SHOP_RELICS, [Relic.Rarity.COMMON, Relic.Rarity.UNCOMMON, Relic.Rarity.RARE,
+		Relic.Rarity.SHOP], true)
+	shop = ShopStock.new(catalog, rng.stream("shop"), for_sale)
 	_fresh.clear()
 	changed.emit()
 
@@ -366,6 +464,33 @@ func buy(slot_index: int, origin: Vector2i) -> bool:
 	return true
 
 
+## Buys the part in shop slot [param slot_index] into the stash, in the slot's rotation. Changes
+## nothing and returns false unless a shop is open, the slot is unsold, and it's affordable.
+func buy_to_stash(slot_index: int) -> bool:
+	var slot := shop.get_open_slot(slot_index) if shop else null
+	if slot == null or not can_afford(slot.part):
+		return false
+	var part: MechPart = slot.part.duplicate()
+	slot.sold = true
+	gold -= part.cost
+	_fresh.append(part)
+	stash.append(StashEntry.new(part, slot.rotation))
+	changed.emit()
+	return true
+
+
+## Buys the shop's relic offer [param index]. Returns false unless a shop is open, the offer is
+## unsold, and it's affordable.
+func buy_relic(index: int) -> bool:
+	var offer := shop.get_open_relic(index) if shop else null
+	if offer == null or offer.price > gold:
+		return false
+	offer.sold = true
+	gold -= offer.price
+	add_relic(offer.relic)
+	return true
+
+
 ## Turns the offer in shop slot [param slot_index] a quarter-turn clockwise.
 func rotate_slot(slot_index: int) -> bool:
 	if shop == null or not shop.rotate_slot(slot_index):
@@ -388,6 +513,11 @@ func reroll() -> bool:
 ## Returns whether parts can be sold: only at a shop.
 func can_sell() -> bool:
 	return shop != null
+
+
+## Returns whether [param part] can be sold here: at a shop, and a part shops buy.
+func can_sell_part(part: MechPart) -> bool:
+	return can_sell() and part != null and part.sellable
 
 
 ## Returns what the part covering [param coords] sells for: its full cost if it was bought at
@@ -415,7 +545,7 @@ func is_fresh(coords: Vector2i) -> bool:
 ## Sells the part covering [param coords] and returns the gold it brought in: 0, selling
 ## nothing, if the cell is empty or there's no shop.
 func sell(coords: Vector2i) -> int:
-	if not can_sell():
+	if not can_sell_part(grid.get_part_at(coords)):
 		return 0
 	var value := sell_value(coords)
 	var part := grid.remove_part(coords)
@@ -430,7 +560,7 @@ func sell(coords: Vector2i) -> int:
 ## Sells stashed part [param index] and returns the gold it brought in: 0, selling nothing,
 ## without a shop or such a part.
 func sell_stashed(index: int) -> int:
-	if not can_sell() or index < 0 or index >= stash.size():
+	if index < 0 or index >= stash.size() or not can_sell_part(stash[index].part):
 		return 0
 	var value := stash_sell_value(index)
 	var part := stash[index].part
@@ -505,6 +635,6 @@ func _preview_place(part: MechPart, origin: Vector2i, rotation: int) -> Preview:
 
 func _fill_preview(preview: Preview, hypothetical: MechGridData) -> void:
 	preview.open_edges = hypothetical.get_open_edges(preview.cells)
-	preview.stats = MechStats.calculate(hypothetical, rules, relics)
+	preview.stats = MechStats.calculate(hypothetical, rules, get_modifiers())
 
 #endregion

@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_7xgqa"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_k8dck"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_u7mbq"]
+[ext_resource type="Script" path="res://src/data/events/LosePartsEffect.gd" id="4_p68ca"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="5_keh07"]
+[ext_resource type="Script" path="res://src/data/events/PartsRequirement.gd" id="6_5xu2c"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="7_nfooj"]
+[ext_resource type="Script" path="res://src/data/events/HullEffect.gd" id="8_f2qo0"]
+[ext_resource type="Script" path="res://src/data/events/GoldRequirement.gd" id="9_sarw2"]
+[ext_resource type="Script" path="res://src/data/events/FightEffect.gd" id="10_03j7s"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="11_f7j72"]
+
+[sub_resource type="Resource" id="Resource_87g02"]
+script = ExtResource("4_p68ca")
+count = 2
+
+[sub_resource type="Resource" id="Resource_udgt5"]
+script = ExtResource("5_keh07")
+rarity = 2
+weapon = true
+
+[sub_resource type="Resource" id="Resource_wtfe3"]
+script = ExtResource("2_k8dck")
+text = "They take their pick and hand over a crate."
+effects = Array[ExtResource("3_u7mbq")]([SubResource("Resource_87g02"), SubResource("Resource_udgt5")])
+
+[sub_resource type="Resource" id="Resource_t832o"]
+script = ExtResource("6_5xu2c")
+count = 2
+
+[sub_resource type="Resource" id="Resource_d6mot"]
+script = ExtResource("1_7xgqa")
+label = "Trade parts"
+hint = "Give up 2 random parts for a rare weapon."
+requirement = SubResource("Resource_t832o")
+outcomes = Array[ExtResource("2_k8dck")]([SubResource("Resource_wtfe3")])
+
+[sub_resource type="Resource" id="Resource_71lnl"]
+script = ExtResource("7_nfooj")
+amount = -30
+
+[sub_resource type="Resource" id="Resource_or4ta"]
+script = ExtResource("8_f2qo0")
+amount = 150
+
+[sub_resource type="Resource" id="Resource_55edu"]
+script = ExtResource("2_k8dck")
+text = "Their crew patches you up."
+effects = Array[ExtResource("3_u7mbq")]([SubResource("Resource_71lnl"), SubResource("Resource_or4ta")])
+
+[sub_resource type="Resource" id="Resource_mlmc6"]
+script = ExtResource("9_sarw2")
+gold = 30
+
+[sub_resource type="Resource" id="Resource_vqm1h"]
+script = ExtResource("1_7xgqa")
+label = "Buy field repairs"
+hint = "Pay 30 gold to repair 150 hull."
+requirement = SubResource("Resource_mlmc6")
+outcomes = Array[ExtResource("2_k8dck")]([SubResource("Resource_55edu")])
+
+[sub_resource type="Resource" id="Resource_0tait"]
+script = ExtResource("10_03j7s")
+
+[sub_resource type="Resource" id="Resource_ej03h"]
+script = ExtResource("2_k8dck")
+text = "Negotiations are over."
+effects = Array[ExtResource("3_u7mbq")]([SubResource("Resource_0tait")])
+
+[sub_resource type="Resource" id="Resource_w68dk"]
+script = ExtResource("1_7xgqa")
+label = "Start a fight"
+hint = "Fight an elite for its loot."
+outcomes = Array[ExtResource("2_k8dck")]([SubResource("Resource_ej03h")])
+
+[resource]
+script = ExtResource("11_f7j72")
+id = "salvage_deal"
+title = "The Salvage Deal"
+text = "A rival mercenary unit offers to trade before the next push."
+choices = Array[ExtResource("1_7xgqa")]([SubResource("Resource_d6mot"), SubResource("Resource_vqm1h"), SubResource("Resource_w68dk")])

@@ -102,8 +102,9 @@ func test_shops_in_a_given_run() -> void:
 	assert_object(screen.run).is_same(run)
 	assert_str((screen.get_node("%GoldLabel") as Label).text).is_equal("Gold: 25")
 	assert_str((screen.get_node("%RoundLabel") as Label).text).is_equal("Sector 1 · Floor 1")
+	# The catalog has one part, so the shop shows it once.
 	assert_array(screen.find_children("*", "", true, false).filter(func(node: Node) -> bool: return node is ShopItem)) \
-		.has_size(ShopStock.SIZE)
+		.has_size(1)
 
 
 func test_away_from_a_shop_it_shows_the_mech_and_stash_only() -> void:
@@ -128,6 +129,41 @@ func test_away_from_a_shop_it_shows_the_mech_and_stash_only() -> void:
 	grid._drop_data(grid.cell_center(Vector2i(1, 1)), from_stash)
 	assert_array(run.stash).is_empty()
 	assert_str((screen.get_node("%ChassisInfo") as Label).text).is_equal("Cross frame · 3 / 12 slots · 0 / 3 hardpoints")
+	await await_idle_frame()
+
+
+func test_relics_for_sale_buy_with_their_button() -> void:
+	var relics: Array[Relic] = [Fixtures.relic("Lucky Bolt", Relic.Rarity.COMMON)]
+	var run := RunState.new(Fixtures.armed_cross(), [_laser], Fixtures.rules(), 100, RunRng.new(1), [], relics)
+	run.open_shop()
+	var screen: LoadoutScreen = auto_free(SCENE.instantiate())
+	screen.run = run
+	add_child(screen)
+	var offers := screen.get_relic_offers()
+	assert_array(offers).has_size(1)
+	var price := run.shop.relic_offers[0].price
+	var buy := offers[0].find_children("*", "Button", true, false)[0] as Button
+	assert_str(buy.text).is_equal("Buy · %dg" % price)
+	assert_bool(screen.buy_relic(0)).is_true()
+	assert_int(run.gold).is_equal(100 - price)
+	assert_array(run.relics).has_size(1)
+	assert_str((screen.get_node("%Toast") as Label).text).is_equal("Bought Lucky Bolt · -%dg" % price)
+	buy = screen.get_relic_offers()[0].find_children("*", "Button", true, false)[0] as Button
+	assert_str(buy.text).is_equal("Sold")
+	assert_bool(buy.disabled).is_true()
+	assert_bool(screen.buy_relic(0)).is_false()
+	await await_idle_frame()
+
+
+func test_unsellable_parts_do_not_sell_at_the_shop() -> void:
+	var junk := Fixtures.part("Glitch", MechPart.PartType.JUNK, [Vector2i(0, 0)])
+	junk.sellable = false
+	_screen.run.stash_part(junk)
+	var stash: StashPanel = _screen.get_node("%StashPanel")
+	var drag := stash.get_items()[0]._get_drag_data(Vector2.ZERO) as PartDragData
+	assert_bool(_screen.can_sell(Vector2.ZERO, drag)).is_false()
+	_screen.show_sell_zone(drag)
+	assert_str(_text("SellLabel")).is_equal("Can't be sold")
 	await await_idle_frame()
 
 

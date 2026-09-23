@@ -58,8 +58,27 @@ func test_dropping_an_installed_part_here_stores_it() -> void:
 	assert_object(_run.grid.get_part_at(Vector2i(1, 1))).is_null()
 	assert_array(_run.stash).has_size(1)
 	assert_array(messages).contains_exactly(["Stored Point-Defense Laser in the stash"])
-	# Shop offers and stashed parts don't drop here.
+	# Away from a shop, shop offers don't drop here; stashed parts never do.
 	assert_bool(_panel._can_drop_data(Vector2.ZERO, PartDragData.from_shop(0, Fixtures.laser(), 0))).is_false()
 	assert_bool(_panel._can_drop_data(Vector2.ZERO, PartDragData.from_stash(0, Fixtures.laser(), 0))).is_false()
 	assert_bool(_panel._can_drop_data(Vector2.ZERO, "text")).is_false()
+	await await_idle_frame()
+
+
+func test_at_a_shop_dropping_an_offer_here_buys_it_into_the_stash() -> void:
+	var laser := Fixtures.laser() # 2 gold
+	var run := RunState.new(Fixtures.armed_cross(), [laser], [], 10)
+	run.open_shop()
+	var panel: StashPanel = auto_free(StashPanel.new())
+	panel.run = run
+	add_child(panel)
+	var drag := PartDragData.from_shop(0, run.shop.slots[0].part, 0)
+	assert_bool(panel._can_drop_data(Vector2.ZERO, drag)).is_true()
+	panel._drop_data(Vector2.ZERO, drag)
+	assert_array(run.stash).has_size(1)
+	assert_int(run.gold).is_equal(8)
+	# Too little gold: no drop.
+	run.gold = 0
+	run.shop.restock()
+	assert_bool(panel._can_drop_data(Vector2.ZERO, PartDragData.from_shop(0, run.shop.slots[0].part, 0))).is_false()
 	await await_idle_frame()

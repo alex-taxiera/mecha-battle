@@ -1,9 +1,9 @@
 class_name Game
 extends Node
 ## Plays runs. The player picks a frame, then climbs each sector's map to its boss one stop at a
-## time: fights play on the combat screen and drop loot, Scrap Shops open the shop, and stops
-## that aren't built yet show a placeholder. From the map, the Loadout rearranges the mech and its
-## stash. The mech's damage carries from fight to fight; when it goes down, or the last sector's
+## time: fights play on the combat screen and drop loot, Scrap Shops open the shop, Hangars
+## repair or reinforce the hull, and Events tell a story with choices, some leading to a fight.
+## From the map, the Loadout rearranges the mech and its stash. The mech's damage carries from fight to fight; when it goes down, or the last sector's
 ## boss does, the run's end shows, and after it a new run starts.
 
 const CHASSIS_SELECT_SCENE := preload("res://src/ui/ChassisSelectScreen.tscn")
@@ -12,17 +12,25 @@ const LOADOUT_SCENE := preload("res://src/ui/LoadoutScreen.tscn")
 const COMBAT_SCENE := preload("res://src/ui/CombatScreen.tscn")
 const ACTS_DIR := "res://resources/acts"
 const RELICS_DIR := "res://resources/relics"
+const EVENTS_DIR := "res://resources/events"
+# A fight's map node kind for each enemy tier, for fights events start.
+const _TIER_NODES := {
+	EnemyLoadout.Tier.NORMAL: MapNode.Type.BATTLE,
+	EnemyLoadout.Tier.ELITE: MapNode.Type.ELITE,
+	EnemyLoadout.Tier.BOSS: MapNode.Type.BOSS,
+}
 const CLEAR_COLOR := Color("#5fd38a")
 const LOSS_COLOR := Color("#ff4d4d")
 
 ## Gold a run starts with.
 @export var start_gold := 20
-## Parts the run can offer, adjacency rules, sectors in order, and the relics it can find. Left
-## empty, they're loaded from their folders (sectors in id order).
+## Parts the run can offer, adjacency rules, sectors in order, the relics it can find, and its
+## events. Left empty, they're loaded from their folders (sectors in id order).
 var catalog: Array[MechPart] = []
 var rules: Array[SynergyRule] = []
 var acts: Array[ActData] = []
 var relics: Array[Relic] = []
+var events: Array[GameEvent] = []
 ## The seed for new runs; below 0, each run gets a random one.
 var run_seed := -1
 
@@ -35,8 +43,10 @@ var chassis_select: ChassisSelectScreen
 ## The fight playing now, or null.
 var combat: CombatScreen
 
-# The player's mech in the current fight.
+# The player's mech in the current fight, and the node whose enemy and loot it's for: the map's
+# current node, or a stand-in for a fight an event started.
 var _player: BattleMech
+var _fight_node: MapNode
 
 
 func _ready() -> void:
@@ -50,6 +60,8 @@ func _ready() -> void:
 		acts.assign(loaded)
 	if relics.is_empty():
 		relics.assign(LoadoutScreen.load_dir(RELICS_DIR).filter(func(resource: Resource) -> bool: return resource is Relic))
+	if events.is_empty():
+		events.assign(LoadoutScreen.load_dir(EVENTS_DIR).filter(func(resource: Resource) -> bool: return resource is GameEvent))
 	chassis_select = %ChassisSelectScreen
 	screen = chassis_select
 	# Every swap is deferred, so a screen isn't taken out of the tree while it's still emitting.
@@ -67,7 +79,7 @@ func show_map() -> void:
 
 func _start_run(chassis: MechChassis) -> void:
 	chassis_select = null
-	run = RunState.new(chassis, catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts, relics)
+	run = RunState.new(chassis, catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts, relics, events)
 	show_map()
 
 
@@ -79,16 +91,22 @@ func _enter(node: MapNode) -> void:
 		MapNode.Type.SHOP:
 			_open_shop()
 		MapNode.Type.HANGAR:
-			_placeholder("Hangar / Refit Bay", "The refit crew isn't here yet. Repairs and upgrades are coming soon.")
+			var rest := RestScreen.new(run)
+			rest.confirmed.connect(show_map, CONNECT_DEFERRED)
+			_show(rest)
 		MapNode.Type.EVENT:
-			_placeholder("Unknown Signal", "Nothing answers. Events are coming soon.")
+			_open_event()
 
 
-# The player's build, as it stands, at the hull's current HP, against the node's enemy.
-func _start_fight() -> void:
+# The player's build, as it stands, at the hull's current HP, against the current node's enemy,
+# or, for a fight an event starts, one of the sector's enemies of [param tier].
+func _start_fight(tier := -1) -> void:
+	_fight_node = run.map.current
+	if tier >= 0:
+		_fight_node = MapNode.new(run.map.current.floor_index, run.map.current.column, _TIER_NODES[tier])
 	_player = run.make_player_mech()
 	combat = COMBAT_SCENE.instantiate()
-	combat.setup(_player, run.make_enemy_mech(), run)
+	combat.setup(_player, run.make_enemy_mech(_fight_node), run)
 	combat.finished.connect(_end_fight, CONNECT_DEFERRED)
 	_show(combat)
 
@@ -105,13 +123,13 @@ func _end_fight(winner: BattleMech) -> void:
 	if run.is_over():
 		_show_end()
 		return
-	var loot := RewardScreen.new(run, run.roll_reward())
+	var loot := RewardScreen.new(run, run.roll_reward(_fight_node))
 	loot.finished.connect(_after_loot, CONNECT_DEFERRED)
 	_show(loot)
 
 
 func _after_loot() -> void:
-	if run.map.is_at_boss():
+	if _fight_node == run.map.boss:
 		_clear_sector()
 	else:
 		show_map()
@@ -154,10 +172,25 @@ func _leave_shop() -> void:
 	show_map()
 
 
-func _placeholder(title: String, text: String) -> void:
-	var message := MessageScreen.new(title, MessageScreen.TEXT_COLOR, PackedStringArray([text]), "Continue", run)
-	message.confirmed.connect(show_map, CONNECT_DEFERRED)
-	_show(message)
+# The event at the current node; one that starts a fight goes on to it.
+func _open_event() -> void:
+	var event := run.get_event()
+	if event == null:
+		var quiet := MessageScreen.new("Quiet Sector", MessageScreen.TEXT_COLOR, PackedStringArray(["Nothing out here but static."]),
+			"Continue", run)
+		quiet.confirmed.connect(show_map, CONNECT_DEFERRED)
+		_show(quiet)
+		return
+	var event_screen := EventScreen.new(run, event)
+	event_screen.confirmed.connect(_after_event.bind(event_screen), CONNECT_DEFERRED)
+	_show(event_screen)
+
+
+func _after_event(event_screen: EventScreen) -> void:
+	if event_screen.result and event_screen.result.fight_tier >= 0:
+		_start_fight(event_screen.result.fight_tier)
+	else:
+		show_map()
 
 
 func _show_end() -> void:

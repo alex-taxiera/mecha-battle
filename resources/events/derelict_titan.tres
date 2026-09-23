@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_7ks6n"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_el3rr"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_vrvve"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="4_tylgw"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="5_lsadk"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="6_6dxtg"]
+[ext_resource type="Script" path="res://src/data/events/MaxHpEffect.gd" id="7_xkrjm"]
+[ext_resource type="Script" path="res://src/data/events/HullEffect.gd" id="8_nexbd"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="9_7y73s"]
+
+[sub_resource type="Resource" id="Resource_d5diw"]
+script = ExtResource("4_tylgw")
+amount = 25
+
+[sub_resource type="Resource" id="Resource_c4hq2"]
+script = ExtResource("6_6dxtg")
+part = ExtResource("5_lsadk")
+
+[sub_resource type="Resource" id="Resource_ce4sn"]
+script = ExtResource("2_el3rr")
+text = "You strip what you can carry."
+effects = Array[ExtResource("3_vrvve")]([SubResource("Resource_d5diw"), SubResource("Resource_c4hq2")])
+
+[sub_resource type="Resource" id="Resource_732d7"]
+script = ExtResource("1_7ks6n")
+label = "Pry it open"
+hint = "Gain 25 gold and a common armor part."
+outcomes = Array[ExtResource("2_el3rr")]([SubResource("Resource_ce4sn")])
+
+[sub_resource type="Resource" id="Resource_6eyha"]
+script = ExtResource("7_xkrjm")
+hp = 40
+
+[sub_resource type="Resource" id="Resource_nm1e7"]
+script = ExtResource("2_el3rr")
+weight = 3
+text = "The titan's reactor plating bolts onto your frame."
+effects = Array[ExtResource("3_vrvve")]([SubResource("Resource_6eyha")])
+
+[sub_resource type="Resource" id="Resource_85r0a"]
+script = ExtResource("8_nexbd")
+amount = -100
+
+[sub_resource type="Resource" id="Resource_ucx12"]
+script = ExtResource("2_el3rr")
+weight = 2
+text = "The core detonates in your face."
+effects = Array[ExtResource("3_vrvve")]([SubResource("Resource_85r0a")])
+
+[sub_resource type="Resource" id="Resource_tafu2"]
+script = ExtResource("1_7ks6n")
+label = "Cut into the core grid"
+hint = "60%: +40 max HP from its plating. 40%: the core blows."
+outcomes = Array[ExtResource("2_el3rr")]([SubResource("Resource_nm1e7"), SubResource("Resource_ucx12")])
+
+[sub_resource type="Resource" id="Resource_igpdq"]
+script = ExtResource("2_el3rr")
+text = "Some things are better left buried."
+
+[sub_resource type="Resource" id="Resource_6h318"]
+script = ExtResource("1_7ks6n")
+label = "Leave it"
+outcomes = Array[ExtResource("2_el3rr")]([SubResource("Resource_igpdq")])
+
+[resource]
+script = ExtResource("9_7y73s")
+id = "derelict_titan"
+title = "The Derelict Titan"
+text = "The smoking wreck of an ancient war mech lies half-buried in scrap. Its core is unstable, but its hull is intact."
+choices = Array[ExtResource("1_7ks6n")]([SubResource("Resource_732d7"), SubResource("Resource_tafu2"), SubResource("Resource_6h318")])

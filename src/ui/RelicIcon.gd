@@ -20,6 +20,9 @@ func _init(p_relic: Relic = null, icon_size := SIZE) -> void:
 
 ## Returns a relic's tooltip, e.g. "Reinforced Frame (Common)\n+40 max HP.".
 static func describe(p_relic: Relic) -> String:
+	if p_relic is TimedStatus:
+		var text := p_relic.description
+		return "%s (%d fights left)\n%s" % [p_relic.relic_name, p_relic.fights, text.left(1).to_upper() + text.substr(1)]
 	return "%s (%s)\n%s" % [p_relic.relic_name, Relic.Rarity.find_key(p_relic.rarity).capitalize(), p_relic.description]
 
 

@@ -210,6 +210,56 @@ static func relic(relic_name: String, rarity: Relic.Rarity) -> Relic:
 	return result
 
 
+# Events for run tests.
+
+## An event with [param choices], which comes up when [param requirement] passes (always, if null).
+static func event(title: String, choices: Array[EventChoice], requirement: EventRequirement = null,
+		strategy := GameEvent.FailedStrategy.KEEP, is_fallback := false) -> GameEvent:
+	var result := GameEvent.new()
+	result.id = title.to_snake_case()
+	result.title = title
+	result.text = "Something happens."
+	result.choices = choices
+	result.requirement = requirement
+	result.failed_strategy = strategy
+	result.fallback = is_fallback
+	return result
+
+
+static func choice(label: String, outcomes: Array[EventOutcome], requirement: EventRequirement = null) -> EventChoice:
+	var result := EventChoice.new()
+	result.label = label
+	result.hint = "It does something."
+	result.outcomes = outcomes
+	result.requirement = requirement
+	return result
+
+
+static func outcome(text: String, effects: Array[EventEffect], weight := 1) -> EventOutcome:
+	var result := EventOutcome.new()
+	result.text = text
+	result.effects = effects
+	result.weight = weight
+	return result
+
+
+static func gold_effect(amount: int) -> GoldEffect:
+	var effect := GoldEffect.new()
+	effect.amount = amount
+	return effect
+
+
+static func gold_requirement(gold: int) -> GoldRequirement:
+	var requirement := GoldRequirement.new()
+	requirement.gold = gold
+	return requirement
+
+
+## An event with one choice that gains [param gold] gold.
+static func gold_event(title: String, gold := 10) -> GameEvent:
+	return event(title, [choice("Take it", [outcome("You take it.", [gold_effect(gold)])])])
+
+
 static func _chassis(size: Vector2i, disabled: Array[Vector2i]) -> MechChassis:
 	var chassis := MechChassis.new()
 	chassis.size = size

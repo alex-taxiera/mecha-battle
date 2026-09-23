@@ -26,7 +26,7 @@ A run crosses three **sectors** (acts), each a branching map climbed one node at
 - **Enemies** come from the sector's pool for the node's tier (a boss is picked with the map), never the same one twice in a row. Their HP is their build's, times the sector's `enemy_hp_scale` (1, 1.4, 1.8 for now) and +3% of that a floor up the map, times the enemy's own `hp_scale`.
 - **Loot:** every won fight drops gold at once (by tier: battle 8-12, elite 18-25, boss 35-45, set per sector) and a draft of 3 different parts from the run's catalog to take one of into the stash, or skip. Each slot's rarity is rolled from the tier's odds (common / uncommon / rare: battle 55 / 43 / 2, elite 50 / 40 / 10, boss all rare), falling back to the nearest rarity with parts left. A pity counter grows 1.5 for every common offered and moves that much (whole) weight from common to rare until a rare comes up, which resets it. Rarities for now: laser, heatsink, and reactor common; gatling uncommon; missile pod rare.
 - **The stash** holds parts the player owns but hasn't installed. From the map, the **Loadout** moves parts between the grid and the stash freely; buying and selling only happen at a Scrap Shop, which sells from the stash too.
-- **Playing it:** a run starts with 20 gold. Battles, elites, and the boss play on the combat screen; a Scrap Shop opens the shop; Hangars and Events are placeholders for now. Beating a boss shows SECTOR CLEARED, then the next map; the run ends on MECH DESTROYED or RUN COMPLETE, then a new run starts at the frame select.
+- **Playing it:** a run starts with 20 gold. Battles, elites, and the boss play on the combat screen; a Scrap Shop opens the shop; a Hangar repairs or reinforces; an Event plays its story. Beating a boss shows SECTOR CLEARED, then the next map; the run ends on MECH DESTROYED or RUN COMPLETE, then a new run starts at the frame select.
 - **Relics** change the rules for the rest of the run. An elite drops one (rolled common / uncommon / rare at 25 / 50 / 25, from Slay-The-Robot's elite odds); a boss offers three boss relics to choose one from. Each run shuffles every relic once and hands them out without repeats. They show as icons in the run's HUD (hover for what they do) and pop their name up in a fight when they act. Placeholder relics (`res://resources/relics/`):
 
   | Relic | Rarity | Effect |
@@ -41,7 +41,19 @@ A run crosses three **sectors** (acts), each a branching map climbed one node at
   | Overdrive Core | Boss | +20 energy a turn; every shot makes 5 more heat. |
   | Titan Plating | Boss | +100 max HP; every hit taken is 3 smaller (after Thick Plating). |
   | War Chest | Boss | Gain 100 gold now; fights drop 10% more gold. |
-- Phases still to come: the hangar and event nodes (and shop prices by rarity, and shop relics).
+- **Scrap Shop:** 4 different parts, each slot's rarity rolled with the shop's odds (55 / 40 / 5) and priced at the part's `cost`; 2 relics from the back of the relic pool, priced by rarity (Slay-The-Robot's ranges scaled by a quarter to this game's gold: common 12-20, uncommon 21-29, rare 30-35, shop 37-50); a reroll for 1 gold (parts only). Parts can be bought straight onto the mech or into the stash; parts from the mech or the stash sell back (full price if bought at this shop, half otherwise), unless they're unsellable.
+- **Hangar / Refit Bay:** one job: **Repair** 30% of max HP (rounded up), or **Reinforce** for +25 max HP for the rest of the run. Or leave.
+- **Events:** each Event node draws the next event the run can have from its pool (shuffled once, then refilled when used up; an event that can't happen yet is kept, dropped, sent to the back, or put back at random, by its own strategy; when none can, the fallback shows). An event is a story with choices; a choice can need something (gold, a mounted weapon, some parts) and says so when it's off. A choice's outcome is picked by weight and applies its effects: gold, hull repair or damage (never below 1 HP), max HP, a part into the stash, losing random parts (stash first), a relic, reworking the strongest mounted weapon, a status for a few fights, or a fight (with its tier's loot). The events, from the design notes (`res://resources/events/`):
+
+  | Event | Choices |
+  |---|---|
+  | The Derelict Titan | Pry it open: +25 gold and a Point-Defense Laser. Cut into the core: 60% +40 max HP (standing in for unlocking a cell, which frames can't do yet), 40% 100 damage. Leave. |
+  | The Rogue Field Engineer (needs a mounted weapon; put back at random if not) | Overclock: the strongest weapon gets +30% damage and +15 heat a shot, renamed "Overclocked ...". Cooling lines: -20% energy cost, -10% damage ("Cooled ..."). Decline. |
+  | The Black Market AI Chip | Install: the Overdrive Logic Chip (a 1×2 generator, +25 EN a second, in `resources/parts/event/`, standing in for "+5 energy when an adjacent weapon fires") and a Glitch (a 1×1 JUNK part that does nothing, links with nothing, and can't be sold). Report the vendor: +40 gold. |
+  | The Salvage Deal | Trade 2 random parts (needs 2) for a rare weapon the frame can mount. Buy repairs: 30 gold for 150 hull (needs 30 gold). Start a fight: an elite. |
+  | The Unstable Radiation Zone | Push through: for 2 fights, start at +30 heat and earn +50% gold. Take the long way: fight a patrol (a normal battle; standing in for adding a node to the map). |
+  | Abandoned Cache (the fallback) | +15 gold. |
+- Content still to come: more parts, enemies, relics, and events, and balance.
 
 ## 2. Data Architecture (The "Model")
 All game data and grid math must be decoupled from the UI using Godot 4 Custom Resources and pure Reference classes. Content lives in `res://resources/` (`parts/`, `chassis/`, `rules/`, `enemies/`, `acts/`). Run logic that isn't content lives in `res://src/run/`; parts of it are adapted from Slay-The-Robot (MIT, see `THIRD_PARTY_NOTICES.md`). Art and fonts live in `res://assets/`: `combat/` holds the fight's pixel art (the 640×410 arena, 128×128 chassis sprites facing right with empty bays, weapon sprites, and projectiles, all drawn at 2×), `fonts/` the OFL fonts (Silkscreen, Chakra Petch, JetBrains Mono, each beside its `OFL.txt`), and `shaders/` the battle sprite shader.
@@ -50,9 +62,10 @@ All game data and grid math must be decoupled from the UI using Godot 4 Custom R
 The blueprint for every item in the game.
 - `@export var id: String`
 - `@export var part_name: String`
-- `@export var type: PartType` (Enum: WEAPON, GENERATOR, DEFENSE, UTILITY)
+- `@export var type: PartType` (Enum: WEAPON, GENERATOR, DEFENSE, UTILITY, JUNK; JUNK parts do nothing and match no rule)
 - `@export var cost: int`
-- `@export var rarity: Rarity` (Enum: COMMON, UNCOMMON, RARE), for loot odds
+- `@export var rarity: Rarity` (Enum: COMMON, UNCOMMON, RARE), for loot and shop odds
+- `@export var sellable: bool` (false for parts no shop takes back, like the Glitch)
 - `@export var grid_shape: Array[Vector2i]` (Defines the shape relative to a 0,0 origin. E.g., a vertical 1x2 is `[Vector2i(0,0), Vector2i(0,1)]`)
 - `@export var description: String`
 - `battle_sprite` (a weapon's sprite on its bay in a fight) and `projectile_sprite` (its shot in flight, tinted by side).
@@ -73,6 +86,15 @@ A relic: `id`, `relic_name`, `description`, `rarity` (Enum: COMMON, UNCOMMON, RA
 - `on_fight_start(mech) -> bool` (true if it did something to show), `modify_shot_damage(mech, weapon, damage)`, `modify_damage_taken(mech, amount)`: in fights.
 - `on_fight_won(run)` and `modify_gold(amount)`: after fights.
 A run owns its own copies, so a relic can keep state for a fight (reset in `on_fight_start`).
+
+Hidden relics: `HullUpgrade` (`hp`; a Reinforce or an event's max HP) and `TimedStatus` (`fights`, `start_heat`, `gold_bonus`; an event's status, counting down as each won fight's loot is rolled). The run keeps them apart from its relics.
+
+### Events (`res://src/data/events/`, Resources)
+- **`GameEvent.gd`:** `id`, `title`, `text`, an optional `requirement` for coming up at all, a `failed_strategy` (KEEP, REMOVE, APPEND, REINSERT) for when it can't, `fallback`, and `choices`. `can_happen(run)`.
+- **`EventChoice.gd`:** `label`, `hint`, an optional `requirement`, and weighted `outcomes`. `is_available(run)`.
+- **`EventOutcome.gd`:** `weight`, `text`, and `effects`.
+- **`EventEffect.gd`** subclasses, each `apply(run, result)` adding a line to the `EventResult`: `GoldEffect`, `HullEffect`, `MaxHpEffect`, `PartEffect` (a given part, or one of a rarity from the catalog, weapons only if asked), `LosePartsEffect`, `RelicEffect`, `WeaponModEffect` (the strongest mounted weapon), `StatusEffect`, and `FightEffect` (sets the result's `fight_tier`).
+- **`EventRequirement.gd`** subclasses, each `check(run)` and `describe()`: `GoldRequirement`, `WeaponRequirement`, `PartsRequirement`.
 
 ### `LoadoutPart.gd` (Extends Resource)
 One part of a ready-made build: `part`, `origin`, `rotation`. `LoadoutPart.place_all(grid, lineup)` places a copy of each, so builds never share part instances, and reports (push_error) the first that doesn't fit.
@@ -110,9 +132,10 @@ One run: `RunState.new(chassis, catalog, rules, start_gold, rng, acts)`. It inst
 - **Fights:** `make_player_mech()` (the build at its current HP), `get_enemy(node)` (picked from the sector's pool for the node's tier on first use and kept on the node; not the last one picked when there's a choice), `make_enemy_mech(node)` (named for the enemy, HP scaled for the sector and floor), `record_fight(FightResult, mech)` (WIN, LOSS, or DRAW: the mech's damage carries over, and anything but a win ends the run in DEFEAT).
 - **Map:** `get_act()`, `get_floor_number()` (from 1; 0 before the first step), `get_reachable()`, `travel(node)`, and `next_act()` after a boss (repairs half the damage, rounded up, and generates the next map, or ends in VICTORY after the last sector).
 - **Loot:** `loot` (the run's `RewardRoller`, so the pity carries over), `roll_reward(node)` (a `FightReward`: gold for the tier as relics change it, added at once; a draft from the catalog with the tier's odds; an elite's rolled relic or a boss's three boss relics), `take_reward_part(reward, index)` (stashes a copy and closes the draft), `take_reward_relic(reward, index)`.
-- **Relics:** `add_relic(relic)` (a copy, out of the pool, `on_obtain` run). `stats()`, `make_player_mech()`, and previews count the relics; a won fight runs their `on_fight_won`.
+- **Relics:** `add_relic(relic)` (a copy, out of the pool, `on_obtain` run), `add_upgrade(upgrade)`, `add_status(status)` (a copy). `get_modifiers()` is the relics, upgrades, and statuses together: `stats()`, `make_player_mech()`, previews, fight gold, and a won fight's `on_fight_won` all use them.
+- **Stops:** `repair_at_hangar()`, `reinforce_at_hangar()`; `get_event(node)` (drawn from `event_pool` on first use and kept on the node), `choose_event_option(event, index)` (an `EventResult`, or null if the choice isn't available).
 - **Stash:** `stash_part(part, rotation)` (a copy), `install(index, origin)`, `unequip(coords)` (keeps the part's turn), `rotate_stashed(index)`, `preview_install(index, origin)`.
-- **Shop:** `open_shop()` / `close_shop()`. While one is open: `buy(slot, origin)`, `rotate_slot`, `reroll` (1 gold), and `sell(coords)` and `sell_stashed(index)` (a full refund for parts bought at this shop, half otherwise; `sell_value`, `stash_sell_value`, `is_fresh`, `is_stash_fresh`, `can_sell`). `preview_buy` / `preview_move` for hover feedback; moving and turning installed parts (`move`, `rotate_placed`) is free anywhere.
+- **Shop:** `open_shop()` (with `SHOP_RELICS` relics from the back of the pool) / `close_shop()`. While one is open: `buy(slot, origin)`, `buy_to_stash(slot)`, `buy_relic(index)`, `rotate_slot`, `reroll` (1 gold), and `sell(coords)` and `sell_stashed(index)` (a full refund for parts bought at this shop, half otherwise, never for unsellable parts; `sell_value`, `stash_sell_value`, `is_fresh`, `is_stash_fresh`, `can_sell`, `can_sell_part`). `preview_buy` / `preview_move` for hover feedback; moving and turning installed parts (`move`, `rotate_placed`) is free anywhere.
 
 ### Run logic (`res://src/run/`)
 - **`RunRng.gd`:** the run's seed split into named streams (`stream("map")`, "enemies", "shop", ...), each seeded from the seed and its name so no two streams roll alike, with `get_state()` / `restore()`. Static helpers: `shuffle(rng, array)` (Fisher-Yates), `shuffle_slice(rng, array, count)`, and `weighted_pick(rng, {key: weight})` (keys weighted 0 or less never come up; null when nothing has weight). Adapted from Slay-The-Robot's `get_player_rng` and `Random.gd`, fixing its shared stream seeds and biased shuffle.
@@ -122,7 +145,9 @@ One run: `RunState.new(chassis, catalog, rules, start_gold, rng, acts)`. It inst
 - **`RewardRoller.gd`:** `draft_parts(rng, catalog, table, count := 3)` and `roll_gold(rng, range)`, with the odds tables (`Table`: STANDARD, ELITE, BOSS, SHOP; `table_for(tier)`) and `rare_pity`, as in section 1b. Adapted from Slay-The-Robot's `generate_rarity_weighted_card_draft`, which stops short when a rarity runs dry and never resets its pity; this one falls back and resets.
 - **`FightReward.gd`:** a won fight's `tier`, `gold`, draft `parts` and `taken` (-1 until one is), and `relics` on offer and `relic_taken`; `is_draft_open()`, `is_relic_open()`.
 - **`RelicPool.gd`:** every relic, shuffled once with the run's "relics" stream. `take(count, rarities, from_back)` (no repeats; shops will pull from the back), `roll(rng, weights)` (a rarity from `CHEST_WEIGHTS` or `ELITE_WEIGHTS`, falling back to the other standard rarities), `remove(relic)`, `has`, `size`. Adapted from Slay-The-Robot's artifact pool.
-- **`ShopStock.gd`:** one Scrap Shop visit's `slots` (`SIZE` 4; each a part, its rotation, and whether it's sold), stocked from the catalog with distinct parts first. `get_open_slot`, `rotate_slot`, `restock`, `REROLL_COST`.
+- **`ShopStock.gd`:** one Scrap Shop visit's `slots` (`SIZE` 4; each a part, its rotation, and whether it's sold), drafted from the catalog with the SHOP odds by a roller of its own (so the loot pity doesn't move), and `relic_offers` (each a relic, its `price` rolled from `RELIC_PRICES`, and whether it's sold). `get_open_slot`, `get_open_relic`, `rotate_slot`, `restock` (parts only), `REROLL_COST`.
+- **`EventPool.gd`:** `next(run)` as in section 1b, with the `fallback` kept aside; `get_queue()`. Adapted from Slay-The-Robot's event pools, whose failure strategies never ran (it didn't record failed events).
+- **`EventResult.gd`:** a choice's `text`, `lines`, and `fight_tier` (-1 for none).
 
 ### Combat (`res://src/combat/`)
 Live fight state, built from a finished grid. It reads the grid, chassis, and parts but never writes to them.
@@ -144,11 +169,11 @@ The UI is strictly visual. It asks `RunState` what an action would do (`preview_
 ### `LoadoutScreen.tscn` (Extends Control)
 Where the player works on the mech: the **Loadout** from the map, and the **Scrap Shop** while the run has a shop open. It works on the `run` it's given, or, when it has none (tests, running the scene alone), starts its own run on its chassis, catalog, and rules (loaded from `res://resources/` when not set) with a shop open.
 - Header: "Sector 1 · Floor 4" ("Run" for a run without sectors), "Loadout" or "Scrap Shop", the hull and fights won ("Hull: 420 / 500 HP · 3 won"), gold, and **Back to map** or **Leave shop**, either emitting `leave_requested`.
-- Side column: the parts shop (only at a shop), and under it the `StashPanel`.
+- Side column: the parts shop (only at a shop: the part slots in a row and the relic offers under them, each with its icon, name, effect, and a **Buy · 20g** button; `buy_relic(index)`), and under it the `StashPanel`.
 - Chassis column: name, "Wide frame · 5 / 12 slots · 1 / 1 hardpoints", the `MechGridUI`, and the frame's passive under it ("Thick Plating: Reduces all incoming flat damage by 1.").
 - Parts shop: 4 `ShopItem` slots in a row (a bought slot shows "Sold · Reroll to restock"), **Reroll**. Each slot has a rotate button when the part can turn (never a weapon). Unaffordable parts can still be dragged; the grid explains why they can't drop.
-- Sell zone: at a shop, while a part from the mech or the stash is dragged, the shop panel becomes a drop target showing its sell value.
-- `StashPanel` (built in code): "Stash · 2 parts", a hint, and a `StashItem` per part (its shape, name, size, a rotate button when it turns) wrapping into rows. A stash item drags onto the mech to install; an installed part dropped on the panel is stored (`unequip`).
+- Sell zone: at a shop, while a part from the mech or the stash is dragged, the shop panel becomes a drop target showing its sell value, or "Can't be sold".
+- `StashPanel` (built in code): "Stash · 2 parts", a hint, and a `StashItem` per part (its shape, name, size, a rotate button when it turns) wrapping into rows. A stash item drags onto the mech to install; an installed part dropped on the panel is stored (`unequip`), and at a shop, a shop part dropped on it is bought into the stash.
 - `StatsPanel`: hull HP (noting the chassis's share, e.g. "450 from chassis"), energy per turn, damage per turn, and heat per turn (net of cooling, red while heat outruns it, "27 made · 15 vented"), each with a delta while a drop is previewed (for heat, a rise shows red); active links; the adjacency rules legend.
 - Toasts for results that happen off the grid (sold, rerolled, not enough gold).
 
@@ -187,20 +212,27 @@ The sector map between stops, for the `run` it's given: the `RunHud` on top, a b
 Draws a `MapGraph` in code, bottom floor at the bottom: floors 72 px apart, columns 96, centered, each node nudged by its jitter, and the boss (radius 30) centered on top with its enemy's name above it. Links are dim, the walked path bright, and the links out of the current node lighter. Each node is a dark badge ringed in its kind's color with its glyph (`KINDS`: Battle X, Elite !, Scrap Shop $, Hangar +, Event ?, Sector Boss B); visited nodes are filled lighter, skipped ones below the player dimmed, the current one ringed white, and `reachable` ones pulse. `get_node_position(node)`, `node_at(position)`, and `press(node)` (emits `node_pressed` only for a reachable node; clicks go through it). Hovering a node shows `describe(node)` ("Elite\nA tougher mech with better loot.", the boss by name).
 
 ### `RunHud.gd` (Extends HBoxContainer)
-The run at a glance, following its `run`: "Sector 1 of 3 · Floor 4" over the sector's name (a run without sectors shows "Run" and its frame), a `RelicIcon` per relic (its glyph on a badge of its color; the tooltip is "Name (Rarity)" and what it does), "Hull 420 / 500 HP" over a bar that turns red below 30%, and "20 gold".
+The run at a glance, following its `run`: "Sector 1 of 3 · Floor 4" over the sector's name (a run without sectors shows "Run" and its frame), a `RelicIcon` per relic and status (its glyph on a badge of its color; the tooltip is "Name (Rarity)" and what it does, or "Name (2 fights left)" for a status), "Hull 420 / 500 HP" over a bar that turns red below 30%, and "20 gold".
 
 ### `RewardScreen.gd` (Extends Control)
 The loot after a won fight, built in code: the run's HUD, SALVAGE (ELITE SALVAGE, BOSS SALVAGE), "+11 gold", the relics on offer ("Recovered a relic:" or "Choose a relic:", a card each with its icon, name, rarity, effect, and **Take**; `take_relic(index)`), and a card per drafted part (its name in its rarity's color, "Rare · Weapon · 2×2", its shape, its blurb, and **Take**). `take(index)` stashes it; the others read "Left behind". The button at the bottom reads **Skip the rest** while a part or relic is still on offer, then **Continue**, and emits `finished`.
 
 ### `MessageScreen.gd` (Extends Control)
-A full-screen message built in code: the run's HUD (when given a run), a title in a color, lines of text, and one button that emits `confirmed`. It serves for the placeholder stops, SECTOR CLEARED, and the run's end.
+A full-screen message built in code: the run's HUD (when given a run), a title in a color, lines of text, a column of `options` (`add_option(label, hint, action)`), and one button that emits `confirmed`. It serves for SECTOR CLEARED and the run's end, and the two screens below build on it.
+
+### `RestScreen.gd` (Extends MessageScreen)
+A Hangar stop: HANGAR / REFIT BAY, **Repair** ("Repair 9 hull (30% of max)."; off with nothing to repair) and **Reinforce** ("+25 max HP for the rest of the run."), one of which the crew does (`repair()`, `reinforce()`), and **Leave**, then **Continue**.
+
+### `EventScreen.gd` (Extends MessageScreen)
+An Event stop: the event's title and text and a button per choice (label over hint; off with "(Needs 30 gold)" when its requirement fails). `choose(index)` shows the outcome and its lines, then the button: **Continue**, or **Fight!** when the `result` starts a fight.
 
 ### `Game.tscn` (Extends Node) — the main scene
-Plays runs, one screen at a time (`screen`). It loads the parts, rules, sectors (in id order), and relics from `res://resources/` unless set (tests set them, and `run_seed`). It opens on the `ChassisSelectScreen`; a chosen frame starts a `RunState` (`start_gold` 20) and shows the `MapScreen`. A chosen node opens what's there:
+Plays runs, one screen at a time (`screen`). It loads the parts, rules, sectors (in id order), relics, and events from `res://resources/` unless set (tests set them, and `run_seed`). It opens on the `ChassisSelectScreen`; a chosen frame starts a `RunState` (`start_gold` 20) and shows the `MapScreen`. A chosen node opens what's there:
 - **Battle, Elite, Boss:** a `CombatScreen` with the player's mech from the run (`make_player_mech`, at the hull's current HP) on the left and the node's enemy (`make_enemy_mech`) on the right. When it's `finished`, the fight is recorded (`record_fight`). A loss or draw ends the run. A win rolls its loot (`roll_reward`) onto a `RewardScreen`; after it, a boss win shows SECTOR CLEARED ("The Junkyard King is down...", half the hull's damage repaired) and then the next sector's map, or, after the last sector, the run's end; any other win goes back to the map.
 - **Scrap Shop:** the run's shop opens (`open_shop`) on a `LoadoutScreen` for the run; Leave shop closes it and goes back to the map.
 - **Loadout** (from the map's button): a `LoadoutScreen` for the run with no shop; Back to map returns to the same map.
-- **Hangar, Event:** a placeholder message with Continue, back to the map.
+- **Hangar:** a `RestScreen`; its button goes back to the map.
+- **Event:** an `EventScreen` for the node's event. After the choice, the button goes back to the map, or, if the outcome starts a fight, to a fight against one of the sector's enemies of that tier (a stand-in node on the event's floor), with that tier's loot, then back to the map.
 - **The run's end:** MECH DESTROYED or RUN COMPLETE over `end_lines(run)` (the frame; "Fell in Sector 2 · Floor 7" or "Cleared all 3 sectors"; "Fights won: 9"), and New run, which goes back to a fresh frame select.
 Every swap is deferred, so a screen never leaves the tree while it's still emitting.
 

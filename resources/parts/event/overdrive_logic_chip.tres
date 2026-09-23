@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="1_ux6p0"]
+
+[resource]
+script = ExtResource("1_ux6p0")
+id = "overdrive_logic_chip"
+part_name = "Overdrive Logic Chip"
+type = 1
+cost = 6
+rarity = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1)])
+description = "Banned drone tech. +25 EN every second. Each weapon touching: +5 dmg."
+energy_gen = 25
+cooldown_max = 1.0

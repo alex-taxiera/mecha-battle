@@ -8,6 +8,7 @@ const TYPE_COLORS := {
 	MechPart.PartType.GENERATOR: Color(0.94, 0.68, 0.31),
 	MechPart.PartType.DEFENSE: Color(0.36, 0.61, 0.84),
 	MechPart.PartType.UTILITY: Color(0.36, 0.72, 0.36),
+	MechPart.PartType.JUNK: Color(0.45, 0.45, 0.48),
 }
 
 @export var cell_size := 20.0

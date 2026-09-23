@@ -3,7 +3,8 @@ extends Resource
 ## The blueprint for every item in the game. Parts are shared Resources, so nothing that
 ## changes during a fight is stored here: see [ActivePart].
 
-enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY }
+## JUNK parts do nothing and link with nothing: they only take up room.
+enum PartType { WEAPON, GENERATOR, DEFENSE, UTILITY, JUNK }
 ## How rarely the part turns up in loot: rarer parts come up less, except from elites and bosses.
 enum Rarity { COMMON, UNCOMMON, RARE }
 
@@ -12,6 +13,8 @@ enum Rarity { COMMON, UNCOMMON, RARE }
 @export var type: PartType
 @export var cost: int
 @export var rarity := Rarity.COMMON
+## Whether a shop will buy the part back. Some event parts are stuck with the mech.
+@export var sellable := true
 ## Cells this part covers, relative to a (0, 0) origin (x right, y down).
 ## For example, a vertical 1x2 is [code][Vector2i(0, 0), Vector2i(0, 1)][/code].
 @export var grid_shape: Array[Vector2i]

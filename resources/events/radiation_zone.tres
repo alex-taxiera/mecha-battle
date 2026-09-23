@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_ohj2g"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_byw8g"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_xh1dm"]
+[ext_resource type="Script" path="res://src/data/events/StatusEffect.gd" id="4_rr0te"]
+[ext_resource type="Script" path="res://src/data/relics/TimedStatus.gd" id="5_25n07"]
+[ext_resource type="Script" path="res://src/data/events/FightEffect.gd" id="6_d2s73"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="7_dw0c0"]
+
+[sub_resource type="Resource" id="Resource_met1k"]
+script = ExtResource("5_25n07")
+start_heat = 30
+gold_bonus = 0.5
+id = "radiation_storm"
+relic_name = "Radiation Storm"
+description = "start fights at +30 heat, and fights drop 50% more gold."
+rarity = 5
+glyph = "R"
+color = Color(1, 0.5411765, 0.23921569, 1)
+
+[sub_resource type="Resource" id="Resource_pgggy"]
+script = ExtResource("4_rr0te")
+status = SubResource("Resource_met1k")
+
+[sub_resource type="Resource" id="Resource_p7iox"]
+script = ExtResource("2_byw8g")
+text = "Your heat exchangers scream as you push on."
+effects = Array[ExtResource("3_xh1dm")]([SubResource("Resource_pgggy")])
+
+[sub_resource type="Resource" id="Resource_jvfrb"]
+script = ExtResource("1_ohj2g")
+label = "Push through the storm"
+hint = "Next 2 fights: start at +30 heat, +50% gold."
+outcomes = Array[ExtResource("2_byw8g")]([SubResource("Resource_p7iox")])
+
+[sub_resource type="Resource" id="Resource_c6mdt"]
+script = ExtResource("6_d2s73")
+tier = 0
+
+[sub_resource type="Resource" id="Resource_5qpxt"]
+script = ExtResource("2_byw8g")
+text = "A patrol is waiting on the detour."
+effects = Array[ExtResource("3_xh1dm")]([SubResource("Resource_c6mdt")])
+
+[sub_resource type="Resource" id="Resource_thmiv"]
+script = ExtResource("1_ohj2g")
+label = "Take the long way"
+hint = "Fight a patrol on the way."
+outcomes = Array[ExtResource("2_byw8g")]([SubResource("Resource_5qpxt")])
+
+[resource]
+script = ExtResource("7_dw0c0")
+id = "radiation_zone"
+title = "The Unstable Radiation Zone"
+text = "Your sensors pick up a solar flare ahead. Pushing through will strain your heatsinks; going around means hostile ground."
+choices = Array[ExtResource("1_ohj2g")]([SubResource("Resource_jvfrb"), SubResource("Resource_thmiv")])
