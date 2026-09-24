@@ -61,6 +61,10 @@ Until they're set, the workflow still tests and exports (the builds are attached
 | `test/` | GdUnit4 suites. They build their own data with `TestFixtures.gd`, so tuning content doesn't break them. |
 | `design_doc.md` | The rules and architecture in detail |
 
+## License
+
+The game's code, art, and content are under the [MIT License](LICENSE). The third-party code, addons, and fonts below keep their own licenses.
+
 ## Credits
 
 - Parts of the run code (the seeded RNG streams, map lattice, loot drafts with pity, relic and event pools, and shop relic prices) are adapted from [Slay-The-Robot](https://github.com/DesirePathGames/Slay-The-Robot) by DesirePathGames, under the MIT License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
