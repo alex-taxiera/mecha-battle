@@ -112,10 +112,17 @@ func test_a_hit_shakes_and_flashes_the_mech() -> void:
 	var pose: Control = view.get_node("Pose")
 	view.hit()
 	assert_float(view.get_shader_parameter("flash")).is_equal(FighterView.FLASH)
-	await await_millis(80)
-	assert_float(pose.position.x).is_not_equal(0.0)
-	# Both settle once the hit is over.
-	await await_millis(int(FighterView.SHAKE_TIME * 1000) + 100)
+	# The shake swings through 0 between its steps, so a single sample can catch it centered;
+	# watch every frame of it instead.
+	var widest := 0.0
+	var until := Time.get_ticks_msec() + int(FighterView.SHAKE_TIME * 1000)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+		widest = maxf(widest, absf(pose.position.x))
+	assert_float(widest).append_failure_message("the pose never moved during the shake").is_greater(0.0)
+	assert_float(widest).is_less_equal(absf(FighterView.SHAKE_STEPS[0]))
+	# Both settle once the hit is over (with room for the tween starting a frame late).
+	await await_millis(200)
 	assert_float(pose.position.x).is_equal(0.0)
 	assert_float(view.get_shader_parameter("flash")).is_equal_approx(0.0, 1e-3)
 	# A lighter hit flashes less.
