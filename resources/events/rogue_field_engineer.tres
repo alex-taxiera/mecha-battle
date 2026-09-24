@@ -4,14 +4,14 @@
 [ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_wuk6v"]
 [ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_xpqsu"]
 [ext_resource type="Script" path="res://src/data/events/WeaponModEffect.gd" id="4_ohwdd"]
+[ext_resource type="Resource" path="res://resources/mods/overclocked.tres" id="4_xpqsu"]
 [ext_resource type="Script" path="res://src/data/events/WeaponRequirement.gd" id="5_7npky"]
 [ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="6_nngib"]
+[ext_resource type="Resource" path="res://resources/mods/cooled.tres" id="7_ohwdd"]
 
 [sub_resource type="Resource" id="Resource_dfa5e"]
 script = ExtResource("4_ohwdd")
-prefix = "Overclocked"
-damage_scale = 1.3
-heat_add = 15
+mod = ExtResource("4_xpqsu")
 
 [sub_resource type="Resource" id="Resource_lo3ub"]
 script = ExtResource("2_wuk6v")
@@ -30,9 +30,7 @@ outcomes = Array[ExtResource("2_wuk6v")]([SubResource("Resource_lo3ub")])
 
 [sub_resource type="Resource" id="Resource_ck5su"]
 script = ExtResource("4_ohwdd")
-prefix = "Cooled"
-damage_scale = 0.9
-energy_scale = 0.8
+mod = ExtResource("7_ohwdd")
 
 [sub_resource type="Resource" id="Resource_0b3i1"]
 script = ExtResource("2_wuk6v")

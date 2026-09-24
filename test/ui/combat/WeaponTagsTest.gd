@@ -104,3 +104,13 @@ func _active(part: MechPart) -> ActivePart:
 			return active
 	return null
 
+
+
+func test_a_long_weapon_name_shrinks_to_fit() -> void:
+	var tag: WeaponTag = auto_free(WeaponTag.new())
+	tag.weapon_name = "Gatling"
+	assert_int(tag.get_name_size(180.0)).is_equal(WeaponTag.NAME_SIZE)
+	tag.weapon_name = "Concussive Ion Cannon Mk III"
+	var shrunk := tag.get_name_size(180.0)
+	assert_int(shrunk).is_less(WeaponTag.NAME_SIZE)
+	assert_int(shrunk).is_greater_equal(WeaponTag.MIN_NAME_SIZE)

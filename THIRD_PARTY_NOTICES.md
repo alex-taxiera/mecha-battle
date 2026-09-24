@@ -16,6 +16,7 @@ Parts of the run and combat code are adapted from [Slay-The-Robot](https://githu
 - `src/run/RewardRoller.gd`: `autoload/Random.gd` (`generate_rarity_weighted_card_draft`, `CARD_DRAFT_RARITY_WEIGHTS`) and the rare-card modifier in `data/prototype/PlayerData.gd`
 - `src/combat/HitPipeline.gd` and `src/combat/HitInterceptor.gd`: `scripts/action_interceptors/ActionInterceptorProcessor.gd` and `BaseActionInterceptor.gd` (the priority-ordered interceptor chain and its CONTINUE / STOPPED / REJECTED results)
 - `src/data/MechStatus.gd` and `src/combat/ActiveStatus.gd`: `data/readonly/StatusEffectData.gd` and `scripts/status_effects/BaseStatusEffect.gd` (charge bounds and overflow, secondary-charge strategies, decay types)
+- `src/data/WeaponMod.gd`: `data/readonly/CardDecoratorData.gd` (value changes and added behavior on one item, with one slot)
 
 ```
 MIT License

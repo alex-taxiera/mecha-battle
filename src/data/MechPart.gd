@@ -26,6 +26,8 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 ## The part's Mk, 1 to [constant MAX_LEVEL]. It belongs to the run's own copy of the part, so it
 ## isn't content: it's kept when the copy is duplicated but never set in a [code].tres[/code].
 @export_storage var level := 1
+## The run copy's weapon mod, if any: one per weapon. Like [member level], it belongs to the copy.
+@export_storage var mod: WeaponMod
 ## Cells this part covers, relative to a (0, 0) origin (x right, y down).
 ## For example, a vertical 1x2 is [code][Vector2i(0, 0), Vector2i(0, 1)][/code].
 @export var grid_shape: Array[Vector2i]
@@ -33,8 +35,8 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 ## Kinds a rule can ask for beyond the part's type, e.g. "heatsink" (see
 ## [member SynergyRule.first_tag]).
 @export var tags: Array[String] = []
-## What the part does beyond its numbers, if anything (e.g. reflecting heavy hits).
-@export var ability: PartAbility
+## What the part does beyond its numbers (e.g. reflecting heavy hits); a mod can add more.
+@export var abilities: Array[PartAbility] = []
 ## A weapon in a fight: its pixel sprite facing right, drawn on its bay (see
 ## [member Hardpoint.battle_anchor]).
 @export var battle_sprite: Texture2D
@@ -76,17 +78,30 @@ func get_level_scale() -> float:
 	return 1.0 + upgrade_bonus * (clampi(level, 1, MAX_LEVEL) - 1)
 
 
-## Returns the part's name with its Mk above I, e.g. "Twin Gatling Mk II".
+## Returns the part's abilities, then its mod's.
+func get_abilities() -> Array[PartAbility]:
+	var all: Array[PartAbility] = abilities.duplicate()
+	if mod:
+		all.append_array(mod.abilities)
+	return all
+
+
+## Returns the part's name with its mod and its Mk above I, e.g. "Incendiary Twin Gatling Mk II".
 func get_display_name() -> String:
-	return part_name if level <= 1 else "%s Mk %s" % [part_name, NUMERALS[clampi(level, 1, MAX_LEVEL) - 1]]
+	var named := "%s %s" % [mod.prefix, part_name] if mod else part_name
+	return named if level <= 1 else "%s Mk %s" % [named, NUMERALS[clampi(level, 1, MAX_LEVEL) - 1]]
 
 
 ## Returns whether [param other] can merge with this part into one a Mk higher: another copy of
-## the same part (same id and name, so a reworked part only merges with its own kind) at the same
-## Mk, below the top.
+## the same part (same id and name, and the same mod or none, so a modded part only merges with
+## its own kind) at the same Mk, below the top.
 func can_merge_with(other: MechPart) -> bool:
 	return other != null and other != self and other.id == id and other.part_name == part_name \
-		and other.level == level and level < MAX_LEVEL
+		and _mod_id(other) == _mod_id(self) and other.level == level and level < MAX_LEVEL
+
+
+static func _mod_id(part: MechPart) -> String:
+	return part.mod.id if part.mod else ""
 
 
 ## Returns [member grid_shape] turned [param turns] quarter-turns clockwise, shifted so its

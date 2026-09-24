@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_v0s4x"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="2_a7sbs"]
+
+[resource]
+script = ExtResource("2_a7sbs")
+id = "overclocked"
+prefix = "Overclocked"
+description = "+30% damage, +15 heat a shot."
+damage_scale = 1.3
+heat_add = 15

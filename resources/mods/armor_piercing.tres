@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_em64n"]
+[ext_resource type="Script" path="res://src/data/abilities/Piercing.gd" id="2_y006c"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="3_68aef"]
+
+[sub_resource type="Resource" id="Resource_bet61"]
+script = ExtResource("2_y006c")
+pierce_shield = false
+
+[resource]
+script = ExtResource("3_68aef")
+id = "armor_piercing"
+prefix = "Armor-Piercing"
+description = "Ignores plating, 10% less damage."
+damage_scale = 0.9
+abilities = Array[ExtResource("1_em64n")]([SubResource("Resource_bet61")])

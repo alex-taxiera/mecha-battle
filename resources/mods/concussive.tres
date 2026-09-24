@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_nw0ob"]
+[ext_resource type="Script" path="res://src/data/abilities/ApplyStatus.gd" id="2_rpohv"]
+[ext_resource type="Resource" path="res://resources/statuses/jammed.tres" id="3_tsc7s"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="4_fcent"]
+
+[sub_resource type="Resource" id="Resource_kxtnr"]
+script = ExtResource("2_rpohv")
+status = ExtResource("3_tsc7s")
+
+[resource]
+script = ExtResource("4_fcent")
+id = "concussive"
+prefix = "Concussive"
+description = "+1 Jammed a hit, fires 10% slower."
+cooldown_scale = 1.1
+abilities = Array[ExtResource("1_nw0ob")]([SubResource("Resource_kxtnr")])

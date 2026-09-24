@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_3lkbs"]
+[ext_resource type="Script" path="res://src/data/abilities/ApplyStatus.gd" id="2_uc23f"]
+[ext_resource type="Resource" path="res://resources/statuses/drained.tres" id="3_d1ycr"]
+[ext_resource type="Texture2D" path="res://assets/combat/ion_cannon.png" id="4_ehahp"]
+[ext_resource type="Texture2D" path="res://assets/combat/ion_orb.png" id="5_yg7ky"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="6_teihf"]
+
+[sub_resource type="Resource" id="Resource_0e27r"]
+script = ExtResource("2_uc23f")
+status = ExtResource("3_d1ycr")
+charges = 3
+
+[resource]
+script = ExtResource("6_teihf")
+id = "ion_cannon"
+part_name = "Ion Cannon"
+cost = 7
+rarity = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)])
+description = "Back mount. Fires every 2 seconds: 30 dmg for 80 EN and 30 heat, and 3 Drained: the target bleeds energy. Heatsink touching: ×1.5. Each generator touching: +5."
+abilities = Array[ExtResource("1_3lkbs")]([SubResource("Resource_0e27r")])
+battle_sprite = ExtResource("4_ehahp")
+projectile_sprite = ExtResource("5_yg7ky")
+energy_cost = 80
+damage = 30
+cooldown_max = 2.0
+heat = 30

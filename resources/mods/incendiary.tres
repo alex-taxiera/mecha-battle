@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_7r5ee"]
+[ext_resource type="Script" path="res://src/data/abilities/ApplyStatus.gd" id="2_k4b0m"]
+[ext_resource type="Resource" path="res://resources/statuses/burn.tres" id="3_7fhi4"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="4_3c4m8"]
+
+[sub_resource type="Resource" id="Resource_m825w"]
+script = ExtResource("2_k4b0m")
+status = ExtResource("3_7fhi4")
+
+[resource]
+script = ExtResource("4_3c4m8")
+id = "incendiary"
+prefix = "Incendiary"
+description = "+1 Burn a hit, 10% less damage."
+damage_scale = 0.9
+abilities = Array[ExtResource("1_7r5ee")]([SubResource("Resource_m825w")])

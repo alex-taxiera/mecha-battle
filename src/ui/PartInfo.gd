@@ -10,6 +10,7 @@ const FONT_SIZE := 13
 const TEXT_COLOR := Color(0.93, 0.94, 0.96)
 const BONUS_COLOR := Color(0.49, 0.88, 0.63)
 const DIM_COLOR := Color(0.7, 0.72, 0.76)
+const MOD_COLOR := Color(0.95, 0.75, 0.4)
 
 
 func _init(part: MechPart, turns: int, numbers: MechStats.PartStats) -> void:
@@ -93,7 +94,12 @@ static func bonus_line(numbers: MechStats.PartStats) -> String:
 	return " · ".join(bits)
 
 
-# Each row as [text, color]: name, summary, numbers, bonuses (if any), blurb (if any).
+## A weapon mod in a line, e.g. "Incendiary mod: +1 Burn a hit, 10% less damage.".
+static func mod_line(mod: WeaponMod) -> String:
+	return "%s mod: %s" % [mod.prefix, mod.description]
+
+
+# Each row as [text, color]: name, summary, numbers, bonuses (if any), mod (if any), blurb (if any).
 static func _rows(part: MechPart, turns: int, numbers: MechStats.PartStats) -> Array:
 	var rows := [
 		[part.get_display_name(), TEXT_COLOR],
@@ -103,6 +109,8 @@ static func _rows(part: MechPart, turns: int, numbers: MechStats.PartStats) -> A
 	var bonuses := bonus_line(numbers)
 	if not bonuses.is_empty():
 		rows.append([bonuses, BONUS_COLOR])
+	if part.mod:
+		rows.append([mod_line(part.mod), MOD_COLOR])
 	if not part.description.is_empty():
 		rows.append([part.description, DIM_COLOR])
 	return rows

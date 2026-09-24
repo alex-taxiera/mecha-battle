@@ -120,6 +120,8 @@ func _ready() -> void:
 	for mech: BattleMech in [engine.left, engine.right]:
 		mech.relic_triggered.connect(_on_relic_triggered.bind(mech))
 		mech.part_triggered.connect(_on_part_triggered.bind(mech))
+		mech.status_added.connect(_on_status_added.bind(mech))
+		mech.status_overflowed.connect(_on_status_overflowed.bind(mech))
 	_rng.randomize()
 	_set_up_camera()
 	resized.connect(_center_camera)
@@ -492,6 +494,26 @@ func _on_part_triggered(active: ActivePart, mech: BattleMech) -> void:
 		return
 	var view := _fighter_of(mech)
 	_effects.popup(active.part.part_name.to_upper(), view.position + Vector2(view.size.x / 2.0, 0), CombatColors.TAG, _popup_time(), 16)
+
+
+# A status a mech didn't have pops its name up in its color; after that its icon under the
+# gauges keeps count, so a fast weapon stacking it doesn't fill the stage with popups.
+func _on_status_added(status: ActiveStatus, amount: int, mech: BattleMech) -> void:
+	if not _animate or status.charges != amount:
+		return
+	var view := _fighter_of(mech)
+	_effects.popup(status.data.status_name.to_upper(), view.position + Vector2(view.size.x / 2.0, 48), status.data.color,
+		_popup_time(), 16)
+
+
+# A status wrapping past its top pops its own line, e.g. SHIELD STRIPPED.
+func _on_status_overflowed(status: ActiveStatus, _times: int, mech: BattleMech) -> void:
+	if not _animate or status.data.overflow_text.is_empty():
+		return
+	var view := _fighter_of(mech)
+	_effects.popup(status.data.overflow_text, view.position + Vector2(view.size.x / 2.0, 24), status.data.color,
+		_popup_time(), 16)
+	_small_shake.emit()
 
 
 # A relic that acts pops its name up over its mech, in the tag yellow.

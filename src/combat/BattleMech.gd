@@ -13,11 +13,24 @@ const MIN_FIRE_RATE := 0.5
 
 ## Emitted when one of the mech's relics does something the player should see.
 signal relic_triggered(relic: Relic)
+## One working part's ability, as [method get_abilities] lists them.
+class Acting:
+	extends RefCounted
+	var active: ActivePart
+	var ability: PartAbility
+
+	func _init(p_active: ActivePart, p_ability: PartAbility) -> void:
+		active = p_active
+		ability = p_ability
+
+
 ## Emitted the first time in a fight that a part's ability acts, e.g. armor reflecting a hit.
 signal part_triggered(active: ActivePart)
 ## Emitted when a status's charges wrap past its top, [param times] times at once.
 @warning_ignore("unused_signal") # emitted by ActiveStatus
 signal status_overflowed(status: ActiveStatus, times: int)
+## Emitted when [param amount] charges of a status are added to the mech.
+signal status_added(status: ActiveStatus, amount: int)
 
 ## The frame, for its passive. Only read.
 var chassis: MechChassis
@@ -116,8 +129,8 @@ func take_hit(hit: HitPipeline.Hit) -> int:
 ## Starts a fight: each part ability's [method PartAbility.on_fight_start], then each relic's
 ## [method Relic.on_fight_start], announcing the relics that act.
 func start_fight() -> void:
-	for active in get_abilities():
-		active.part.ability.on_fight_start(self, active)
+	for acting in get_abilities():
+		acting.ability.on_fight_start(self, acting.active)
 	for relic in relics:
 		if relic.on_fight_start(self):
 			relic_triggered.emit(relic)
@@ -150,6 +163,8 @@ func add_status(status: MechStatus, amount: int, secondary := 0) -> ActiveStatus
 		active = ActiveStatus.new(status, self)
 		statuses.append(active)
 	active.add(amount, secondary)
+	if amount != 0:
+		status_added.emit(active, amount)
 	_prune_statuses()
 	return active if active in statuses else null
 
@@ -196,6 +211,15 @@ func get_fire_rate() -> float:
 	return lerpf(1.0, MIN_FIRE_RATE, over)
 
 
+## Returns how fast the mech's weapons count down: [method get_fire_rate] from heat, as the mech's
+## statuses change it (e.g. Jammed).
+func get_weapon_speed() -> float:
+	var speed := get_fire_rate()
+	for status in statuses:
+		speed = status.data.modify_weapon_speed(self, status, speed)
+	return maxf(0.0, speed)
+
+
 ## Returns whether [param active] is a working weapon whose cooldown has run out but that the
 ## mech can't pay to fire. A shut-down mech's weapons aren't starved, just off.
 func is_starved(active: ActivePart) -> bool:
@@ -214,29 +238,29 @@ func get_top_weapon() -> ActivePart:
 	return top
 
 
-## Returns the working parts whose abilities act: every one that stacks, and the first of each
-## kind that doesn't.
-func get_abilities() -> Array[ActivePart]:
-	var acting: Array[ActivePart] = []
+## Returns the working parts' abilities that act, part by part: every one that stacks, and the
+## first of each kind that doesn't.
+func get_abilities() -> Array[Acting]:
+	var acting: Array[Acting] = []
 	var seen := {}
 	for active in active_parts:
-		var ability := active.part.ability
-		if ability == null or not active.is_active:
+		if not active.is_active:
 			continue
-		if not ability.stacks:
-			var kind: Script = ability.get_script()
-			if seen.has(kind):
-				continue
-			seen[kind] = true
-		acting.append(active)
+		for ability in active.part.get_abilities():
+			if not ability.stacks:
+				var kind: Script = ability.get_script()
+				if seen.has(kind):
+					continue
+				seen[kind] = true
+			acting.append(Acting.new(active, ability))
 	return acting
 
 
 ## Returns how many seconds sooner the storm starts for this mech's parts.
 func get_storm_lead() -> float:
 	var lead := 0.0
-	for active in get_abilities():
-		lead = maxf(lead, active.part.ability.get_storm_lead())
+	for acting in get_abilities():
+		lead = maxf(lead, acting.ability.get_storm_lead())
 	return lead
 
 
@@ -267,9 +291,9 @@ func collapse_shield() -> void:
 ## Takes a storm strike of [param damage]: the mech's abilities change it first (a lightning rod
 ## grounds half), then it lands like any hit. Returns the damage taken.
 func take_storm_strike(damage: int) -> int:
-	for active in get_abilities():
-		var changed := active.part.ability.modify_storm_strike(self, damage)
+	for acting in get_abilities():
+		var changed := acting.ability.modify_storm_strike(self, damage)
 		if changed != damage:
-			announce(active)
+			announce(acting.active)
 		damage = changed
 	return take_damage(damage, HitPipeline.Kind.STORM)

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Burn" format=3]
+
+[ext_resource type="Script" path="res://src/data/statuses/Burn.gd" id="1_dlwbn"]
+
+[resource]
+script = ExtResource("1_dlwbn")
+id = "burn"
+status_name = "Burn"
+description = "+2 heat a second per charge. Loses a charge a second."
+glyph = "B"
+color = Color(1, 0.47843137, 0.23921569, 1)
+upper_bound = 10

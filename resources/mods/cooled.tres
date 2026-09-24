@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_vwbrh"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="2_p7s6i"]
+
+[resource]
+script = ExtResource("2_p7s6i")
+id = "cooled"
+prefix = "Cooled"
+description = "20% less energy a shot, 10% less damage."
+damage_scale = 0.9
+energy_scale = 0.8

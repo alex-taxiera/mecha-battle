@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Corroded" format=3]
+
+[ext_resource type="Script" path="res://src/data/statuses/Corroded.gd" id="1_bpn2q"]
+
+[resource]
+script = ExtResource("1_bpn2q")
+id = "corroded"
+status_name = "Corroded"
+description = "Every hit taken is 3 bigger per charge, before plating. At 5 the shield is eaten away for the fight. Loses a charge every 3 seconds."
+glyph = "C"
+color = Color(0.60784316, 0.88235295, 0.3647059, 1)
+upper_bound = 5
+overflows = true
+overflow_text = "SHIELD STRIPPED"
+decay_interval = 3.0
+priority = 9500

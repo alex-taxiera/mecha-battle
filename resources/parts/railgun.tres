@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_xt36n"]
+[ext_resource type="Script" path="res://src/data/abilities/Piercing.gd" id="2_mq772"]
+[ext_resource type="Texture2D" path="res://assets/combat/railgun.png" id="3_c3cq7"]
+[ext_resource type="Texture2D" path="res://assets/combat/rail_slug.png" id="4_4ff3i"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="5_ty8pp"]
+
+[sub_resource type="Resource" id="Resource_x4sl6"]
+script = ExtResource("2_mq772")
+
+[resource]
+script = ExtResource("5_ty8pp")
+id = "railgun"
+part_name = "Railgun"
+cost = 7
+rarity = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+description = "Arm mount. Fires every 3 seconds: 90 dmg for 120 EN and 60 heat, straight through plating and shields. Heatsink touching: ×1.5. Each generator touching: +5."
+abilities = Array[ExtResource("1_xt36n")]([SubResource("Resource_x4sl6")])
+battle_sprite = ExtResource("3_c3cq7")
+projectile_sprite = ExtResource("4_4ff3i")
+energy_cost = 120
+damage = 90
+cooldown_max = 3.0
+heat = 60

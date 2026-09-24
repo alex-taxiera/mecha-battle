@@ -1,26 +1,19 @@
 class_name WeaponModEffect
 extends EventEffect
-## Reworks the mech's hardest-hitting mounted weapon, for good: its damage and energy cost scaled,
-## its heat per shot raised, and a new name. Only that one weapon changes; parts are the run's
-## own copies.
+## Fits [member mod] to the mech's hardest-hitting mounted weapon, replacing any mod it had (a
+## weapon holds one). Only that weapon changes; parts are the run's own copies.
 
-@export var prefix := "Modified"
-@export var damage_scale := 1.0
-@export var energy_scale := 1.0
-@export var heat_add := 0
+@export var mod: WeaponMod
 
 
 func apply(run: RunState, result: EventResult) -> void:
 	var weapon := strongest_weapon(run)
-	if weapon == null:
+	if weapon == null or mod == null or not mod.fits(weapon):
 		return
-	var old_name := weapon.part_name
-	weapon.damage = roundi(weapon.damage * damage_scale)
-	weapon.energy_cost = roundi(weapon.energy_cost * energy_scale)
-	weapon.heat += heat_add
-	weapon.part_name = "%s %s" % [prefix, old_name]
+	var old_name := weapon.get_display_name()
+	weapon.mod = mod
 	run.changed.emit()
-	result.lines.append("%s is now the %s" % [old_name, weapon.part_name])
+	result.lines.append("%s is now the %s" % [old_name, weapon.get_display_name()])
 
 
 ## Returns the mounted weapon with the most damage a shot, the first placed on a tie, or null.

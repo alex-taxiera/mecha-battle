@@ -29,6 +29,8 @@ enum Combine { ADD, KEEP, MIN, MAX }
 ## Whether reaching [member upper_bound] wraps the charges back around (by the width of the
 ## bounds) and fires [method on_overflow] once per wrap, instead of stopping there.
 @export var overflows := false
+## Popped over the mech when it wraps, e.g. "SHIELD STRIPPED"; empty for none.
+@export var overflow_text := ""
 @export var secondary_combine := Combine.ADD
 
 @export_group("Decay")
@@ -54,6 +56,12 @@ func intercepts_hits() -> bool:
 ## Changes [param hit] while [param status] has charges, like a [HitInterceptor].
 func intercept(_hit: HitPipeline.Hit, _status: ActiveStatus) -> HitInterceptor.Result:
 	return HitInterceptor.Result.CONTINUE
+
+
+## Returns the speed [param mech]'s weapons count down at, given [param speed] so far: e.g. Jammed
+## slowing them. Thermal throttling is separate (see [method BattleMech.get_fire_rate]).
+func modify_weapon_speed(_mech: BattleMech, _status: ActiveStatus, speed: float) -> float:
+	return speed
 
 
 ## Every tick of the fight, before it decays: e.g. heat for each charge of Burn.

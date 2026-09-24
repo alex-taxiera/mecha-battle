@@ -1,0 +1,106 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_nsgos"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_ss8qq"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_o2a6h"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="4_3pfab"]
+[ext_resource type="Resource" path="res://resources/mods/incendiary.tres" id="5_co47k"]
+[ext_resource type="Script" path="res://src/data/events/WeaponModEffect.gd" id="6_rl4y6"]
+[ext_resource type="Script" path="res://src/data/events/GoldRequirement.gd" id="7_naj6k"]
+[ext_resource type="Resource" path="res://resources/mods/concussive.tres" id="8_2jltu"]
+[ext_resource type="Resource" path="res://resources/mods/armor_piercing.tres" id="9_jfsuo"]
+[ext_resource type="Script" path="res://src/data/events/WeaponRequirement.gd" id="10_8x4mc"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="11_nbx8y"]
+
+[sub_resource type="Resource" id="Resource_6lr0f"]
+script = ExtResource("4_3pfab")
+amount = -20
+
+[sub_resource type="Resource" id="Resource_5dd57"]
+script = ExtResource("6_rl4y6")
+mod = ExtResource("5_co47k")
+
+[sub_resource type="Resource" id="Resource_n3dw2"]
+script = ExtResource("2_ss8qq")
+text = "The rounds come out glowing."
+effects = Array[ExtResource("3_o2a6h")]([SubResource("Resource_6lr0f"), SubResource("Resource_5dd57")])
+
+[sub_resource type="Resource" id="Resource_t7o40"]
+script = ExtResource("7_naj6k")
+gold = 20
+
+[sub_resource type="Resource" id="Resource_yk331"]
+script = ExtResource("1_nsgos")
+label = "Incendiary rounds"
+hint = "Your strongest weapon becomes Incendiary: +1 Burn a hit, 10% less damage."
+requirement = SubResource("Resource_t7o40")
+outcomes = Array[ExtResource("2_ss8qq")]([SubResource("Resource_n3dw2")])
+
+[sub_resource type="Resource" id="Resource_imj21"]
+script = ExtResource("4_3pfab")
+amount = -20
+
+[sub_resource type="Resource" id="Resource_krbwc"]
+script = ExtResource("6_rl4y6")
+mod = ExtResource("8_2jltu")
+
+[sub_resource type="Resource" id="Resource_nfkwy"]
+script = ExtResource("2_ss8qq")
+text = "Every shell thumps like a hammer now."
+effects = Array[ExtResource("3_o2a6h")]([SubResource("Resource_imj21"), SubResource("Resource_krbwc")])
+
+[sub_resource type="Resource" id="Resource_32652"]
+script = ExtResource("7_naj6k")
+gold = 20
+
+[sub_resource type="Resource" id="Resource_xecrj"]
+script = ExtResource("1_nsgos")
+label = "Concussive rounds"
+hint = "Your strongest weapon becomes Concussive: +1 Jammed a hit, fires 10% slower."
+requirement = SubResource("Resource_32652")
+outcomes = Array[ExtResource("2_ss8qq")]([SubResource("Resource_nfkwy")])
+
+[sub_resource type="Resource" id="Resource_lprgj"]
+script = ExtResource("4_3pfab")
+amount = -20
+
+[sub_resource type="Resource" id="Resource_cwclm"]
+script = ExtResource("6_rl4y6")
+mod = ExtResource("9_jfsuo")
+
+[sub_resource type="Resource" id="Resource_jlhlm"]
+script = ExtResource("2_ss8qq")
+text = "Tungsten tips. They go through anything."
+effects = Array[ExtResource("3_o2a6h")]([SubResource("Resource_lprgj"), SubResource("Resource_cwclm")])
+
+[sub_resource type="Resource" id="Resource_wqoy8"]
+script = ExtResource("7_naj6k")
+gold = 20
+
+[sub_resource type="Resource" id="Resource_5d5wn"]
+script = ExtResource("1_nsgos")
+label = "Armor-piercing rounds"
+hint = "Your strongest weapon becomes Armor-Piercing: ignores plating, 10% less damage."
+requirement = SubResource("Resource_wqoy8")
+outcomes = Array[ExtResource("2_ss8qq")]([SubResource("Resource_jlhlm")])
+
+[sub_resource type="Resource" id="Resource_8jft0"]
+script = ExtResource("2_ss8qq")
+text = "The armorer goes back to hammering."
+
+[sub_resource type="Resource" id="Resource_afwxo"]
+script = ExtResource("1_nsgos")
+label = "Move on"
+outcomes = Array[ExtResource("2_ss8qq")]([SubResource("Resource_8jft0")])
+
+[sub_resource type="Resource" id="Resource_5w04w"]
+script = ExtResource("10_8x4mc")
+
+[resource]
+script = ExtResource("11_nbx8y")
+id = "armorer"
+title = "The Armorer"
+text = "A scarred armorer works a portable forge between the wrecks. \"One gun, one job. Twenty gold. What'll it be?\""
+requirement = SubResource("Resource_5w04w")
+failed_strategy = 3
+choices = Array[ExtResource("1_nsgos")]([SubResource("Resource_yk331"), SubResource("Resource_xecrj"), SubResource("Resource_5d5wn"), SubResource("Resource_afwxo")])

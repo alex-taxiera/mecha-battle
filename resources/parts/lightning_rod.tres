@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="MechPart" format=3]
 
 [ext_resource type="Script" path="res://src/data/abilities/StormGround.gd" id="1_32apm"]
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_r3qli"]
 [ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_r3qli"]
 
 [sub_resource type="Resource" id="Resource_7ech3"]
@@ -16,4 +17,4 @@ cost = 4
 rarity = 2
 grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
 description = "Calls the storm 6 seconds sooner for both mechs. Strikes on this mech do half damage and give +30 EN. Only one works."
-ability = SubResource("Resource_7ech3")
+abilities = Array[ExtResource("1_r3qli")]([SubResource("Resource_7ech3")])

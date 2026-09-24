@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_67ms8"]
+
+[resource]
+script = ExtResource("1_67ms8")
+id = "ion_cannon"
+kind = 1
+target_id = "ion_cannon"
+title = "Ion Cannons in loot and shops"
+hint = "Win a run"
+runs_won = 1

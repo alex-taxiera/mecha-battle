@@ -650,8 +650,9 @@ func stash_sell_value(index: int) -> int:
 ## back at its full value.
 func refunds_in_full() -> bool:
 	for placement in grid.get_placements():
-		if placement.part.ability and placement.part.ability.refunds_in_full():
-			return true
+		for ability in placement.part.get_abilities():
+			if ability.refunds_in_full():
+				return true
 	return false
 
 

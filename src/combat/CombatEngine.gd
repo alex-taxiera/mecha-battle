@@ -192,7 +192,7 @@ func _pay_upkeep(mech: BattleMech, delta: float) -> void:
 func _tick_part(mech: BattleMech, active: ActivePart, delta: float) -> void:
 	if not active.is_active:
 		return
-	var rate := mech.get_fire_rate() if active.part.type == MechPart.PartType.WEAPON else 1.0
+	var rate := mech.get_weapon_speed() if active.part.type == MechPart.PartType.WEAPON else 1.0
 	active.current_cooldown = maxf(0.0, active.current_cooldown - delta * rate)
 	if active.current_cooldown <= TIME_EPSILON:
 		active.current_cooldown = 0.0
@@ -220,28 +220,34 @@ func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> 
 		_shoot(attacker, target, active)
 
 
-# A shot: its heat (as the weapon's ability changes it), its damage, and any damage the target's
-# armor deals back.
+# A shot: its heat (as the weapon's abilities change it), its hit (shaped by them, e.g. piercing,
+# and followed by their on-hit effects), and any damage the target's armor deals back.
 func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> void:
+	var abilities := active.part.get_abilities()
 	var heat := active.heat
-	if active.part.ability:
-		heat = active.part.ability.modify_shot_heat(active, heat)
+	for ability in abilities:
+		heat = ability.modify_shot_heat(active, heat)
 	attacker.add_heat(heat)
 	active.streak += 1
 	var hit := HitPipeline.Hit.new(HitPipeline.Kind.SHOT, target, active.damage, attacker, active)
+	for ability in abilities:
+		ability.modify_hit(hit)
 	var taken := target.take_hit(hit)
 	active.last_shot = hit.outgoing
 	active.shots += 1
 	active.damage_dealt += taken
 	attacker.damage_dealt += taken
 	weapon_fired.emit(attacker, active, target, taken)
+	if not hit.rejected:
+		for ability in abilities:
+			ability.on_hit(hit)
 	for armor in target.get_abilities():
-		var back := armor.part.ability.on_hit_taken(target, armor, active.last_shot)
+		var back := armor.ability.on_hit_taken(target, armor.active, active.last_shot)
 		if back <= 0:
 			continue
 		var returned := attacker.take_damage(back, HitPipeline.Kind.REFLECT, target)
 		target.damage_dealt += returned
-		target.announce(armor)
+		target.announce(armor.active)
 		reflected.emit(target, attacker, returned)
 
 

@@ -87,3 +87,17 @@ func test_new_numbers_and_multi_stat_links_read_as_short_lines() -> void:
 	emitter.shield = 200
 	emitter.upkeep = 10
 	assert_str(PartInfo.stat_line(emitter)).is_equal("+200 SHIELD · -10 EN upkeep")
+
+
+func test_a_modded_weapon_shows_its_mod() -> void:
+	var gatling := Fixtures.gatling()
+	gatling.mod = Fixtures.weapon_mod("incendiary", "Incendiary", {"description": "+1 Burn a hit, 10% less damage."})
+	var numbers := MechStats.PartStats.new()
+	numbers.damage = 7
+	var info: PartInfo = auto_free(PartInfo.new(gatling, 0, numbers))
+	assert_array(info.get_rows()).contains_exactly([
+		"Incendiary Twin Gatling",
+		"Weapon · 1×3",
+		"7 DMG",
+		"Incendiary mod: +1 Burn a hit, 10% less damage.",
+	])

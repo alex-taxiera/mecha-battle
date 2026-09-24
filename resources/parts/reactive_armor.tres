@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="MechPart" format=3]
 
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_fp18a"]
 [ext_resource type="Script" path="res://src/data/abilities/ReactiveReflect.gd" id="1_gtqew"]
 [ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_fp18a"]
 
@@ -14,5 +15,5 @@ type = 2
 cost = 2
 grid_shape = Array[Vector2i]([Vector2i(0, 0)])
 description = "+40 HP. A shot of 30 dmg or more sets it off: 15 dmg back at the attacker."
-ability = SubResource("Resource_sgh71")
+abilities = Array[ExtResource("1_fp18a")]([SubResource("Resource_sgh71")])
 hp = 40

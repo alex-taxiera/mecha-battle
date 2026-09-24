@@ -140,25 +140,31 @@ func test_relic_effects_give_a_relic() -> void:
 	assert_int(_run.relics[1].rarity).is_not_equal(Relic.Rarity.BOSS)
 
 
-func test_weapon_mods_rework_the_strongest_mounted_weapon() -> void:
+func test_weapon_mods_fit_the_strongest_mounted_weapon() -> void:
 	var weak := Fixtures.gatling()     # 8 damage, 3 energy
 	var strong := Fixtures.missile_pod() # 14 damage, 5 energy
 	assert_bool(_run.grid.place_part(weak, LEFT_ARM)).is_true()
 	assert_bool(_run.grid.place_part(strong, Vector2i(1, -2))).is_true()
 	assert_object(WeaponModEffect.strongest_weapon(_run)).is_same(strong)
 	var effect := WeaponModEffect.new()
-	effect.prefix = "Overclocked"
-	effect.damage_scale = 1.3
-	effect.energy_scale = 0.8
-	effect.heat_add = 15
+	effect.mod = Fixtures.weapon_mod("overclocked", "Overclocked", {"damage_scale": 1.3, "energy_scale": 0.8, "heat_add": 15})
 	var result := EventResult.new()
 	effect.apply(_run, result)
-	assert_int(strong.damage).is_equal(18) # 18.2, rounded
-	assert_int(strong.energy_cost).is_equal(4)
-	assert_int(strong.heat).is_equal(15)
-	assert_str(strong.part_name).is_equal("Overclocked Missile Pod")
-	assert_int(weak.damage).is_equal(8) # the other weapon is untouched
+	assert_object(strong.mod).is_same(effect.mod)
+	assert_str(strong.get_display_name()).is_equal("Overclocked Missile Pod")
+	# The part's own numbers stay; the mech's stats count the mod.
+	assert_int(strong.damage).is_equal(14)
+	var numbers := MechStats.calculate(_run.grid, []).part_stats[_run.grid.get_placement_at(Vector2i(1, -2))]
+	assert_int(numbers.damage).is_equal(18) # 18.2, rounded
+	assert_int(numbers.energy_draw).is_equal(4)
+	assert_int(numbers.heat).is_equal(15)
+	assert_object(weak.mod).is_null() # the other weapon is untouched
 	assert_array(result.lines).contains_exactly(["Missile Pod is now the Overclocked Missile Pod"])
+	# A second mod replaces the first: a weapon holds one.
+	var cooled := WeaponModEffect.new()
+	cooled.mod = Fixtures.weapon_mod("cooled", "Cooled", {"damage_scale": 0.9, "energy_scale": 0.8})
+	cooled.apply(_run, result)
+	assert_str(strong.get_display_name()).is_equal("Cooled Missile Pod")
 
 
 func test_upgrade_effects_raise_a_part() -> void:

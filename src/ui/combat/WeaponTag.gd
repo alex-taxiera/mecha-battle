@@ -18,6 +18,8 @@ enum State {
 
 const SLOT_SIZE := 8
 const NAME_SIZE := 18
+## A long name, like a modded weapon's, shrinks to fit, down to this size.
+const MIN_NAME_SIZE := 12
 const BAR_HEIGHT := 5
 ## Seconds the muzzle flash takes to fade.
 const FLASH_TIME := 0.35
@@ -100,6 +102,15 @@ func _get_minimum_size() -> Vector2:
 	return Vector2(200, 58)
 
 
+## Returns the font size the name fits [param width] at: [constant NAME_SIZE], or smaller for a
+## long name, down to [constant MIN_NAME_SIZE].
+func get_name_size(width: float) -> int:
+	var font_size := NAME_SIZE
+	while font_size > MIN_NAME_SIZE and CombatDraw.text_width(CombatDraw.BODY_FONT, weapon_name, font_size) > width:
+		font_size -= 1
+	return font_size
+
+
 func _draw() -> void:
 	var back := Color(0.04, 0.047, 0.07, 0.55).lerp(Color(1.0, 0.82, 0.47, 0.45), flash)
 	draw_rect(Rect2(Vector2.ZERO, size), back)
@@ -108,7 +119,7 @@ func _draw() -> void:
 	CombatDraw.text(self, CombatDraw.PIXEL_FONT, Rect2(inner.position, Vector2(inner.size.x, 12)), slot_name.to_upper(),
 		SLOT_SIZE, CombatColors.DIM, 0, align)
 	CombatDraw.text(self, CombatDraw.BODY_FONT, Rect2(inner.position + Vector2(0, 13), Vector2(inner.size.x, 22)), weapon_name,
-		NAME_SIZE, accent, 1, align)
+		get_name_size(inner.size.x), accent, 1, align)
 	var track := Rect2(inner.position.x, inner.end.y - BAR_HEIGHT, inner.size.x, BAR_HEIGHT)
 	draw_rect(track, Color(0, 0, 0, 0.5))
 	var bar := get_bar_color()

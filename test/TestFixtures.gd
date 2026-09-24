@@ -230,7 +230,7 @@ static func autocannon() -> MechPart:
 	ramp.ramp = 1
 	ramp.max_extra = 10
 	return part("Rotary Autocannon", MechPart.PartType.WEAPON, BACK_SHAPE, 5,
-		{"damage": 4, "energy_cost": 8, "heat": 2, "cooldown_max": 0.25, "ability": ramp})
+		{"damage": 4, "energy_cost": 8, "heat": 2, "cooldown_max": 0.25, "abilities": [ramp] as Array[PartAbility]})
 
 
 ## A 1x2 defense part: a 200-point shield for 10 energy a turn.
@@ -244,14 +244,14 @@ static func reactive_armor() -> MechPart:
 	var reflect := ReactiveReflect.new()
 	reflect.threshold = 30
 	reflect.damage = 15
-	return part("Reactive Armor", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 2, {"hp": 40, "ability": reflect})
+	return part("Reactive Armor", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 2, {"hp": 40, "abilities": [reflect] as Array[PartAbility]})
 
 
 ## A 2x1 utility part: the mech's weapons only slow above 80 heat.
 static func thermal_regulator() -> MechPart:
 	var raise := ThrottleRaise.new()
 	raise.throttle_heat = 80
-	return part("Thermal Regulator", MechPart.PartType.UTILITY, [Vector2i(0, 0), Vector2i(1, 0)], 4, {"ability": raise})
+	return part("Thermal Regulator", MechPart.PartType.UTILITY, [Vector2i(0, 0), Vector2i(1, 0)], 4, {"abilities": [raise] as Array[PartAbility]})
 
 
 ## A 1x3 utility part: the storm starts 6 s sooner, and this mech takes half of each strike
@@ -261,12 +261,12 @@ static func lightning_rod() -> MechPart:
 	ground.storm_lead = 6.0
 	ground.share_taken = 0.5
 	ground.energy = 30
-	return part("Lightning Rod", MechPart.PartType.UTILITY, ARM_SHAPE, 4, {"ability": ground})
+	return part("Lightning Rod", MechPart.PartType.UTILITY, ARM_SHAPE, 4, {"abilities": [ground] as Array[PartAbility]})
 
 
 ## A 1x1 utility part: while installed, shops buy every part back in full.
 static func scrapper_drone() -> MechPart:
-	return part("Scrapper Drone", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 3, {"ability": FullRefund.new()})
+	return part("Scrapper Drone", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 3, {"abilities": [FullRefund.new()] as Array[PartAbility]})
 
 
 ## A 1x1 utility part with no numbers of its own, tagged "chip" for Overclocked.
@@ -434,3 +434,78 @@ static func _rule(first_type: MechPart.PartType, second_type: MechPart.PartType,
 
 static func _bonus(stat: RuleBonus.Stat, op: RuleBonus.Op, amount: float) -> RuleBonus:
 	return RuleBonus.new(stat, op, amount)
+
+
+## A weapon mod with [param prefix] and [param values] (e.g. [code]{"damage_scale": 1.3}[/code]).
+static func weapon_mod(id: String, prefix: String, values := {}) -> WeaponMod:
+	var mod := WeaponMod.new()
+	mod.id = id
+	mod.prefix = prefix
+	for key in values:
+		assert(key in mod, "WeaponMod has no '%s'" % key)
+		mod.set(key, values[key])
+	return mod
+
+
+# The design doc's statuses.
+
+## +2 heat a second per charge, up to 10, losing one a second.
+static func burn() -> Burn:
+	var status := _status_data(Burn.new(), "burn", "Burn", 10)
+	status.heat_per_charge = 2.0
+	return status
+
+
+## Weapons 8% slower per charge, down to half speed; up to 6, losing one a second.
+static func jammed() -> Jammed:
+	var status := _status_data(Jammed.new(), "jammed", "Jammed", 6)
+	status.slow_per_charge = 0.08
+	status.min_speed = 0.5
+	return status
+
+
+## -6 energy a second per charge, up to 10, losing one a second.
+static func drained() -> Drained:
+	var status := _status_data(Drained.new(), "drained", "Drained", 10)
+	status.energy_per_charge = 6.0
+	return status
+
+
+## Every hit taken 3 bigger per charge, before plating; wraps at 5, stripping the shield; loses
+## one every 3 seconds.
+static func corroded() -> Corroded:
+	var status := _status_data(Corroded.new(), "corroded", "Corroded", 5)
+	status.damage_per_charge = 3
+	status.overflows = true
+	status.decay_interval = 3.0
+	status.priority = 9500
+	return status
+
+
+## A weapon ability leaving [param charges] of [param status] on each hit.
+static func apply_status(status: MechStatus, charges: int) -> ApplyStatus:
+	var ability := ApplyStatus.new()
+	ability.status = status
+	ability.charges = charges
+	return ability
+
+
+# The design doc's status weapons.
+
+## An arm weapon: every 0.5 s, 4 damage for 12 energy and 6 heat, and 2 Burn.
+static func flamer() -> MechPart:
+	return part("Flamer", MechPart.PartType.WEAPON, ARM_SHAPE, 5, {"damage": 4, "energy_cost": 12, "heat": 6,
+		"cooldown_max": 0.5, "abilities": [apply_status(burn(), 2)] as Array[PartAbility]})
+
+
+## An arm weapon: every 3 s, 90 damage for 120 energy and 60 heat, through plating and shields.
+static func railgun() -> MechPart:
+	return part("Railgun", MechPart.PartType.WEAPON, ARM_SHAPE, 7, {"damage": 90, "energy_cost": 120, "heat": 60,
+		"cooldown_max": 3.0, "abilities": [Piercing.new()] as Array[PartAbility]})
+
+
+static func _status_data(status: MechStatus, id: String, status_name: String, upper: int) -> MechStatus:
+	status.id = id
+	status.status_name = status_name
+	status.upper_bound = upper
+	return status

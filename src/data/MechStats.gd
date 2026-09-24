@@ -5,6 +5,10 @@ extends RefCounted
 ## [method activations_per_turn]); a part's own numbers are per activation. Build one with
 ## [method calculate]; it's a snapshot and doesn't follow later grid changes.
 
+# Stands in for a part without a mod: changes nothing.
+static var NO_MOD := WeaponMod.new()
+
+
 ## One placed part's numbers after its bonuses, each time it acts.
 class PartStats:
 	var hp := 0
@@ -138,16 +142,18 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Arr
 		var numbers: PartStats = stats.part_stats[placement]
 		# A part's Mk scales its own numbers before links and relics add to them.
 		var scale := part.get_level_scale()
+		# A mod scales them too, from the part's own numbers, so taking it off is exact.
+		var mod := part.mod if part.mod else NO_MOD
 		numbers.hp = roundi(numbers.apply(roundi(part.hp * scale), RuleBonus.Stat.HP))
 		numbers.energy = roundi(numbers.apply(roundi(part.energy_gen * scale), RuleBonus.Stat.ENERGY))
-		numbers.energy_draw = roundi(numbers.apply(part.energy_cost, RuleBonus.Stat.ENERGY_COST))
-		numbers.damage = roundi(numbers.apply(roundi(part.damage * scale), RuleBonus.Stat.DAMAGE))
-		numbers.heat = roundi(numbers.apply(part.heat, RuleBonus.Stat.HEAT))
+		numbers.energy_draw = roundi(numbers.apply(roundi(part.energy_cost * mod.energy_scale), RuleBonus.Stat.ENERGY_COST))
+		numbers.damage = roundi(numbers.apply(roundi(part.damage * scale * mod.damage_scale), RuleBonus.Stat.DAMAGE))
+		numbers.heat = roundi(numbers.apply(part.heat + mod.heat_add, RuleBonus.Stat.HEAT))
 		numbers.cooling = roundi(part.cooling * scale)
 		numbers.shield = roundi(part.shield * scale)
 		numbers.upkeep = part.upkeep
 		if part.cooldown_max > 0.0:
-			numbers.cooldown = maxf(0.0, numbers.apply(part.cooldown_max, RuleBonus.Stat.COOLDOWN))
+			numbers.cooldown = maxf(0.0, numbers.apply(part.cooldown_max * mod.cooldown_scale, RuleBonus.Stat.COOLDOWN))
 		for relic in relics:
 			relic.modify_part_stats(part, numbers)
 		stats.hp += numbers.hp

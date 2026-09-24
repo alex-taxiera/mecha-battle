@@ -293,7 +293,7 @@ func test_abilities_that_dont_stack_act_once() -> void:
 	var more_armor := Fixtures.reactive_armor()
 	var mech := BattleMech.new(_grid_with([[rod, Vector2i(1, 0)], [spare_rod, Vector2i(2, 0)],
 		[armor, Vector2i(0, 1)], [more_armor, Vector2i(3, 1)]]))
-	var acting := mech.get_abilities().map(func(active: ActivePart) -> MechPart: return active.part)
+	var acting := mech.get_abilities().map(func(each: BattleMech.Acting) -> MechPart: return each.active.part)
 	assert_array(acting).contains_exactly([rod, armor, more_armor])
 	# A storm strike of 4 comes down to 2, not 1, and pays 30 energy once.
 	assert_int(mech.take_storm_strike(4)).is_equal(2)

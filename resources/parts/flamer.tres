@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_xljrv"]
+[ext_resource type="Script" path="res://src/data/abilities/ApplyStatus.gd" id="2_hwiu2"]
+[ext_resource type="Resource" path="res://resources/statuses/burn.tres" id="3_pr70j"]
+[ext_resource type="Texture2D" path="res://assets/combat/flamer.png" id="4_3fl1e"]
+[ext_resource type="Texture2D" path="res://assets/combat/flame_puff.png" id="5_3cnat"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="6_x8y7r"]
+
+[sub_resource type="Resource" id="Resource_22ws3"]
+script = ExtResource("2_hwiu2")
+status = ExtResource("3_pr70j")
+charges = 2
+
+[resource]
+script = ExtResource("6_x8y7r")
+id = "flamer"
+part_name = "Flamer"
+cost = 5
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+description = "Arm mount. Fires every half second: 4 dmg for 12 EN and 6 heat, and 2 Burn: the target heats up. Heatsink touching: ×1.5. Each generator touching: +5."
+abilities = Array[ExtResource("1_xljrv")]([SubResource("Resource_22ws3")])
+battle_sprite = ExtResource("4_3fl1e")
+projectile_sprite = ExtResource("5_3cnat")
+energy_cost = 12
+damage = 4
+cooldown_max = 0.5
+heat = 6

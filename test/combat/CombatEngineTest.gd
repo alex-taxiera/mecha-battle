@@ -176,7 +176,7 @@ func test_an_autocannon_heats_up_as_it_keeps_firing() -> void:
 
 func test_the_heat_ramp_tops_out() -> void:
 	var active := ActivePart.new(Fixtures.autocannon())
-	var ramp := active.part.ability
+	var ramp := active.part.abilities[0]
 	assert_int(ramp.modify_shot_heat(active, 2)).is_equal(2)
 	active.streak = 3
 	assert_int(ramp.modify_shot_heat(active, 2)).is_equal(5)

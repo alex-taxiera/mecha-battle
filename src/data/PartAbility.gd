@@ -1,7 +1,7 @@
 class_name PartAbility
 extends Resource
 ## Something a part does beyond its numbers, like reflecting heavy hits or grounding the storm.
-## A part's [member MechPart.ability] is a subclass in [code]res://src/data/abilities/[/code]
+## Each of a part's [member MechPart.abilities] (and its mod's) is a subclass in [code]res://src/data/abilities/[/code]
 ## with its numbers exported, overriding the hooks it needs; every hook does nothing by default.
 ## Parts are shared, so an ability keeps no state: what changes in a fight lives on the
 ## [ActivePart] and the [BattleMech]. The hooks-on-a-resource shape follows [Relic].
@@ -24,6 +24,16 @@ func get_storm_lead() -> float:
 ## Returns the heat a shot from [param active] (its own weapon) makes, given [param heat] so far.
 func modify_shot_heat(_active: ActivePart, heat: int) -> int:
 	return heat
+
+
+## Shapes a shot from the part's own weapon before it lands, e.g. piercing plating.
+func modify_hit(_hit: HitPipeline.Hit) -> void:
+	pass
+
+
+## After a shot from the part's own weapon lands (not when it's rejected), e.g. applying a status.
+func on_hit(_hit: HitPipeline.Hit) -> void:
+	pass
 
 
 ## When [param mech] is hit by a weapon's shot of [param damage] (before plating). Returns

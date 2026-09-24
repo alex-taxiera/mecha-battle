@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_67rkv"]
+[ext_resource type="Script" path="res://src/data/abilities/ApplyStatus.gd" id="2_n6t7h"]
+[ext_resource type="Resource" path="res://resources/statuses/corroded.tres" id="3_qqrpx"]
+[ext_resource type="Texture2D" path="res://assets/combat/acid_sprayer.png" id="4_sd5uq"]
+[ext_resource type="Texture2D" path="res://assets/combat/acid_glob.png" id="5_s53vk"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="6_18rsi"]
+
+[sub_resource type="Resource" id="Resource_ov5gh"]
+script = ExtResource("2_n6t7h")
+status = ExtResource("3_qqrpx")
+
+[resource]
+script = ExtResource("6_18rsi")
+id = "acid_sprayer"
+part_name = "Acid Sprayer"
+cost = 5
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)])
+description = "Back mount. Fires every second: 10 dmg for 25 EN and 15 heat, and 1 Corroded: hits on the target grow, and at 5 its shield melts. Heatsink touching: ×1.5. Each generator touching: +5."
+abilities = Array[ExtResource("1_67rkv")]([SubResource("Resource_ov5gh")])
+battle_sprite = ExtResource("4_sd5uq")
+projectile_sprite = ExtResource("5_s53vk")
+energy_cost = 25
+damage = 10
+cooldown_max = 1.0
+heat = 15
