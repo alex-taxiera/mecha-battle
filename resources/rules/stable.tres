@@ -1,14 +1,20 @@
 [gd_resource type="Resource" script_class="SynergyRule" format=3]
 
 [ext_resource type="Script" path="res://src/data/SynergyRule.gd" id="1_2jfa4"]
+[ext_resource type="Script" path="res://src/data/RuleBonus.gd" id="1_6ic4i"]
+
+[sub_resource type="Resource" id="Resource_xkwyi"]
+script = ExtResource("1_6ic4i")
+stat = 1
+amount = 20.0
 
 [resource]
 script = ExtResource("1_2jfa4")
 id = "stable"
-label = "Heatsink + Reactor"
+label = "Heatsink + Generator"
 effect_text = "+20 energy"
 color = Color(0.9411765, 0.7058824, 0.23529412, 1)
 first_type = 1
 second_type = 3
-stat = 1
-amount = 20.0
+second_tag = "heatsink"
+bonuses = Array[ExtResource("1_6ic4i")]([SubResource("Resource_xkwyi")])

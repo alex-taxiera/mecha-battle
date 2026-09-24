@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SynergyRule" format=3]
+
+[ext_resource type="Script" path="res://src/data/RuleBonus.gd" id="1_yaxd8"]
+[ext_resource type="Script" path="res://src/data/SynergyRule.gd" id="2_odsfd"]
+
+[sub_resource type="Resource" id="Resource_7p63x"]
+script = ExtResource("1_yaxd8")
+stat = 1
+amount = 20.0
+
+[sub_resource type="Resource" id="Resource_bxk7x"]
+script = ExtResource("1_yaxd8")
+stat = 3
+amount = 10.0
+
+[resource]
+script = ExtResource("2_odsfd")
+id = "volatile"
+label = "Generator + Generator"
+effect_text = "+20 EN, +10 heat"
+color = Color(0.95, 0.45, 0.3, 1)
+first_type = 1
+second_type = 1
+target = 2
+bonuses = Array[ExtResource("1_yaxd8")]([SubResource("Resource_7p63x"), SubResource("Resource_bxk7x")])

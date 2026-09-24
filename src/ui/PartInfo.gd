@@ -66,19 +66,30 @@ static func stat_line(numbers: MechStats.PartStats) -> String:
 		bits.append("+%d HEAT" % numbers.heat)
 	if numbers.cooling:
 		bits.append("-%d HEAT" % numbers.cooling)
+	if numbers.shield:
+		bits.append("+%d SHIELD" % numbers.shield)
+	if numbers.upkeep:
+		bits.append("-%d EN upkeep" % numbers.upkeep)
+	# The cadence only when a link changed it; the blurb gives the part's own.
+	var cadence := numbers.get_bonus_total(RuleBonus.Stat.COOLDOWN)
+	if numbers.cooldown > 0.0 and (not is_zero_approx(cadence[0]) or not is_equal_approx(cadence[1], 1.0)):
+		bits.append("every %ss" % snappedf(numbers.cooldown, 0.01))
 	if not bits.is_empty():
 		return " · ".join(bits)
 	return "Links: %d" % numbers.links if numbers.links else "Not linked"
 
 
-## The bonuses a part gets from its links, e.g. "Overcharge +3 · Cooled ×1.5".
+## The bonuses a part gets from its links, e.g. "Overcharge +3 · Cooled ×1.5". A rule with more
+## than one bonus names each stat: "Volatile +20 EN / +10 HEAT".
 static func bonus_line(numbers: MechStats.PartStats) -> String:
 	var bits: PackedStringArray = []
 	for rule: SynergyRule in numbers.bonuses:
-		var amount := numbers.bonuses[rule]
-		var shown := str(roundi(amount)) if is_equal_approx(amount, roundf(amount)) else str(amount)
-		var op := "×" if rule.op == SynergyRule.Op.MULTIPLY else "+"
-		bits.append("%s %s%s" % [rule.id.capitalize(), op, shown])
+		var count := numbers.bonuses[rule]
+		var parts: PackedStringArray = []
+		for bonus in rule.bonuses:
+			var text := bonus.describe(count)
+			parts.append(text if rule.bonuses.size() == 1 else "%s %s" % [text, RuleBonus.STAT_LABELS[bonus.stat]])
+		bits.append("%s %s" % [rule.id.capitalize(), " / ".join(parts)])
 	return " · ".join(bits)
 
 

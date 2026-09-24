@@ -101,7 +101,7 @@ func test_lists_rules_and_active_links() -> void:
 	# A heatsink touching a gatling's bay: one Cooled link.
 	var grid := _grid_with([[Fixtures.gatling(), LEFT_ARM], [Fixtures.heatsink(), Vector2i(0, 1)]])
 	_panel.show_stats(MechStats.calculate(grid, _rules), null)
-	assert_array(_panel.get_link_rows()).contains_exactly("Heatsink + Weapon → weapon dmg ×1.5 ×1")
+	assert_array(_panel.get_link_rows()).contains_exactly("Heatsink + Weapon ×1")
 	await await_idle_frame() # free the rows the lists replaced
 
 

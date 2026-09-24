@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/combat/plasma_lance.png" id="1_j4k8l"]
+[ext_resource type="Texture2D" path="res://assets/combat/plasma_bolt.png" id="2_8dq35"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_5aspm"]
+
+[resource]
+script = ExtResource("3_5aspm")
+id = "plasma_lance"
+part_name = "Plasma Lance"
+cost = 7
+rarity = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+description = "Arm mount. Fires every 4 seconds: 150 dmg for 160 EN and 90 heat. Heatsink touching: ×1.5. Each generator touching: +5."
+battle_sprite = ExtResource("1_j4k8l")
+projectile_sprite = ExtResource("2_8dq35")
+energy_cost = 160
+damage = 150
+cooldown_max = 4.0
+heat = 90

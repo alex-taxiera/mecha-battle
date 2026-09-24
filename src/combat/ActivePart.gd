@@ -9,11 +9,17 @@ var part: MechPart
 var damage: int
 var energy_gen: int
 var energy_cost: int
-## Heat added per shot and vented per turn: the part's own, as relics change them. No link does.
+## Heat added each activation (each shot, for a weapon) and vented per turn: the part's own, as
+## links and relics change them.
 var heat: int
 var cooling: int
-## Seconds until the part activates. It starts a fight at the part's
-## [member MechPart.cooldown_max] and counts down.
+## Shield points the part adds, and energy it drains each turn to keep working.
+var shield: int
+var upkeep: int
+## Seconds between activations: the part's [member MechPart.cooldown_max] as links change it.
+var cooldown_max: float
+## Seconds until the part activates. It starts a fight at [member cooldown_max] and counts
+## down.
 var current_cooldown: float
 ## Whether the part still works. Combat switches it off, e.g. when the part is knocked out.
 var is_active := true
@@ -30,24 +36,31 @@ var last_shot := 0
 ## fights with its own numbers.
 func _init(p_part: MechPart, numbers: MechStats.PartStats = null) -> void:
 	part = p_part
-	current_cooldown = p_part.cooldown_max
-	heat = p_part.heat
-	cooling = p_part.cooling
 	if numbers:
 		damage = numbers.damage
 		energy_gen = numbers.energy
 		energy_cost = numbers.energy_draw
 		heat = numbers.heat
 		cooling = numbers.cooling
+		shield = numbers.shield
+		upkeep = numbers.upkeep
+		# PartStats built by hand may leave the cooldown unset.
+		cooldown_max = numbers.cooldown if numbers.cooldown > 0.0 else p_part.cooldown_max
 	else:
 		damage = p_part.damage
 		energy_gen = p_part.energy_gen
 		energy_cost = p_part.energy_cost
+		heat = p_part.heat
+		cooling = p_part.cooling
+		shield = p_part.shield
+		upkeep = p_part.upkeep
+		cooldown_max = p_part.cooldown_max
+	current_cooldown = cooldown_max
 
 
 ## Returns how far the part's cooldown has run, from 0 just after it activates to 1 when it's
 ## ready. A part with no cooldown never activates, so it stays at 0.
 func get_charge() -> float:
-	if part.cooldown_max <= 0.0:
+	if cooldown_max <= 0.0:
 		return 0.0
-	return clampf(1.0 - current_cooldown / part.cooldown_max, 0.0, 1.0)
+	return clampf(1.0 - current_cooldown / cooldown_max, 0.0, 1.0)

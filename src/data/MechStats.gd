@@ -11,14 +11,40 @@ class PartStats:
 	var energy := 0
 	var energy_draw := 0
 	var damage := 0
-	## Heat added per shot and vented per turn. No rule changes these.
+	## Heat added each activation (each shot, for a weapon) and vented per turn. Rules can
+	## change the heat a part makes but not its cooling.
 	var heat := 0
 	var cooling := 0
+	## Shield points it adds, and energy it drains each turn to keep working.
+	var shield := 0
+	var upkeep := 0
+	## Seconds between its activations, after links (0 for a part that never activates).
+	var cooldown := 0.0
 	## How many touching parts it links with.
 	var links := 0
-	## Each rule that changed this part -> its total: the summed amount for ADD rules, the
-	## combined factor for MULTIPLY rules.
-	var bonuses: Dictionary[SynergyRule, float] = {}
+	## Each rule that changed this part -> how many times it applies: once per touching partner
+	## for a stacking rule, else once. [method get_bonus_total] turns that into a number.
+	var bonuses: Dictionary[SynergyRule, int] = {}
+
+	## Returns the ADD bonuses for [param stat] summed and its MULTIPLY bonuses combined, as
+	## [code][sum, factor][/code].
+	func get_bonus_total(stat: RuleBonus.Stat) -> Array[float]:
+		var total := 0.0
+		var factor := 1.0
+		for rule: SynergyRule in bonuses:
+			for bonus in rule.bonuses:
+				if bonus.stat != stat:
+					continue
+				if bonus.op == RuleBonus.Op.ADD:
+					total += bonus.total(bonuses[rule])
+				else:
+					factor *= bonus.total(bonuses[rule])
+		return [total, factor]
+
+	## Returns [param base] plus the ADD bonuses for [param stat], times its MULTIPLY bonuses.
+	func apply(base: float, stat: RuleBonus.Stat) -> float:
+		var bonus := get_bonus_total(stat)
+		return (base + bonus[0]) * bonus[1]
 
 
 ## A touching pair that matched a rule.
@@ -38,11 +64,14 @@ var base_hp := 0
 var base_energy := 0
 ## Energy a turn: the chassis's, plus its generators' and its weapons' at their cadence.
 var energy_generated := 0
+## Energy used a turn: the weapons' shots at their cadence plus every part's upkeep.
 var energy_drawn := 0
+## Shield points: a pool that takes hits before the hull, full again every fight.
+var shield := 0
 ## Damage a turn: each weapon's damage times how often it fires, scaled by [member power].
 var damage := 0
 ## Heat a turn: made by each weapon at its cadence, scaled by [member power] like damage, and
-## vented by the heatsinks.
+## by other parts that run hot at theirs; and vented by the heatsinks.
 var heat_made := 0
 var heat_vented := 0
 ## Share of the weapons' energy draw that's covered, 0-1.
@@ -62,11 +91,11 @@ func get_net_heat() -> int:
 	return heat_made - heat_vented
 
 
-## Returns how many times [param part] acts in a turn of combat: a turn's length over its
-## cooldown, e.g. 2 for a weapon that fires every half second. A part with no cooldown counts
-## once.
-static func activations_per_turn(part: MechPart) -> float:
-	return CombatEngine.TURN_SECONDS / part.cooldown_max if part.cooldown_max > 0.0 else 1.0
+## Returns how many times a part with [param cooldown] seconds between activations acts in a
+## turn of combat: a turn's length over it, e.g. 2 for a weapon that fires every half second. A
+## part with no cooldown counts once.
+static func activations_per_turn(cooldown: float) -> float:
+	return CombatEngine.TURN_SECONDS / cooldown if cooldown > 0.0 else 1.0
 
 
 ## Returns how many links each rule has made.
@@ -86,7 +115,7 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Arr
 	for contact in grid.get_contacts():
 		var linked := false
 		for rule in rules:
-			if not rule.matches(contact.a.part.type, contact.b.part.type):
+			if not rule.matches(contact.a.part, contact.b.part):
 				continue
 			linked = true
 			stats.links.append(Link.new(rule, contact))
@@ -101,26 +130,36 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Arr
 	var generated := 0.0
 	var drawn := 0.0
 	var raw_damage := 0.0
-	var raw_heat := 0.0
+	# Weapons' heat is scaled by power like their damage; other parts' isn't.
+	var weapon_heat := 0.0
+	var other_heat := 0.0
 	for placement: MechGridData.Placement in stats.part_stats:
 		var part := placement.part
 		var numbers: PartStats = stats.part_stats[placement]
 		# A part's Mk scales its own numbers before links and relics add to them.
 		var scale := part.get_level_scale()
-		numbers.hp = _with_bonuses(roundi(part.hp * scale), numbers, SynergyRule.Stat.HP)
-		numbers.energy = _with_bonuses(roundi(part.energy_gen * scale), numbers, SynergyRule.Stat.ENERGY)
-		numbers.energy_draw = part.energy_cost
-		numbers.damage = _with_bonuses(roundi(part.damage * scale), numbers, SynergyRule.Stat.DAMAGE)
-		numbers.heat = part.heat
+		numbers.hp = roundi(numbers.apply(roundi(part.hp * scale), RuleBonus.Stat.HP))
+		numbers.energy = roundi(numbers.apply(roundi(part.energy_gen * scale), RuleBonus.Stat.ENERGY))
+		numbers.energy_draw = roundi(numbers.apply(part.energy_cost, RuleBonus.Stat.ENERGY_COST))
+		numbers.damage = roundi(numbers.apply(roundi(part.damage * scale), RuleBonus.Stat.DAMAGE))
+		numbers.heat = roundi(numbers.apply(part.heat, RuleBonus.Stat.HEAT))
 		numbers.cooling = roundi(part.cooling * scale)
+		numbers.shield = roundi(part.shield * scale)
+		numbers.upkeep = part.upkeep
+		if part.cooldown_max > 0.0:
+			numbers.cooldown = maxf(0.0, numbers.apply(part.cooldown_max, RuleBonus.Stat.COOLDOWN))
 		for relic in relics:
 			relic.modify_part_stats(part, numbers)
 		stats.hp += numbers.hp
-		var rate := activations_per_turn(part)
+		stats.shield += numbers.shield
+		var rate := activations_per_turn(numbers.cooldown)
 		generated += numbers.energy * rate
-		drawn += numbers.energy_draw * rate
+		drawn += numbers.energy_draw * rate + numbers.upkeep
 		raw_damage += numbers.damage * rate
-		raw_heat += numbers.heat * rate
+		if part.type == MechPart.PartType.WEAPON:
+			weapon_heat += numbers.heat * rate
+		else:
+			other_heat += numbers.heat * rate
 		stats.heat_vented += numbers.cooling
 	stats.base_energy = grid.chassis.base_energy
 	stats.energy_generated = stats.base_energy + roundi(generated)
@@ -128,7 +167,7 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Arr
 	if stats.energy_drawn > 0:
 		stats.power = minf(1.0, float(stats.energy_generated) / stats.energy_drawn)
 	stats.damage = roundi(raw_damage * stats.power)
-	stats.heat_made = roundi(raw_heat * stats.power)
+	stats.heat_made = roundi(weapon_heat * stats.power + other_heat)
 	for relic in relics:
 		relic.modify_stats(stats)
 	if stats.energy_drawn > 0:
@@ -138,7 +177,7 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Arr
 
 # The placements of [param contact] that [param rule] gives its bonus to.
 static func _targets(rule: SynergyRule, contact: MechGridData.Contact) -> Array[MechGridData.Placement]:
-	var first_is_a := contact.a.part.type == rule.first_type
+	var first_is_a := rule.fits_first(contact.a.part) and rule.fits_second(contact.b.part)
 	match rule.target:
 		SynergyRule.Target.FIRST:
 			return [contact.a if first_is_a else contact.b]
@@ -149,23 +188,6 @@ static func _targets(rule: SynergyRule, contact: MechGridData.Contact) -> Array[
 
 static func _add_bonus(numbers: PartStats, rule: SynergyRule) -> void:
 	if not numbers.bonuses.has(rule):
-		numbers.bonuses[rule] = rule.amount
+		numbers.bonuses[rule] = 1
 	elif rule.stacks:
-		if rule.op == SynergyRule.Op.ADD:
-			numbers.bonuses[rule] += rule.amount
-		else:
-			numbers.bonuses[rule] *= rule.amount
-
-
-# [param base] plus the ADD bonuses for [param stat], times its MULTIPLY bonuses, rounded.
-static func _with_bonuses(base: int, numbers: PartStats, stat: SynergyRule.Stat) -> int:
-	var total := float(base)
-	var factor := 1.0
-	for rule: SynergyRule in numbers.bonuses:
-		if rule.stat != stat:
-			continue
-		if rule.op == SynergyRule.Op.ADD:
-			total += numbers.bonuses[rule]
-		else:
-			factor *= numbers.bonuses[rule]
-	return roundi(total * factor)
+		numbers.bonuses[rule] += 1

@@ -1,10 +1,9 @@
 class_name SynergyRule
 extends Resource
-## A bonus that two touching parts give, matched by their part types.
+## A bonus that two touching parts give, matched by their part types and, optionally, a tag
+## each must carry (e.g. only a heatsink, not every utility part).
 
 enum Target { FIRST, SECOND, BOTH }
-enum Stat { HP, ENERGY, DAMAGE }
-enum Op { ADD, MULTIPLY }
 
 @export var id: String
 ## Shown in the rules legend, e.g. "Heatsink + Weapon".
@@ -14,18 +13,29 @@ enum Op { ADD, MULTIPLY }
 ## Marks this rule's links on the grid and in the stats panel.
 @export var color := Color.WHITE
 @export var first_type: MechPart.PartType
+## A tag the first part must carry, or empty for any part of [member first_type].
+@export var first_tag := ""
 @export var second_type: MechPart.PartType
-## Which part of the pair gets the bonus. Use BOTH when the two types are the same.
+## A tag the second part must carry, or empty for any part of [member second_type].
+@export var second_tag := ""
+## Which part of the pair gets the bonuses. Use BOTH when the two sides are the same.
 @export var target: Target
-@export var stat: Stat
-@export var op: Op
-@export var amount: float
-## Whether the bonus applies once per touching partner (true) or at most once (false).
+## What the linked part gets: each a stat, added to or multiplied.
+@export var bonuses: Array[RuleBonus] = []
+## Whether the bonuses apply once per touching partner (true) or at most once (false).
 @export var stacks := true
 
 
-## Returns whether this rule links a part of [param type_a] with one of [param type_b], in
-## either order.
-func matches(type_a: MechPart.PartType, type_b: MechPart.PartType) -> bool:
-	return (type_a == first_type and type_b == second_type) \
-		or (type_a == second_type and type_b == first_type)
+## Returns whether this rule links [param a] with [param b], in either order.
+func matches(a: MechPart, b: MechPart) -> bool:
+	return (fits_first(a) and fits_second(b)) or (fits_first(b) and fits_second(a))
+
+
+## Returns whether [param part] can be the first side of the rule.
+func fits_first(part: MechPart) -> bool:
+	return part.type == first_type and (first_tag.is_empty() or part.has_tag(first_tag))
+
+
+## Returns whether [param part] can be the second side of the rule.
+func fits_second(part: MechPart) -> bool:
+	return part.type == second_type and (second_tag.is_empty() or part.has_tag(second_tag))

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_qc7gn"]
+
+[resource]
+script = ExtResource("1_qc7gn")
+id = "combustion_core"
+kind = 1
+target_id = "combustion_core"
+title = "Combustion Cores in loot and shops"
+hint = "Clear Sector 2 with the Striker"
+sectors_cleared = 2
+with_chassis = "striker"

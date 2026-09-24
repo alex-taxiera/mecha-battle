@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_85g7s"]
+
+[resource]
+script = ExtResource("1_85g7s")
+id = "overdrive_logic_chip"
+kind = 1
+target_id = "overdrive_logic_chip"
+title = "Overdrive Logic Chips in loot and shops"
+hint = "Win 25 fights"
+fights_won_total = 25

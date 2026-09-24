@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SynergyRule" format=3]
+
+[ext_resource type="Script" path="res://src/data/RuleBonus.gd" id="1_oxmcy"]
+[ext_resource type="Script" path="res://src/data/SynergyRule.gd" id="2_3uyx8"]
+
+[sub_resource type="Resource" id="Resource_80nwf"]
+script = ExtResource("1_oxmcy")
+op = 1
+amount = 1.1
+
+[resource]
+script = ExtResource("2_3uyx8")
+id = "insulated"
+label = "Utility + Defense"
+effect_text = "defense HP ×1.1"
+color = Color(0.62, 0.82, 0.95, 1)
+first_type = 2
+second_type = 3
+bonuses = Array[ExtResource("1_oxmcy")]([SubResource("Resource_80nwf")])

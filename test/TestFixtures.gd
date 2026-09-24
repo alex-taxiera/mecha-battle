@@ -124,7 +124,7 @@ static func reactor() -> MechPart:
 ## X.
 ## XX
 static func heatsink() -> MechPart:
-	return part("L-Shaped Heatsink", MechPart.PartType.UTILITY, [Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1)], 4)
+	return part("L-Shaped Heatsink", MechPart.PartType.UTILITY, [Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1)], 4, {"tags": ["heatsink"] as Array[String]})
 
 
 static func part(part_name: String, type: MechPart.PartType, shape: Array[Vector2i], cost := 0, stats := {}) -> MechPart:
@@ -144,28 +144,88 @@ static func part(part_name: String, type: MechPart.PartType, shape: Array[Vector
 # The mockup's adjacency rules.
 
 static func cooled() -> SynergyRule:
-	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, SynergyRule.Stat.DAMAGE, SynergyRule.Op.MULTIPLY, 1.5, false)
+	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, [_bonus(RuleBonus.Stat.DAMAGE, RuleBonus.Op.MULTIPLY, 1.5)], false)
+	rule.second_tag = "heatsink"
 	return _named(rule, "cooled", "Heatsink + Weapon", "weapon dmg ×1.5", Color(0.31, 0.77, 0.74))
 
 
 static func overcharge() -> SynergyRule:
-	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.GENERATOR, SynergyRule.Target.FIRST, SynergyRule.Stat.DAMAGE, SynergyRule.Op.ADD, 3.0, true)
+	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.GENERATOR, SynergyRule.Target.FIRST, [_bonus(RuleBonus.Stat.DAMAGE, RuleBonus.Op.ADD, 3.0)], true)
 	return _named(rule, "overcharge", "Reactor + Weapon", "+3 weapon dmg", Color(0.65, 0.55, 0.94))
 
 
 static func stable() -> SynergyRule:
-	var rule := _rule(MechPart.PartType.GENERATOR, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, SynergyRule.Stat.ENERGY, SynergyRule.Op.ADD, 2.0, true)
+	var rule := _rule(MechPart.PartType.GENERATOR, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, [_bonus(RuleBonus.Stat.ENERGY, RuleBonus.Op.ADD, 2.0)], true)
+	rule.second_tag = "heatsink"
 	return _named(rule, "stable", "Heatsink + Reactor", "+2 energy", Color(0.94, 0.71, 0.24))
 
 
 static func plated() -> SynergyRule:
-	var rule := _rule(MechPart.PartType.DEFENSE, MechPart.PartType.DEFENSE, SynergyRule.Target.BOTH, SynergyRule.Stat.HP, SynergyRule.Op.ADD, 4.0, true)
+	var rule := _rule(MechPart.PartType.DEFENSE, MechPart.PartType.DEFENSE, SynergyRule.Target.BOTH, [_bonus(RuleBonus.Stat.HP, RuleBonus.Op.ADD, 4.0)], true)
 	return _named(rule, "plated", "Laser + Laser", "+4 HP each", Color(0.5, 0.65, 0.86))
 
 
 ## All four mockup rules, in the mockup's legend order.
 static func rules() -> Array[SynergyRule]:
 	return [cooled(), overcharge(), stable(), plated()]
+
+
+# The design doc's newer rules.
+
+## A chip touching a weapon: the weapon's cooldown ×0.9 and energy cost ×1.2, per chip.
+static func overclocked() -> SynergyRule:
+	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, [
+		_bonus(RuleBonus.Stat.COOLDOWN, RuleBonus.Op.MULTIPLY, 0.9),
+		_bonus(RuleBonus.Stat.ENERGY_COST, RuleBonus.Op.MULTIPLY, 1.2),
+	], true)
+	rule.second_tag = "chip"
+	return _named(rule, "overclocked", "Chip + Weapon", "CD ×0.9, EN cost ×1.2", Color(0.9, 0.4, 0.7))
+
+
+## Two touching generators: +20 energy and +10 heat each activation, each.
+static func volatile() -> SynergyRule:
+	var rule := _rule(MechPart.PartType.GENERATOR, MechPart.PartType.GENERATOR, SynergyRule.Target.BOTH, [
+		_bonus(RuleBonus.Stat.ENERGY, RuleBonus.Op.ADD, 20.0),
+		_bonus(RuleBonus.Stat.HEAT, RuleBonus.Op.ADD, 10.0),
+	], true)
+	return _named(rule, "volatile", "Generator + Generator", "+20 EN, +10 heat", Color(0.95, 0.45, 0.3))
+
+
+## A utility part touching a defense part: the defense part's HP ×1.1, per utility part.
+static func insulated() -> SynergyRule:
+	var rule := _rule(MechPart.PartType.DEFENSE, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST,
+		[_bonus(RuleBonus.Stat.HP, RuleBonus.Op.MULTIPLY, 1.1)], true)
+	return _named(rule, "insulated", "Utility + Defense", "defense HP ×1.1", Color(0.6, 0.8, 0.95))
+
+
+# The design doc's newer parts, at its numbers.
+
+## An arm weapon: every 4 s, 150 damage for 160 energy and 90 heat.
+static func plasma_lance() -> MechPart:
+	return part("Plasma Lance", MechPart.PartType.WEAPON, ARM_SHAPE, 7,
+		{"damage": 150, "energy_cost": 160, "heat": 90, "cooldown_max": 4.0})
+
+
+## A 2x2 generator: 80 energy and 10 heat every second.
+static func combustion_core() -> MechPart:
+	return part("Combustion Core", MechPart.PartType.GENERATOR, BACK_SHAPE, 5,
+		{"energy_gen": 80, "heat": 10, "cooldown_max": 1.0})
+
+
+## A 1x2 defense part that also makes energy: +100 HP, 15 energy every second.
+static func solar_plating() -> MechPart:
+	return part("Solar Plating", MechPart.PartType.DEFENSE, [Vector2i(0, 0), Vector2i(1, 0)], 3,
+		{"hp": 100, "energy_gen": 15, "cooldown_max": 1.0})
+
+
+## A 1x1 utility part that vents 5 heat a turn and has no tag, so it's no heatsink.
+static func flush_tank() -> MechPart:
+	return part("Coolant Flush Tank", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 2, {"cooling": 5})
+
+
+## A 1x1 utility part with no numbers of its own, tagged "chip" for Overclocked.
+static func logic_chip() -> MechPart:
+	return part("Overdrive Logic Chip", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 3, {"tags": ["chip"] as Array[String]})
 
 
 # Sectors and enemies for run tests.
@@ -316,13 +376,15 @@ static func _named(rule: SynergyRule, id: String, label: String, effect_text: St
 
 
 static func _rule(first_type: MechPart.PartType, second_type: MechPart.PartType, target: SynergyRule.Target,
-		stat: SynergyRule.Stat, op: SynergyRule.Op, amount: float, stacks: bool) -> SynergyRule:
+		bonuses: Array[RuleBonus], stacks: bool) -> SynergyRule:
 	var rule := SynergyRule.new()
 	rule.first_type = first_type
 	rule.second_type = second_type
 	rule.target = target
-	rule.stat = stat
-	rule.op = op
-	rule.amount = amount
+	rule.bonuses = bonuses
 	rule.stacks = stacks
 	return rule
+
+
+static func _bonus(stat: RuleBonus.Stat, op: RuleBonus.Op, amount: float) -> RuleBonus:
+	return RuleBonus.new(stat, op, amount)

@@ -2,7 +2,8 @@ class_name CombatEngine
 extends RefCounted
 ## Runs a fight between two [BattleMech]s, one tick at a time. Each chassis's base energy
 ## flows in and its heatsinks vent heat a little every tick, at their per-turn rates, and every
-## working part's cooldown counts down. A generator whose cooldown runs out adds its energy to its mech; then a weapon whose
+## working part's cooldown counts down. Any other part whose cooldown runs out (a generator,
+## say) adds its energy and heat to its mech; then a weapon whose
 ## cooldown has run out fires at the other mech, if its own mech can pay for the shot, and
 ## heats its mech up. A hot mech's weapons cool down slower (thermal throttling). Chassis
 ## passives change this: Thick Plating shrinks every hit taken,
@@ -146,8 +147,9 @@ func _tick_flow(mech: BattleMech, delta: float) -> void:
 	mech.add_heat(-vent)
 
 
-# Counts a working part's cooldown down, and runs a generator whose cooldown ran out. Weapons
-# count down at their mech's fire rate, so heat slows them.
+# Counts a working part's cooldown down, and runs any other part whose cooldown ran out: it adds
+# its energy and heat to its mech. Weapons count down at their mech's fire rate, so heat slows
+# them, and fire in [method _try_fire].
 func _tick_part(mech: BattleMech, active: ActivePart, delta: float) -> void:
 	if not active.is_active:
 		return
@@ -155,21 +157,22 @@ func _tick_part(mech: BattleMech, active: ActivePart, delta: float) -> void:
 	active.current_cooldown = maxf(0.0, active.current_cooldown - delta * rate)
 	if active.current_cooldown <= TIME_EPSILON:
 		active.current_cooldown = 0.0
-	if _is_ready(active, MechPart.PartType.GENERATOR):
+	if _is_ready(active) and active.part.type != MechPart.PartType.WEAPON:
 		mech.current_energy += active.energy_gen
-		active.current_cooldown = active.part.cooldown_max
+		mech.add_heat(active.heat)
+		active.current_cooldown = active.cooldown_max
 
 
 # Fires a ready weapon if its mech has the energy. One that can't pay stays ready and fires
 # on the first tick its mech can. On an OVERCLOCK chassis, the fight's first shot fires twice,
 # the second for free.
 func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> void:
-	if not _is_ready(active, MechPart.PartType.WEAPON):
+	if not _is_ready(active) or active.part.type != MechPart.PartType.WEAPON:
 		return
 	if attacker.current_energy < active.energy_cost:
 		return
 	attacker.current_energy -= active.energy_cost
-	active.current_cooldown = active.part.cooldown_max
+	active.current_cooldown = active.cooldown_max
 	_shoot(attacker, target, active)
 	if attacker.chassis.passive == MechChassis.Passive.OVERCLOCK and not attacker.overclock_spent:
 		attacker.overclock_spent = true
@@ -199,11 +202,10 @@ func _check_meltdown(mech: BattleMech) -> void:
 	meltdown.emit(mech, target, taken)
 
 
-# Whether a working part of this type has run out its cooldown. A part with no cooldown never
-# activates, rather than activating every tick at whatever rate the ticks arrive.
-func _is_ready(active: ActivePart, type: MechPart.PartType) -> bool:
-	var part := active.part
-	return active.is_active and part.type == type and part.cooldown_max > 0.0 and active.current_cooldown == 0.0
+# Whether a working part has run out its cooldown. A part with no cooldown never activates,
+# rather than activating every tick at whatever rate the ticks arrive.
+func _is_ready(active: ActivePart) -> bool:
+	return active.is_active and active.cooldown_max > 0.0 and active.current_cooldown == 0.0
 
 
 # Once the storm is up, strikes both mechs every storm_interval ticks, each strike harder.

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_t5oo5"]
+
+[resource]
+script = ExtResource("1_t5oo5")
+id = "plasma_lance"
+kind = 1
+target_id = "plasma_lance"
+title = "Plasma Lances in loot and shops"
+hint = "Clear Sector 1 with the Striker"
+sectors_cleared = 1
+with_chassis = "striker"

@@ -64,7 +64,8 @@ func show_stats(current: MechStats, preview: MechStats) -> void:
 		_show_links(current)
 
 
-## Returns the active links list as text, one entry per row: "label → effect ×count".
+## Returns the active links list as text, one entry per row: "label ×count". The effect is in
+## the rules legend beside it, by the same color.
 func get_link_rows() -> PackedStringArray:
 	return _row_texts(_links)
 
@@ -97,7 +98,8 @@ func _show_links(current: MechStats) -> void:
 		_links.add_child(hint)
 		return
 	for rule: SynergyRule in counts:
-		var row := _rule_row(rule.color, "%s → %s" % [rule.label, rule.effect_text], "×%d" % counts[rule], true)
+		# The legend beside the list gives the effect, so a link names its rule only.
+		var row := _rule_row(rule.color, rule.label, "×%d" % counts[rule], true)
 		_links.add_child(row)
 
 

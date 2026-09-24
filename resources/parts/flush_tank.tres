@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="1_hlxt4"]
+
+[resource]
+script = ExtResource("1_hlxt4")
+id = "flush_tank"
+part_name = "Coolant Flush Tank"
+type = 3
+cost = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "Vents 5 heat a second. Fills a gap, but it's no heatsink: it doesn't cool weapons or generators."
+cooling = 5

@@ -11,8 +11,8 @@ func test_lists_everything_about_a_part() -> void:
 	var numbers := MechStats.PartStats.new()
 	numbers.damage = 17
 	numbers.energy_draw = 3
-	numbers.bonuses[Fixtures.overcharge()] = 3.0
-	numbers.bonuses[Fixtures.cooled()] = 1.5
+	numbers.bonuses[Fixtures.overcharge()] = 1
+	numbers.bonuses[Fixtures.cooled()] = 1
 	var info: PartInfo = auto_free(PartInfo.new(gatling, 0, numbers))
 	assert_array(info.get_rows()).contains_exactly([
 		"Twin Gatling",
@@ -44,8 +44,8 @@ func test_part_numbers_read_as_short_lines() -> void:
 	var weapon := MechStats.PartStats.new()
 	weapon.damage = 17
 	weapon.energy_draw = 3
-	weapon.bonuses[Fixtures.overcharge()] = 3.0
-	weapon.bonuses[Fixtures.cooled()] = 1.5
+	weapon.bonuses[Fixtures.overcharge()] = 1
+	weapon.bonuses[Fixtures.cooled()] = 1
 	assert_str(PartInfo.stat_line(weapon)).is_equal("17 DMG · -3 EN")
 	assert_str(PartInfo.bonus_line(weapon)).is_equal("Overcharge +3 · Cooled ×1.5")
 	var generator := MechStats.PartStats.new()
@@ -63,3 +63,27 @@ func test_part_numbers_read_as_short_lines() -> void:
 	assert_str(PartInfo.bonus_line(utility)).is_empty()
 	utility.links = 2
 	assert_str(PartInfo.stat_line(utility)).is_equal("Links: 2")
+
+
+func test_new_numbers_and_multi_stat_links_read_as_short_lines() -> void:
+	# A rule with more than one bonus names each stat.
+	var core := MechStats.PartStats.new()
+	core.energy = 100
+	core.heat = 20
+	core.bonuses[Fixtures.volatile()] = 1
+	assert_str(PartInfo.stat_line(core)).is_equal("+100 EN · +20 HEAT")
+	assert_str(PartInfo.bonus_line(core)).is_equal("Volatile +20 EN / +10 HEAT")
+	# A cadence a link changed shows; one no link touched doesn't.
+	var lance := MechStats.PartStats.new()
+	lance.damage = 150
+	lance.energy_draw = 230
+	lance.cooldown = 4.0
+	assert_str(PartInfo.stat_line(lance)).is_equal("150 DMG · -230 EN")
+	lance.cooldown = 3.24
+	lance.bonuses[Fixtures.overclocked()] = 2
+	assert_str(PartInfo.stat_line(lance)).is_equal("150 DMG · -230 EN · every 3.24s")
+	assert_str(PartInfo.bonus_line(lance)).is_equal("Overclocked ×0.81 CD / ×1.44 EN cost")
+	var emitter := MechStats.PartStats.new()
+	emitter.shield = 200
+	emitter.upkeep = 10
+	assert_str(PartInfo.stat_line(emitter)).is_equal("+200 SHIELD · -10 EN upkeep")

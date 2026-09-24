@@ -6,10 +6,9 @@
 script = ExtResource("1_ux6p0")
 id = "overdrive_logic_chip"
 part_name = "Overdrive Logic Chip"
-type = 1
-cost = 6
-rarity = 2
-grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1)])
-description = "Banned drone tech. +25 EN every second. Each weapon touching: +5 dmg."
-energy_gen = 25
-cooldown_max = 1.0
+type = 3
+cost = 3
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "Banned drone tech with no numbers of its own. Each weapon touching fires 10% faster, but each shot costs 20% more EN."
+tags = Array[String](["chip"])

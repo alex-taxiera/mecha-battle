@@ -19,8 +19,8 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 @export var rarity := Rarity.COMMON
 ## Whether a shop will buy the part back. Some event parts are stuck with the mech.
 @export var sellable := true
-## How much each Mk above I adds to the part's damage, HP, energy made, and cooling, as a share
-## of its own: 0.5 makes a Mk II 1.5 times the base and a Mk III twice it. Energy cost and heat
+## How much each Mk above I adds to the part's damage, HP, shield, energy made, and cooling, as a
+## share of its own: 0.5 makes a Mk II 1.5 times the base and a Mk III twice it. Energy cost and heat
 ## stay the same, so an upgrade is a pure gain.
 @export var upgrade_bonus := 0.5
 ## The part's Mk, 1 to [constant MAX_LEVEL]. It belongs to the run's own copy of the part, so it
@@ -30,6 +30,9 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 ## For example, a vertical 1x2 is [code][Vector2i(0, 0), Vector2i(0, 1)][/code].
 @export var grid_shape: Array[Vector2i]
 @export_multiline var description: String
+## Kinds a rule can ask for beyond the part's type, e.g. "heatsink" (see
+## [member SynergyRule.first_tag]).
+@export var tags: Array[String] = []
 ## A weapon in a fight: its pixel sprite facing right, drawn on its bay (see
 ## [member Hardpoint.battle_anchor]).
 @export var battle_sprite: Texture2D
@@ -48,13 +51,25 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 @export var damage: int
 ## Seconds between the part's activations in combat.
 @export var cooldown_max: float
-## Heat this part adds to its mech each time it fires.
+## Heat this part adds to its mech each time it acts: each shot for a weapon, each activation
+## for anything else (e.g. a generator that runs hot).
 @export var heat: int
 ## Heat this part vents from its mech each turn.
 @export var cooling: int
+## Shield points this part adds: a pool that takes hits before the hull and is full again
+## every fight.
+@export var shield: int
+## Energy this part drains each turn to keep working.
+@export var upkeep: int
 
 
-## Returns how much the part's [member level] scales its damage, HP, energy made, and cooling.
+## Returns whether the part carries [param tag].
+func has_tag(tag: String) -> bool:
+	return tag in tags
+
+
+## Returns how much the part's [member level] scales its damage, HP, shield, energy made, and
+## cooling.
 func get_level_scale() -> float:
 	return 1.0 + upgrade_bonus * (clampi(level, 1, MAX_LEVEL) - 1)
 

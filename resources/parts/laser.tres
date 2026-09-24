@@ -9,5 +9,5 @@ part_name = "Point-Defense Laser"
 type = 2
 cost = 2
 grid_shape = Array[Vector2i]([Vector2i(0, 0)])
-description = "+120 HP shield. Each laser it touches: +40 HP."
+description = "+120 HP shield. Each defense part it touches: +40 HP."
 hp = 120

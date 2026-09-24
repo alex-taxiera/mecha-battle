@@ -70,16 +70,41 @@ func test_both_mechs_tick_and_keep_their_own_energy() -> void:
 	assert_int(right.current_energy).is_equal(8)
 
 
-func test_only_generators_make_energy() -> void:
-	# A defense part with energy_gen set still makes none: the type decides. Its cooldown runs
-	# out and stays at 0, while the reactor beside it shows the ticks are happening.
+func test_any_part_with_energy_makes_it() -> void:
+	# A defense part with energy_gen set makes it on its own cadence, like a generator: every
+	# 0.3 s, so 3 times in a second, beside the reactor's once.
 	var plate := Fixtures.part("Odd Plate", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 0, {"energy_gen": 5, "cooldown_max": 0.3})
 	var mech := _mech([[plate, Vector2i(1, 2)], [_reactor(1.0), Vector2i(1, 0)]])
 	var engine := _engine(mech, _mech([]))
 	for i in 10:
 		engine.process_tick(0.1)
-	assert_int(mech.current_energy).is_equal(4)
-	assert_float(_active_for(mech, plate).current_cooldown).is_equal(0.0)
+	assert_int(mech.current_energy).is_equal(4 + 3 * 5)
+	assert_float(_active_for(mech, plate).current_cooldown).is_equal_approx(0.2, 1e-6)
+
+
+func test_hot_generators_heat_their_mech() -> void:
+	# A combustion core: 80 EN and 10 heat every second.
+	var mech := _mech([[Fixtures.combustion_core(), Vector2i(1, 1)]])
+	var engine := _engine(mech, _mech([]))
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_int(mech.current_energy).is_equal(80)
+	assert_int(mech.heat).is_equal(10)
+
+
+func test_links_set_a_weapons_cadence_in_a_fight() -> void:
+	# A chip touching the left arm overclocks its peashooter to every 0.45 s; the right mech's
+	# plain one fires every 0.5 s. Over 0.9 s: two shots against one.
+	var chipped := _peashooter()
+	var left := _mech([[chipped, Vector2i(-1, 1)], [Fixtures.logic_chip(), Vector2i(0, 1)]], [Fixtures.overclocked()])
+	var plain := _peashooter()
+	var right := _mech([[plain, Vector2i(-1, 1)]], [Fixtures.overclocked()])
+	assert_float(_active_for(left, chipped).cooldown_max).is_equal_approx(0.45, 1e-6)
+	var engine := _engine(left, right)
+	for i in 18:
+		engine.process_tick(0.05)
+	assert_int(_active_for(left, chipped).shots).is_equal(2)
+	assert_int(_active_for(right, plain).shots).is_equal(1)
 
 
 func test_switched_off_parts_stay_frozen() -> void:

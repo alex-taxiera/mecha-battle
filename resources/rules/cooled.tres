@@ -1,6 +1,13 @@
 [gd_resource type="Resource" script_class="SynergyRule" format=3]
 
+[ext_resource type="Script" path="res://src/data/RuleBonus.gd" id="1_icr4c"]
 [ext_resource type="Script" path="res://src/data/SynergyRule.gd" id="1_uhgpu"]
+
+[sub_resource type="Resource" id="Resource_xbka4"]
+script = ExtResource("1_icr4c")
+stat = 2
+op = 1
+amount = 1.5
 
 [resource]
 script = ExtResource("1_uhgpu")
@@ -9,7 +16,6 @@ label = "Heatsink + Weapon"
 effect_text = "weapon dmg ×1.5"
 color = Color(0.30980393, 0.76862746, 0.7372549, 1)
 second_type = 3
-stat = 2
-op = 1
-amount = 1.5
+second_tag = "heatsink"
+bonuses = Array[ExtResource("1_icr4c")]([SubResource("Resource_xbka4")])
 stacks = false

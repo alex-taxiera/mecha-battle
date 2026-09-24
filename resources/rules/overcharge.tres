@@ -1,13 +1,18 @@
 [gd_resource type="Resource" script_class="SynergyRule" format=3]
 
+[ext_resource type="Script" path="res://src/data/RuleBonus.gd" id="1_2belt"]
 [ext_resource type="Script" path="res://src/data/SynergyRule.gd" id="1_8u78l"]
+
+[sub_resource type="Resource" id="Resource_p0iiw"]
+script = ExtResource("1_2belt")
+stat = 2
+amount = 5.0
 
 [resource]
 script = ExtResource("1_8u78l")
 id = "overcharge"
-label = "Reactor + Weapon"
+label = "Generator + Weapon"
 effect_text = "+5 weapon dmg"
 color = Color(0.64705884, 0.54509807, 0.9411765, 1)
 second_type = 1
-stat = 2
-amount = 5.0
+bonuses = Array[ExtResource("1_2belt")]([SubResource("Resource_p0iiw")])
