@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_48fwf"]
+
+[resource]
+script = ExtResource("1_48fwf")
+id = "shield_emitter"
+kind = 1
+target_id = "shield_emitter"
+title = "Energy Shield Emitters in loot and shops"
+hint = "Finish 2 runs"
+runs_finished = 2

@@ -17,6 +17,8 @@ const TAG_WIDTH := 56
 const NAME_SIZE := 24
 const OWNER_SIZE := 16
 const VALUE_SIZE := 16
+## The shield band's height, along the top of the track.
+const SHIELD_BAND := 8
 
 @export var mirrored := false:
 	set(p_mirrored):
@@ -37,6 +39,9 @@ var owner_text := "":
 		queue_redraw()
 var value := 0
 var max_value := 1
+## Shield points left and at full, shown as a band along the top of the bar. No band without one.
+var shield := 0
+var max_shield := 0
 ## Seconds the fill takes to glide to a new value. The combat screen makes it a tick's length,
 ## so the bar moves steadily instead of jumping each tick.
 var smoothing := 0.1
@@ -82,14 +87,27 @@ func set_health(p_value: int, p_max: int) -> void:
 	queue_redraw()
 
 
+## Shows [param p_shield] of [param p_max] shield points.
+func set_shield(p_shield: int, p_max: int) -> void:
+	shield = maxi(p_shield, 0)
+	max_shield = maxi(p_max, 0)
+	queue_redraw()
+
+
+## Returns the share of the shield left, from 0 to 1, or 0 without one.
+func get_shield_fraction() -> float:
+	return clampf(float(shield) / max_shield, 0.0, 1.0) if max_shield > 0 else 0.0
+
+
 ## Returns the share of full health left, from 0 to 1.
 func get_fraction() -> float:
 	return clampf(float(value) / max_value, 0.0, 1.0)
 
 
-## Returns the number on the bar, e.g. "190/220".
+## Returns the number on the bar, e.g. "190/220", with any shield left: "190/220 +80".
 func get_text() -> String:
-	return "%d/%d" % [value, max_value]
+	var text := "%d/%d" % [value, max_value]
+	return text + " +%d" % shield if shield > 0 else text
 
 
 func get_fill_color() -> Color:
@@ -113,6 +131,9 @@ func _draw() -> void:
 	draw_rect(track, CombatColors.TRACK)
 	draw_rect(CombatDraw.fill_rect(track, maxf(trail, shown), mirrored), Color(1, 1, 1, 0.8))
 	CombatDraw.glossy(self, CombatDraw.fill_rect(track, shown, mirrored), get_fill_color())
+	if shield > 0:
+		var band := Rect2(track.position, Vector2(track.size.x, SHIELD_BAND))
+		draw_rect(CombatDraw.fill_rect(band, get_shield_fraction(), mirrored), CombatColors.SHIELD)
 	CombatDraw.text(self, CombatDraw.PIXEL_FONT, track, get_text(), VALUE_SIZE, CombatColors.INK, 2, HORIZONTAL_ALIGNMENT_CENTER)
 
 

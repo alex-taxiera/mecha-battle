@@ -39,6 +39,8 @@ func _init() -> void:
 ## Shows [param mech]'s energy and heat as they are now.
 func refresh(mech: BattleMech) -> void:
 	energy.set_value(mech.current_energy)
+	# A thermal regulator moves where throttling starts.
+	heat.mark = float(mech.throttle_heat) / BattleMech.MAX_HEAT
 	_show_heat(mech.heat, mech.is_shut_down(), mech.get_fire_rate())
 
 

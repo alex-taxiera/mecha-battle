@@ -220,6 +220,89 @@ func test_a_fight_leaves_the_grid_and_its_resources_untouched() -> void:
 
 
 # An armed-cross grid with each [part, origin] placed.
+func test_the_shield_takes_hits_before_the_hull() -> void:
+	var mech := BattleMech.new(_grid_with([[Fixtures.shield_emitter(), Vector2i(1, 0)]]))
+	assert_int(mech.max_shield).is_equal(200)
+	assert_int(mech.shield).is_equal(200)
+	assert_int(mech.max_hp).is_equal(30) # a shield isn't hull
+	assert_int(mech.take_damage(150)).is_equal(150)
+	assert_int(mech.shield).is_equal(50)
+	assert_int(mech.current_health).is_equal(30)
+	assert_int(mech.last_absorbed).is_equal(150)
+	# The rest of a hit that breaks the shield goes through to the hull.
+	assert_int(mech.take_damage(60)).is_equal(60)
+	assert_int(mech.shield).is_equal(0)
+	assert_int(mech.current_health).is_equal(20)
+	assert_int(mech.last_absorbed).is_equal(50)
+	assert_int(mech.last_taken).is_equal(60)
+
+
+func test_plating_comes_off_before_the_shield() -> void:
+	var bastion := Fixtures.bastion() # every hit 2 smaller
+	var grid := MechGridData.new(bastion)
+	assert_bool(grid.place_part(Fixtures.shield_emitter(), Vector2i(0, 0))).is_true()
+	var mech := BattleMech.new(grid)
+	assert_int(mech.take_damage(10)).is_equal(8)
+	assert_int(mech.shield).is_equal(192)
+	assert_int(mech.current_health).is_equal(450)
+
+
+func test_a_collapsed_shield_is_gone_and_its_emitters_are_off() -> void:
+	var emitter := Fixtures.shield_emitter()
+	var mech := BattleMech.new(_grid_with([[emitter, Vector2i(1, 0)]]))
+	assert_int(mech.get_upkeep()).is_equal(10)
+	mech.collapse_shield()
+	assert_int(mech.shield).is_equal(0)
+	assert_bool(_active_for(mech, emitter).is_active).is_false()
+	assert_int(mech.get_upkeep()).is_equal(0)
+	assert_int(mech.take_damage(5)).is_equal(5)
+	assert_int(mech.current_health).is_equal(25)
+
+
+func test_a_regulator_raises_the_throttle() -> void:
+	var plain := BattleMech.new(MechGridData.new(_chassis))
+	plain.start_fight()
+	plain.heat = 51
+	assert_float(plain.get_fire_rate()).is_less(1.0)
+	var cooled := BattleMech.new(_grid_with([[Fixtures.thermal_regulator(), Vector2i(1, 0)]]))
+	cooled.start_fight()
+	assert_int(cooled.throttle_heat).is_equal(80)
+	cooled.heat = 79
+	assert_float(cooled.get_fire_rate()).is_equal(1.0)
+	cooled.heat = 80
+	assert_float(cooled.get_fire_rate()).is_equal(1.0)
+	cooled.heat = 90 # halfway from 80 to 100
+	assert_float(cooled.get_fire_rate()).is_equal_approx(0.75, 1e-6)
+	cooled.heat = 100
+	assert_float(cooled.get_fire_rate()).is_equal_approx(0.5, 1e-6)
+
+
+func test_abilities_that_dont_stack_act_once() -> void:
+	# Two rods: only one acts. Two armor plates: both do.
+	var rod := Fixtures.lightning_rod()
+	var spare_rod := Fixtures.lightning_rod()
+	var armor := Fixtures.reactive_armor()
+	var more_armor := Fixtures.reactive_armor()
+	var mech := BattleMech.new(_grid_with([[rod, Vector2i(1, 0)], [spare_rod, Vector2i(2, 0)],
+		[armor, Vector2i(0, 1)], [more_armor, Vector2i(3, 1)]]))
+	var acting := mech.get_abilities().map(func(active: ActivePart) -> MechPart: return active.part)
+	assert_array(acting).contains_exactly([rod, armor, more_armor])
+	# A storm strike of 4 comes down to 2, not 1, and pays 30 energy once.
+	assert_int(mech.take_storm_strike(4)).is_equal(2)
+	assert_int(mech.current_energy).is_equal(30)
+
+
+func test_a_part_ability_is_announced_once_a_fight() -> void:
+	var rod := Fixtures.lightning_rod()
+	var mech := BattleMech.new(_grid_with([[rod, Vector2i(1, 0)]]))
+	var announced: Array[ActivePart] = []
+	mech.part_triggered.connect(func(active: ActivePart) -> void: announced.append(active))
+	mech.take_storm_strike(4)
+	mech.take_storm_strike(8)
+	assert_array(announced).contains_exactly([_active_for(mech, rod)])
+	assert_int(mech.current_health).is_equal(30 - 2 - 4)
+
+
 func _grid_with(placements: Array) -> MechGridData:
 	var grid := MechGridData.new(_chassis)
 	for entry in placements:

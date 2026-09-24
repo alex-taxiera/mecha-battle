@@ -111,6 +111,8 @@ func show_sell_zone(drag: PartDragData) -> void:
 		_sell_note.text = "No shop will take it"
 	elif fresh:
 		_sell_note.text = "Full refund: bought at this shop"
+	elif run.refunds_in_full():
+		_sell_note.text = "Full refund: a scrapper drone is installed"
 	else:
 		_sell_note.text = "Half value: bought earlier"
 	_sell_zone.show()

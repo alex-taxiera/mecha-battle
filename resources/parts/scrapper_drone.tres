@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/abilities/FullRefund.gd" id="1_agsj8"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_c5u5m"]
+
+[sub_resource type="Resource" id="Resource_kinwh"]
+script = ExtResource("1_agsj8")
+stacks = false
+
+[resource]
+script = ExtResource("2_c5u5m")
+id = "scrapper_drone"
+part_name = "Scrapper Drone"
+type = 3
+cost = 3
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "While installed, shops buy every part back at full value, not just what you bought there."
+ability = SubResource("Resource_kinwh")

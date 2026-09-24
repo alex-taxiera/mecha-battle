@@ -50,3 +50,16 @@ func test_the_fill_glides_to_each_new_value() -> void:
 	assert_float(bar.shown).is_equal(1.0)
 	await await_millis(300)
 	assert_float(bar.shown).is_equal_approx(0.5, 1e-3)
+
+
+func test_a_shield_shows_as_a_band_and_on_the_number() -> void:
+	var bar: HpBar = auto_free(HpBar.new())
+	bar.set_health(190, 220)
+	assert_float(bar.get_shield_fraction()).is_equal(0.0)
+	bar.set_shield(150, 200)
+	assert_float(bar.get_shield_fraction()).is_equal_approx(0.75, 1e-6)
+	assert_str(bar.get_text()).is_equal("190/220 +150")
+	# A broken shield leaves just the hull.
+	bar.set_shield(0, 200)
+	assert_float(bar.get_shield_fraction()).is_equal(0.0)
+	assert_str(bar.get_text()).is_equal("190/220")

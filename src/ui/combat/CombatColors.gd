@@ -27,6 +27,8 @@ const DANGER := Color("#ff4d4d")
 const TAG := Color("#f2b134")
 ## The electrical storm.
 const STORM := Color("#8fd3ff")
+## Shields: the band on the HP bar and what they soak up.
+const SHIELD := Color("#7de8f0")
 
 
 ## Returns the accent of the player's side (left) or the opponent's.

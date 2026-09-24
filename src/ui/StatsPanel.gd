@@ -47,7 +47,10 @@ func show_rules(rules: Array[SynergyRule]) -> void:
 
 ## Shows [param current] stats, with the differences [param preview] would make when it's set.
 func show_stats(current: MechStats, preview: MechStats) -> void:
-	_set_stat(hp, str(current.hp), current.hp, preview.hp if preview else current.hp, "%d from chassis" % current.base_hp)
+	var hull_note := "%d from chassis" % current.base_hp
+	if current.shield > 0:
+		hull_note += " · +%d shield" % current.shield
+	_set_stat(hp, str(current.hp), current.hp, preview.hp if preview else current.hp, hull_note)
 	_set_stat(energy, _signed(current.get_net_energy()), current.get_net_energy(),
 		preview.get_net_energy() if preview else current.get_net_energy(),
 		"%d generated · %d drawn" % [current.energy_generated, current.energy_drawn])

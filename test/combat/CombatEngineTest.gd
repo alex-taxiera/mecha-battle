@@ -107,6 +107,126 @@ func test_links_set_a_weapons_cadence_in_a_fight() -> void:
 	assert_int(_active_for(right, plain).shots).is_equal(1)
 
 
+func test_upkeep_keeps_a_shield_up() -> void:
+	# 20 energy a turn pays the emitter's 10 with 10 to spare, and the shield holds.
+	var emitter := Fixtures.shield_emitter()
+	var mech := _mech([[emitter, Vector2i(1, 0)]], [], _energized_chassis(20))
+	var collapses: Array[BattleMech] = []
+	var engine := _engine(mech, _mech([]))
+	engine.shield_collapsed.connect(func(fallen: BattleMech) -> void: collapses.append(fallen))
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_int(mech.current_energy).is_equal(10)
+	assert_int(mech.shield).is_equal(200)
+	assert_bool(_active_for(mech, emitter).is_active).is_true()
+	assert_array(collapses).is_empty()
+
+
+func test_unpaid_upkeep_collapses_the_shield() -> void:
+	# No energy at all: the first tick's upkeep can't be paid.
+	var emitter := Fixtures.shield_emitter()
+	var mech := _mech([[emitter, Vector2i(1, 0)]])
+	var collapses: Array[BattleMech] = []
+	var engine := _engine(mech, _mech([]))
+	engine.shield_collapsed.connect(func(fallen: BattleMech) -> void: collapses.append(fallen))
+	for i in 10:
+		engine.process_tick(0.1)
+	assert_int(mech.shield).is_equal(0)
+	assert_bool(_active_for(mech, emitter).is_active).is_false()
+	assert_array(collapses).contains_exactly([mech])
+
+
+func test_reactive_armor_answers_heavy_hits() -> void:
+	# A 30-damage shot sets it off: 15 back to the attacker, through its own hull.
+	var armored := _mech([[Fixtures.reactive_armor(), Vector2i(1, 0)]])
+	var heavy := _mech([[_gun(30), Vector2i(-1, 1)]])
+	var reflections := []
+	var engine := _engine(heavy, armored)
+	engine.reflected.connect(func(source: BattleMech, target: BattleMech, damage: int) -> void:
+		reflections.append([source, target, damage]))
+	for i in 5:
+		engine.process_tick(0.1)
+	assert_int(armored.current_health).is_equal(70 - 30)
+	assert_int(heavy.current_health).is_equal(30 - 15)
+	assert_array(reflections).contains_exactly([[armored, heavy, 15]])
+	assert_int(armored.damage_dealt).is_equal(15)
+
+
+func test_reactive_armor_ignores_lighter_hits() -> void:
+	var armored := _mech([[Fixtures.reactive_armor(), Vector2i(1, 0)]])
+	var light := _mech([[_gun(29), Vector2i(-1, 1)]])
+	var engine := _engine(light, armored)
+	for i in 5:
+		engine.process_tick(0.1)
+	assert_int(armored.current_health).is_equal(70 - 29)
+	assert_int(light.current_health).is_equal(30)
+
+
+func test_an_autocannon_heats_up_as_it_keeps_firing() -> void:
+	# Plenty of energy: shots at 0.25, 0.5, 0.75, and 1.0 s make 2, 3, 4, and 5 heat.
+	var cannon := Fixtures.autocannon()
+	var mech := _mech([[cannon, Vector2i(1, -2)]], [], _energized_chassis(1000))
+	var engine := _engine(mech, _tough_dummy())
+	for i in 20:
+		engine.process_tick(0.05)
+	assert_int(_active_for(mech, cannon).shots).is_equal(4)
+	assert_int(mech.heat).is_equal(14)
+	assert_int(_active_for(mech, cannon).streak).is_equal(4)
+
+
+func test_the_heat_ramp_tops_out() -> void:
+	var active := ActivePart.new(Fixtures.autocannon())
+	var ramp := active.part.ability
+	assert_int(ramp.modify_shot_heat(active, 2)).is_equal(2)
+	active.streak = 3
+	assert_int(ramp.modify_shot_heat(active, 2)).is_equal(5)
+	active.streak = 50
+	assert_int(ramp.modify_shot_heat(active, 2)).is_equal(12)
+
+
+func test_waiting_for_energy_ends_the_streak() -> void:
+	# Energy for two shots (2 then 3 heat), then a wait, then energy again: back to 2 heat.
+	var cannon := Fixtures.autocannon()
+	var mech := _mech([[cannon, Vector2i(1, -2)]])
+	mech.current_energy = 16
+	var engine := _engine(mech, _tough_dummy())
+	for i in 15:
+		engine.process_tick(0.05)
+	assert_int(mech.heat).is_equal(5)
+	assert_int(_active_for(mech, cannon).streak).is_equal(0)
+	mech.current_energy = 8
+	engine.process_tick(0.05)
+	assert_int(mech.heat).is_equal(7)
+	assert_int(_active_for(mech, cannon).shots).is_equal(3)
+
+
+func test_a_lightning_rod_brings_the_storm_sooner_and_grounds_it() -> void:
+	# The storm would start at 7 s; the rod's 6 s lead brings it to 1 s. Strikes are 1, 2, 4...
+	var grounded := _mech([[Fixtures.lightning_rod(), Vector2i(1, 0)]])
+	var plain := _mech([])
+	var engine := _stormy_engine(grounded, plain)
+	engine.storm_start = 7.0
+	assert_float(engine.get_storm_start()).is_equal(1.0)
+	for i in 10:
+		engine.process_tick(0.1)
+	# First strike (1): the rod's mech takes half of it, rounded down, and gains 30 energy.
+	assert_int(grounded.current_health).is_equal(30)
+	assert_int(plain.current_health).is_equal(29)
+	assert_int(grounded.current_energy).is_equal(30)
+	for i in 2:
+		engine.process_tick(0.1)
+	assert_int(grounded.current_health).is_equal(29)
+	assert_int(plain.current_health).is_equal(27)
+	assert_int(grounded.current_energy).is_equal(60)
+
+
+func test_the_storm_takes_the_longest_lead_once() -> void:
+	# A rod on each side doesn't bring the storm 12 s sooner, just 6.
+	var engine := _engine(_mech([[Fixtures.lightning_rod(), Vector2i(1, 0)]]), _mech([[Fixtures.lightning_rod(), Vector2i(2, 0)]]))
+	assert_float(engine.get_storm_start()).is_equal(14.0)
+	assert_float(_engine(_mech([]), _mech([])).get_storm_start()).is_equal(20.0)
+
+
 func test_switched_off_parts_stay_frozen() -> void:
 	var off := _reactor(1.0)
 	var on := _reactor(1.0)
@@ -612,6 +732,11 @@ func _reactor(seconds: float) -> MechPart:
 # A free arm gun: 2 damage every half second, no energy needed.
 func _peashooter() -> MechPart:
 	return Fixtures.part("Peashooter", MechPart.PartType.WEAPON, Fixtures.ARM_SHAPE, 0, {"damage": 2, "cooldown_max": 0.5})
+
+
+# A free arm gun hitting for [param damage] every half second.
+func _gun(damage: int) -> MechPart:
+	return Fixtures.part("Gun", MechPart.PartType.WEAPON, Fixtures.ARM_SHAPE, 0, {"damage": damage, "cooldown_max": 0.5})
 
 
 # A gatling firing every second that makes 20 heat a shot.

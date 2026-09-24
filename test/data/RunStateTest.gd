@@ -145,6 +145,29 @@ func test_selling_refunds_in_full_at_the_same_shop_and_half_later() -> void:
 	assert_int(_run.sell(Vector2i(3, 1))).is_equal(0)                   # nothing left there
 
 
+func test_a_scrapper_drone_refunds_everything_in_full() -> void:
+	assert_bool(_run.buy(_slot_of(_reactor), Vector2i(2, 1))).is_true() # 3 gold, at (2, 1) (3, 1)
+	_run.stash_part(Fixtures.laser())
+	_run.close_shop()
+	_run.open_shop()
+	# Positive control: bought earlier, it sells for half.
+	assert_bool(_run.refunds_in_full()).is_false()
+	assert_int(_run.sell_value(Vector2i(3, 1))).is_equal(1)
+	assert_int(_run.stash_sell_value(0)).is_equal(1)
+	# With a drone installed, for its full cost.
+	assert_bool(_run.grid.place_part(Fixtures.scrapper_drone(), Vector2i(1, 0))).is_true()
+	assert_bool(_run.refunds_in_full()).is_true()
+	assert_int(_run.sell_value(Vector2i(3, 1))).is_equal(3)
+	assert_int(_run.stash_sell_value(0)).is_equal(2)
+	var gold := _run.gold
+	assert_int(_run.sell(Vector2i(3, 1))).is_equal(3)
+	assert_int(_run.gold).is_equal(gold + 3)
+	# A drone in the stash does nothing.
+	assert_bool(_run.unequip(Vector2i(1, 0))).is_true()
+	assert_bool(_run.refunds_in_full()).is_false()
+	assert_int(_run.stash_sell_value(0)).is_equal(1)
+
+
 func test_the_shop_only_trades_while_open() -> void:
 	_run.close_shop()
 	assert_bool(_run.can_sell()).is_false()

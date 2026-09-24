@@ -635,7 +635,8 @@ func can_sell_part(part: MechPart) -> bool:
 
 
 ## Returns what the part covering [param coords] sells for: its cost times its Mk, in full if it
-## was bought at this shop, otherwise half, rounded down. 0 if the cell is empty.
+## was bought at this shop or an installed part refunds in full (see [method refunds_in_full]),
+## otherwise half, rounded down. 0 if the cell is empty.
 func sell_value(coords: Vector2i) -> int:
 	return _value_of(grid.get_part_at(coords))
 
@@ -643,6 +644,15 @@ func sell_value(coords: Vector2i) -> int:
 ## Returns what stashed part [param index] sells for, as [method sell_value] does.
 func stash_sell_value(index: int) -> int:
 	return _value_of(stash[index].part) if index >= 0 and index < stash.size() else 0
+
+
+## Returns whether a part installed on the mech (a scrapper drone) makes shops buy every part
+## back at its full value.
+func refunds_in_full() -> bool:
+	for placement in grid.get_placements():
+		if placement.part.ability and placement.part.ability.refunds_in_full():
+			return true
+	return false
 
 
 ## Returns whether stashed part [param index] was bought at this shop.
@@ -734,7 +744,7 @@ func _value_of(part: MechPart) -> int:
 	if part == null:
 		return 0
 	var value := part.cost * part.level
-	return value if part in _fresh else floori(value / 2.0)
+	return value if part in _fresh or refunds_in_full() else floori(value / 2.0)
 
 
 func _preview_place(part: MechPart, origin: Vector2i, rotation: int) -> Preview:

@@ -1,0 +1,42 @@
+class_name PartAbility
+extends Resource
+## Something a part does beyond its numbers, like reflecting heavy hits or grounding the storm.
+## A part's [member MechPart.ability] is a subclass in [code]res://src/data/abilities/[/code]
+## with its numbers exported, overriding the hooks it needs; every hook does nothing by default.
+## Parts are shared, so an ability keeps no state: what changes in a fight lives on the
+## [ActivePart] and the [BattleMech]. The hooks-on-a-resource shape follows [Relic].
+
+## Whether each copy on a mech acts (true), or only one does however many are installed.
+@export var stacks := true
+
+
+## At the start of each fight, for the part's [param active] on [param mech].
+func on_fight_start(_mech: BattleMech, _active: ActivePart) -> void:
+	pass
+
+
+## Seconds sooner the electrical storm starts, for both mechs, while the part is installed.
+## The fight takes the largest lead either mech has.
+func get_storm_lead() -> float:
+	return 0.0
+
+
+## Returns the heat a shot from [param active] (its own weapon) makes, given [param heat] so far.
+func modify_shot_heat(_active: ActivePart, heat: int) -> int:
+	return heat
+
+
+## When [param mech] is hit by a weapon's shot of [param damage] (before plating). Returns
+## damage to deal back to the attacker, or 0.
+func on_hit_taken(_mech: BattleMech, _active: ActivePart, _damage: int) -> int:
+	return 0
+
+
+## Returns the damage a storm strike of [param damage] does to [param mech] (before plating).
+func modify_storm_strike(_mech: BattleMech, damage: int) -> int:
+	return damage
+
+
+## Whether, while the part is installed, a shop buys every part back at its full value.
+func refunds_in_full() -> bool:
+	return false

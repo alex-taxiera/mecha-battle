@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_jc4v6"]
+
+[resource]
+script = ExtResource("1_jc4v6")
+id = "lightning_rod"
+kind = 1
+target_id = "lightning_rod"
+title = "Lightning Rods in loot and shops"
+hint = "Clear Sector 2 with the Bastion"
+sectors_cleared = 2
+with_chassis = "bastion"

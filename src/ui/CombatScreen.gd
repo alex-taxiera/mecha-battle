@@ -114,9 +114,12 @@ func _ready() -> void:
 	engine.weapon_fired.connect(_on_weapon_fired)
 	engine.meltdown.connect(_on_meltdown)
 	engine.storm_struck.connect(_on_storm_struck)
+	engine.reflected.connect(_on_reflected)
+	engine.shield_collapsed.connect(_on_shield_collapsed)
 	engine.battle_ended.connect(_on_battle_ended)
 	for mech: BattleMech in [engine.left, engine.right]:
 		mech.relic_triggered.connect(_on_relic_triggered.bind(mech))
+		mech.part_triggered.connect(_on_part_triggered.bind(mech))
 	_rng.randomize()
 	_set_up_camera()
 	resized.connect(_center_camera)
@@ -331,6 +334,7 @@ func _refresh() -> void:
 		(side[2] as MechGauges).refresh(mech)
 		(side[3] as WeaponTags).refresh()
 		(side[4] as HpBar).set_health(mech.current_health, mech.max_hp)
+		(side[4] as HpBar).set_shield(mech.shield, mech.max_shield)
 	_storm_timer.set_countdown(engine.get_storm_countdown())
 
 
@@ -395,29 +399,33 @@ func _on_weapon_fired(attacker: BattleMech, weapon: ActivePart, target: BattleMe
 	_shots_this_tick[weapon] = nth + 1
 	var to := _fighter_of(target).get_center() + Vector2(0, _rng.randf_range(-24.0, 24.0))
 	var tint := CombatColors.accent(left).lerp(Color.WHITE, 0.25)
-	var landed := _land_shot.bind(target, damage, weapon.last_shot - damage, weapon.last_shot >= HEAVY_HIT)
+	# The engine emits right after the hit, so the target's shield share is this shot's.
+	var landed := _land_shot.bind(target, damage - target.last_absorbed, weapon.last_shot - damage, weapon.last_shot >= HEAVY_HIT,
+		target.last_absorbed)
 	_effects.shoot(weapon.part.projectile_sprite, _fighter_of(attacker).get_muzzle(weapon), to, tint, not left,
 		FLIGHT_TIME / speed, landed, nth * SHOT_STAGGER / speed)
 
 
-func _land_shot(target: BattleMech, damage: int, blocked: int, heavy: bool) -> void:
+func _land_shot(target: BattleMech, damage: int, blocked: int, heavy: bool, shielded: int) -> void:
 	_fighter_of(target).hit(1.0 if heavy else LIGHT_HIT)
-	_pop_damage(target, damage, blocked, _hit_color(target))
+	_pop_damage(target, damage, blocked, _hit_color(target), shielded)
 	if heavy:
 		_small_shake.emit()
 
 
-# Adds a hit to [param target]'s next popup. Popups go up once a frame, so hits landing together
-# share one.
-func _pop_damage(target: BattleMech, damage: int, blocked: int, color: Color) -> void:
-	var pending: Array = _pending_popups.get(target, [0, 0, color])
+# Adds a hit to [param target]'s next popup: [param damage] to the hull, [param blocked] by plating,
+# and [param shielded] by its shield. Popups go up once a frame, so hits landing together share one.
+func _pop_damage(target: BattleMech, damage: int, blocked: int, color: Color, shielded := 0) -> void:
+	var pending: Array = _pending_popups.get(target, [0, 0, color, 0])
 	pending[0] += damage
 	pending[1] += blocked
+	pending[3] += shielded
 	pending[2] = color
 	_pending_popups[target] = pending
 
 
-# Shows [param target]'s summed damage, with what plating blocked just under it, once its last
+# Shows [param target]'s summed damage, with what plating blocked and its shield soaked up just
+# under it, once its last
 # popup is POPUP_GAP old.
 func _flush_popup(target: BattleMech) -> void:
 	var now := Time.get_ticks_msec()
@@ -431,6 +439,9 @@ func _flush_popup(target: BattleMech) -> void:
 		_effects.popup("-%d" % pending[0], spot, pending[2], _popup_time())
 	if pending[1] > 0:
 		_effects.popup("BLOCK %d" % pending[1], spot + Vector2(0, 24), CombatColors.FRAME, _popup_time(), 16)
+	if pending[3] > 0:
+		var below := 48 if pending[1] > 0 else 24
+		_effects.popup("SHIELD %d" % pending[3], spot + Vector2(0, below), CombatColors.SHIELD, _popup_time(), 16)
 
 
 # Each mech's hits since its last popup go up together, once the gap has passed.
@@ -449,17 +460,40 @@ func _on_meltdown(_mech: BattleMech, target: BattleMech, damage: int) -> void:
 
 
 # Each strike flashes the stage and hits both mechs, through any plating.
-func _on_storm_struck(damage: int) -> void:
+func _on_storm_struck(_damage: int) -> void:
 	if not _animate:
 		return
 	_effects.flash(Color(CombatColors.STORM, 0.35), 0.25)
 	for mech: BattleMech in [engine.left, engine.right]:
 		_fighter_of(mech).hit(LIGHT_HIT)
-		_pop_damage(mech, mech.get_damage_taken(damage), 0, CombatColors.STORM)
+		_pop_damage(mech, mech.last_taken - mech.last_absorbed, 0, CombatColors.STORM, mech.last_absorbed)
 	_small_shake.emit()
 
 
-# The camera shakes hard and punches in on the fallen mech, or between them on a draw.
+# Armor dealing damage back: the attacker flinches and takes it like any hit.
+func _on_reflected(_source: BattleMech, target: BattleMech, damage: int) -> void:
+	if not _animate:
+		return
+	_fighter_of(target).hit(LIGHT_HIT)
+	_pop_damage(target, damage - target.last_absorbed, 0, _hit_color(target), target.last_absorbed)
+
+
+# A mech that can't pay its shield's upkeep loses it for the fight.
+func _on_shield_collapsed(mech: BattleMech) -> void:
+	if not _animate:
+		return
+	var view := _fighter_of(mech)
+	_effects.popup("SHIELD DOWN", view.position + Vector2(view.size.x / 2.0, 24), CombatColors.DANGER, _popup_time(), 16)
+
+
+# A part's ability acting for the first time in the fight pops its name up, like a relic's.
+func _on_part_triggered(active: ActivePart, mech: BattleMech) -> void:
+	if not _animate:
+		return
+	var view := _fighter_of(mech)
+	_effects.popup(active.part.part_name.to_upper(), view.position + Vector2(view.size.x / 2.0, 0), CombatColors.TAG, _popup_time(), 16)
+
+
 # A relic that acts pops its name up over its mech, in the tag yellow.
 func _on_relic_triggered(relic: Relic, mech: BattleMech) -> void:
 	if not _animate:
@@ -468,6 +502,7 @@ func _on_relic_triggered(relic: Relic, mech: BattleMech) -> void:
 	_effects.popup(relic.relic_name.to_upper(), view.position + Vector2(view.size.x / 2.0, 0), CombatColors.TAG, _popup_time(), 16)
 
 
+# The camera shakes hard and punches in on the fallen mech, or between them on a draw.
 func _on_battle_ended(winner: BattleMech) -> void:
 	if not _animate:
 		return

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="1_k5ivh"]
+
+[resource]
+script = ExtResource("1_k5ivh")
+id = "shield_emitter"
+part_name = "Energy Shield Emitter"
+type = 2
+cost = 4
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1)])
+description = "A 200-point shield, hit before the hull and full every fight. Drains 10 EN a second; unpaid, it collapses for the fight."
+shield = 200
+upkeep = 10

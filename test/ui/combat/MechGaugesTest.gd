@@ -87,6 +87,20 @@ func test_gauges_glide_to_each_new_value() -> void:
 	assert_float(gauges.heat.smoothing).is_equal(0.2)
 
 
+func test_the_throttle_mark_follows_a_regulator() -> void:
+	var gauges: MechGauges = auto_free(MechGauges.new())
+	var grid := MechGridData.new(Fixtures.cross_chassis())
+	assert_bool(grid.place_part(Fixtures.thermal_regulator(), Vector2i(1, 1))).is_true()
+	var mech := BattleMech.new(grid)
+	mech.start_fight()
+	gauges.refresh(mech)
+	assert_float(gauges.heat.mark).is_equal(0.8)
+	# Below its mark, heat doesn't redden the fill.
+	mech.heat = 70
+	gauges.refresh(mech)
+	assert_that(gauges.heat.fill_color).is_equal(CombatColors.HEAT)
+
+
 func _mech() -> BattleMech:
 	return BattleMech.new(MechGridData.new(Fixtures.cross_chassis()))
 

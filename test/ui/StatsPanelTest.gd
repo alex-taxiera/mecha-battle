@@ -105,6 +105,14 @@ func test_lists_rules_and_active_links() -> void:
 	await await_idle_frame() # free the rows the lists replaced
 
 
+func test_the_hull_note_counts_the_shield() -> void:
+	var grid := _grid_with([[Fixtures.shield_emitter(), Vector2i(1, 0)]])
+	_panel.show_stats(MechStats.calculate(grid, _rules), null)
+	assert_str(_panel.hp.value.text).is_equal("30")
+	assert_str(_panel.hp.note.text).is_equal("30 from chassis · +200 shield")
+	assert_str(_panel.energy.note.text).is_equal("3 generated · 10 drawn")
+
+
 # An armed-cross grid with each [part, origin] placed.
 func _grid_with(placements: Array) -> MechGridData:
 	var grid := MechGridData.new(_chassis)

@@ -20,6 +20,11 @@ signal weapon_fired(attacker: BattleMech, weapon: ActivePart, target: BattleMech
 signal meltdown(mech: BattleMech, target: BattleMech, damage: int)
 ## Emitted each time the electrical storm hits both mechs for [param damage], before plating.
 signal storm_struck(damage: int)
+## Emitted when [param source]'s armor deals [param damage] back to [param target], after its
+## plating and shield.
+signal reflected(source: BattleMech, target: BattleMech, damage: int)
+## Emitted when [param mech] can't pay its parts' upkeep and its shield collapses for the fight.
+signal shield_collapsed(mech: BattleMech)
 ## Emitted once, on the tick a mech goes down. [param winner] is null for a draw: both mechs
 ## going down in the same tick.
 signal battle_ended(winner: BattleMech)
@@ -50,8 +55,11 @@ var storm_interval := 2
 var storm_damage := 1.0
 var storm_growth := 1.25
 
-# Each mech's energy and venting built up this far but not yet whole: mech -> [energy, vent].
+# Each mech's energy, venting, and upkeep built up this far but not yet whole:
+# mech -> [energy, vent, upkeep].
 var _carry := {}
+# Seconds sooner the storm starts: the larger lead either mech's parts give it.
+var _storm_lead := 0.0
 # Ticks since the storm started, and strikes it has made.
 var _storm_ticks := 0
 var _storm_strikes := 0
@@ -60,7 +68,8 @@ var _storm_strikes := 0
 func _init(p_left: BattleMech, p_right: BattleMech) -> void:
 	left = p_left
 	right = p_right
-	_carry = {left: [0.0, 0.0], right: [0.0, 0.0]}
+	_carry = {left: [0.0, 0.0, 0.0], right: [0.0, 0.0, 0.0]}
+	_storm_lead = maxf(left.get_storm_lead(), right.get_storm_lead())
 
 
 ## Starts the fight, and each mech's relics' fight-start effects. Only a fight that hasn't
@@ -73,9 +82,9 @@ func start() -> void:
 
 
 ## Advances a running fight by [param delta] seconds. Shutdowns count down first. Then both
-## mechs' chassis energy and venting for [param delta], cooldowns, and generators, so neither
-## side's weapons act
-## before the other has charged; then the left mech's weapons fire, then the right's; then
+## mechs' chassis energy and venting for [param delta], cooldowns, generators, and upkeep, so
+## neither side's weapons act before the other has charged; then the left mech's weapons fire
+## (a hit on reactive armor deals some back), then the right's; then
 ## any mech at full heat melts down, and the storm strikes if it's up. A shut-down mech does
 ## none of this. A tick's damage lands together: a mech that goes down still fires back that
 ## tick, so the fight is only checked for an end once everything has hit.
@@ -92,6 +101,8 @@ func process_tick(delta: float) -> void:
 			for active in mech.active_parts:
 				_tick_part(mech, active, delta)
 	for mech: BattleMech in [left, right]:
+		_pay_upkeep(mech, delta)
+	for mech: BattleMech in [left, right]:
 		if not mech.is_shut_down():
 			for active in mech.active_parts:
 				_try_fire(mech, _enemy_of(mech), active)
@@ -106,9 +117,15 @@ func get_storm_strike_damage(strike: int) -> int:
 	return roundi(storm_damage * pow(storm_growth, strike))
 
 
+## Returns the seconds into the fight when the storm starts: [member storm_start], sooner by
+## the largest lead either mech's parts give it (a lightning rod).
+func get_storm_start() -> float:
+	return maxf(0.0, storm_start - _storm_lead)
+
+
 ## Returns the seconds left until the storm starts, or 0 once it's up.
 func get_storm_countdown() -> float:
-	var remaining := storm_start - elapsed
+	var remaining := get_storm_start() - elapsed
 	return remaining if remaining > TIME_EPSILON else 0.0
 
 
@@ -147,6 +164,26 @@ func _tick_flow(mech: BattleMech, delta: float) -> void:
 	mech.add_heat(-vent)
 
 
+# Pays [param delta]'s share of a turn's upkeep from a running mech's energy, before its weapons
+# fire. A mech that can't pay loses its shield for the rest of the fight, and the parts that
+# kept it up switch off.
+func _pay_upkeep(mech: BattleMech, delta: float) -> void:
+	if mech.is_shut_down():
+		return
+	var carry: Array = _carry[mech]
+	carry[2] += mech.get_upkeep() * delta / TURN_SECONDS
+	var due := floori(carry[2] + TIME_EPSILON)
+	carry[2] -= due
+	if due <= 0:
+		return
+	if mech.current_energy < due:
+		carry[2] = 0.0
+		mech.collapse_shield()
+		shield_collapsed.emit(mech)
+		return
+	mech.current_energy -= due
+
+
 # Counts a working part's cooldown down, and runs any other part whose cooldown ran out: it adds
 # its energy and heat to its mech. Weapons count down at their mech's fire rate, so heat slows
 # them, and fire in [method _try_fire].
@@ -170,6 +207,8 @@ func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> 
 	if not _is_ready(active) or active.part.type != MechPart.PartType.WEAPON:
 		return
 	if attacker.current_energy < active.energy_cost:
+		# Waiting for energy breaks a firing streak.
+		active.streak = 0
 		return
 	attacker.current_energy -= active.energy_cost
 	active.current_cooldown = active.cooldown_max
@@ -179,14 +218,28 @@ func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> 
 		_shoot(attacker, target, active)
 
 
+# A shot: its heat (as the weapon's ability changes it), its damage, and any damage the target's
+# armor deals back.
 func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> void:
-	attacker.add_heat(active.heat)
+	var heat := active.heat
+	if active.part.ability:
+		heat = active.part.ability.modify_shot_heat(active, heat)
+	attacker.add_heat(heat)
+	active.streak += 1
 	active.last_shot = attacker.get_shot_damage(active)
 	var taken := target.take_damage(active.last_shot)
 	active.shots += 1
 	active.damage_dealt += taken
 	attacker.damage_dealt += taken
 	weapon_fired.emit(attacker, active, target, taken)
+	for armor in target.get_abilities():
+		var back := armor.part.ability.on_hit_taken(target, armor, active.last_shot)
+		if back <= 0:
+			continue
+		var returned := attacker.take_damage(back)
+		target.damage_dealt += returned
+		target.announce(armor)
+		reflected.emit(target, attacker, returned)
 
 
 # A MELTDOWN mech at full heat hits its enemy, cools to 0, and shuts down.
@@ -199,6 +252,8 @@ func _check_meltdown(mech: BattleMech) -> void:
 	mech.damage_dealt += taken
 	mech.heat = 0
 	mech.shutdown_left = chassis.meltdown_shutdown
+	for active in mech.active_parts:
+		active.streak = 0
 	meltdown.emit(mech, target, taken)
 
 
@@ -210,13 +265,13 @@ func _is_ready(active: ActivePart) -> bool:
 
 # Once the storm is up, strikes both mechs every storm_interval ticks, each strike harder.
 func _tick_storm() -> void:
-	if elapsed + TIME_EPSILON < storm_start:
+	if elapsed + TIME_EPSILON < get_storm_start():
 		return
 	if _storm_ticks % storm_interval == 0:
 		var damage := get_storm_strike_damage(_storm_strikes)
 		_storm_strikes += 1
-		left.take_damage(damage)
-		right.take_damage(damage)
+		left.take_storm_strike(damage)
+		right.take_storm_strike(damage)
 		storm_struck.emit(damage)
 	_storm_ticks += 1
 

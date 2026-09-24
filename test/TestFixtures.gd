@@ -223,6 +223,52 @@ static func flush_tank() -> MechPart:
 	return part("Coolant Flush Tank", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 2, {"cooling": 5})
 
 
+## A back weapon: every 0.25 s, 4 damage for 8 energy and 2 heat, plus 1 heat for each shot in a
+## row before it, up to 10 more.
+static func autocannon() -> MechPart:
+	var ramp := HeatRamp.new()
+	ramp.ramp = 1
+	ramp.max_extra = 10
+	return part("Rotary Autocannon", MechPart.PartType.WEAPON, BACK_SHAPE, 5,
+		{"damage": 4, "energy_cost": 8, "heat": 2, "cooldown_max": 0.25, "ability": ramp})
+
+
+## A 1x2 defense part: a 200-point shield for 10 energy a turn.
+static func shield_emitter() -> MechPart:
+	return part("Energy Shield Emitter", MechPart.PartType.DEFENSE, [Vector2i(0, 0), Vector2i(0, 1)], 4,
+		{"shield": 200, "upkeep": 10})
+
+
+## A 1x1 defense part: +40 HP, and a hit of 30 or more deals 15 back.
+static func reactive_armor() -> MechPart:
+	var reflect := ReactiveReflect.new()
+	reflect.threshold = 30
+	reflect.damage = 15
+	return part("Reactive Armor", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 2, {"hp": 40, "ability": reflect})
+
+
+## A 2x1 utility part: the mech's weapons only slow above 80 heat.
+static func thermal_regulator() -> MechPart:
+	var raise := ThrottleRaise.new()
+	raise.throttle_heat = 80
+	return part("Thermal Regulator", MechPart.PartType.UTILITY, [Vector2i(0, 0), Vector2i(1, 0)], 4, {"ability": raise})
+
+
+## A 1x3 utility part: the storm starts 6 s sooner, and this mech takes half of each strike
+## (rounded down) and gains 30 energy from it.
+static func lightning_rod() -> MechPart:
+	var ground := StormGround.new()
+	ground.storm_lead = 6.0
+	ground.share_taken = 0.5
+	ground.energy = 30
+	return part("Lightning Rod", MechPart.PartType.UTILITY, ARM_SHAPE, 4, {"ability": ground})
+
+
+## A 1x1 utility part: while installed, shops buy every part back in full.
+static func scrapper_drone() -> MechPart:
+	return part("Scrapper Drone", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 3, {"ability": FullRefund.new()})
+
+
 ## A 1x1 utility part with no numbers of its own, tagged "chip" for Overclocked.
 static func logic_chip() -> MechPart:
 	return part("Overdrive Logic Chip", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 3, {"tags": ["chip"] as Array[String]})

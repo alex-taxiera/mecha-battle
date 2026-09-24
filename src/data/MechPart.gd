@@ -33,6 +33,8 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 ## Kinds a rule can ask for beyond the part's type, e.g. "heatsink" (see
 ## [member SynergyRule.first_tag]).
 @export var tags: Array[String] = []
+## What the part does beyond its numbers, if anything (e.g. reflecting heavy hits).
+@export var ability: PartAbility
 ## A weapon in a fight: its pixel sprite facing right, drawn on its bay (see
 ## [member Hardpoint.battle_anchor]).
 @export var battle_sprite: Texture2D

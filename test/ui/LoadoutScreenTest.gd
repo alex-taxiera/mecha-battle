@@ -211,6 +211,16 @@ func test_parts_from_earlier_shops_sell_for_half() -> void:
 	await await_idle_frame()
 
 
+func test_a_scrapper_drone_makes_old_parts_sell_in_full() -> void:
+	_screen.run.stash_part(_heatsink) # 4 gold: 2 back without the drone
+	assert_bool(_screen.run.grid.place_part(Fixtures.scrapper_drone(), Vector2i(1, 0))).is_true()
+	var stash: StashPanel = _screen.get_node("%StashPanel")
+	_screen.show_sell_zone(stash.get_items()[0]._get_drag_data(Vector2.ZERO) as PartDragData)
+	assert_str(_text("SellLabel")).is_equal("Sell for +4g")
+	assert_str(_text("SellNote")).is_equal("Full refund: a scrapper drone is installed")
+	await await_idle_frame()
+
+
 func test_rotating_a_shop_offer() -> void:
 	var slot := _slot_of(_reactor)
 	assert_bool(_items()[slot].get_node("%RotateButton").visible).is_true()

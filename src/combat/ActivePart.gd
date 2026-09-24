@@ -30,6 +30,8 @@ var shots := 0
 var damage_dealt := 0
 ## What the part's last shot hit for, before the target's plating: its damage as relics changed it.
 var last_shot := 0
+## Shots fired in a row without waiting for energy or a shutdown in between.
+var streak := 0
 
 
 ## [param numbers] are the part's stats on its grid, links applied; without them the part

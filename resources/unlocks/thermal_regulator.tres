@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_1ehmf"]
+
+[resource]
+script = ExtResource("1_1ehmf")
+id = "thermal_regulator"
+kind = 1
+target_id = "thermal_regulator"
+title = "Thermal Regulators in loot and shops"
+hint = "Clear Sector 1 with the Reactor"
+sectors_cleared = 1
+with_chassis = "reactor"
