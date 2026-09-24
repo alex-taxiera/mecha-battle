@@ -81,6 +81,26 @@ func test_max_hp_is_an_upgrade_not_a_relic() -> void:
 	assert_array(result.lines).contains_exactly(["+40 max HP"])
 
 
+func test_max_hp_can_go_down() -> void:
+	var effect := MaxHpEffect.new()
+	effect.hp = -10
+	var result := EventResult.new()
+	effect.apply(_run, result)
+	assert_int(_run.get_max_hp()).is_equal(20)
+	assert_array(result.lines).contains_exactly(["-10 max HP"])
+
+
+func test_a_relic_effect_can_roll_a_rarity() -> void:
+	var effect := RelicEffect.new()
+	effect.rarity = Relic.Rarity.RARE
+	effect.apply(_run, EventResult.new())
+	assert_int(_run.relics[0].rarity).is_equal(Relic.Rarity.RARE)
+	# The fixtures have one rare: the next falls back to another rarity.
+	effect.apply(_run, EventResult.new())
+	assert_array(_run.relics).has_size(2)
+	assert_int(_run.relics[1].rarity).is_not_equal(Relic.Rarity.RARE)
+
+
 func test_part_effects_stash_a_part() -> void:
 	var result := EventResult.new()
 	var given := PartEffect.new()

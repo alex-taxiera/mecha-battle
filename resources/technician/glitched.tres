@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RunStartOption" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_cc023"]
+[ext_resource type="Resource" path="res://resources/parts/event/glitch.tres" id="2_mwhxd"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="3_e6nui"]
+[ext_resource type="Script" path="res://src/data/RunStartOption.gd" id="4_xu0uc"]
+
+[sub_resource type="Resource" id="Resource_7dwuh"]
+script = ExtResource("3_e6nui")
+part = ExtResource("2_mwhxd")
+
+[resource]
+script = ExtResource("4_xu0uc")
+id = "glitched"
+text = "a Glitch lands in your stash"
+kind = 1
+effects = Array[ExtResource("1_cc023")]([SubResource("Resource_7dwuh")])

@@ -65,6 +65,13 @@ A run crosses three **sectors** (acts), each a branching map climbed one node at
   | Missile Pods in loot and shops | Part | Win 5 fights in total |
   | The Heat Converter relic | Relic | Win 15 fights in total |
   | The Titan Plating relic | Relic | Clear Sector 1 with the Bastion |
+- **The Mech Technician** (once unlocked): after the frame is chosen, before the map, offers three boons to pick one of: two pair an upside with a downside ("Gain 75 gold, but start with 60 hull damage"; the downside applies first), one is whole ("Gain a random common relic"). None repeats within an offer. The placeholder options (`res://resources/technician/`), each using the event effects:
+
+  | Kind | Options |
+  |---|---|
+  | Whole | a random common relic; +40 max HP; +30 gold |
+  | Upside | a random rare part; a random uncommon relic; upgrade your strongest weapon a Mk; +75 gold |
+  | Downside | -40 max HP; lose all gold; start with 60 hull damage; a Glitch in the stash |
 - Content still to come: more parts, enemies, relics, and events, and balance.
 
 ## 2. Data Architecture (The "Model")
@@ -106,11 +113,14 @@ Hidden relics: `HullUpgrade` (`hp`; a Reinforce or an event's max HP) and `Timed
 - **`GameEvent.gd`:** `id`, `title`, `text`, an optional `requirement` for coming up at all, a `failed_strategy` (KEEP, REMOVE, APPEND, REINSERT) for when it can't, `fallback`, and `choices`. `can_happen(run)`.
 - **`EventChoice.gd`:** `label`, `hint`, an optional `requirement`, and weighted `outcomes`. `is_available(run)`.
 - **`EventOutcome.gd`:** `weight`, `text`, and `effects`.
-- **`EventEffect.gd`** subclasses, each `apply(run, result)` adding a line to the `EventResult`: `GoldEffect`, `HullEffect`, `MaxHpEffect`, `UpgradePartEffect` (a random or the strongest upgradable part), `PartEffect` (a given part, or one of a rarity from the catalog, weapons only if asked), `LosePartsEffect`, `RelicEffect`, `WeaponModEffect` (the strongest mounted weapon), `StatusEffect`, and `FightEffect` (sets the result's `fight_tier`).
+- **`EventEffect.gd`** subclasses, each `apply(run, result)` adding a line to the `EventResult`: `GoldEffect`, `HullEffect`, `MaxHpEffect` (down, too, when negative), `UpgradePartEffect` (a random or the strongest upgradable part), `PartEffect` (a given part, or one of a rarity from the catalog, weapons only if asked), `LosePartsEffect`, `RelicEffect` (a given relic, or one rolled from the pool, of a `rarity` if set), `WeaponModEffect` (the strongest mounted weapon), `StatusEffect`, and `FightEffect` (sets the result's `fight_tier`).
 - **`EventRequirement.gd`** subclasses, each `check(run)` and `describe()`: `GoldRequirement`, `WeaponRequirement`, `PartsRequirement`, `UpgradableRequirement`.
 
 ### `Unlock.gd` (Extends Resource)
 Something a profile earns: `id`, `kind` (CHASSIS, PART, RELIC, NPC), `target_id` (the chassis, part, relic, or NPC id), `title` ("The Striker"), `hint` ("Clear Sector 1"), and a milestone whose set fields must all be met: `sectors_cleared` in one run (optionally `with_chassis`), `runs_finished`, `fights_won_total`, and `runs_won` in total. `is_met(profile, sectors, chassis_id)`.
+
+### `RunStartOption.gd` (Extends Resource)
+One of the Technician's options: `id`, `text` (a sentence for a whole boon, a clause for a half), `kind` (UPSIDE, DOWNSIDE, COMPLETE), and `effects` (event effects). Adapted from Slay-The-Robot's `RunStartOptionData`.
 
 ### `LoadoutPart.gd` (Extends Resource)
 One part of a ready-made build: `part`, `origin`, `rotation`. `LoadoutPart.place_all(grid, lineup)` places a copy of each, so builds never share part instances, and reports (push_error) the first that doesn't fit.
@@ -164,6 +174,7 @@ One run: `RunState.new(chassis, catalog, rules, start_gold, rng, acts)`. It inst
 - **`RelicPool.gd`:** every relic, shuffled once with the run's "relics" stream. `take(count, rarities, from_back)` (no repeats; shops will pull from the back), `roll(rng, weights)` (a rarity from `CHEST_WEIGHTS` or `ELITE_WEIGHTS`, falling back to the other standard rarities), `remove(relic)`, `has`, `size`. Adapted from Slay-The-Robot's artifact pool.
 - **`ShopStock.gd`:** one Scrap Shop visit's `slots` (`SIZE` 4; each a part, its rotation, and whether it's sold), drafted from the catalog with the SHOP odds by a roller of its own (so the loot pity doesn't move), and `relic_offers` (each a relic, its `price` rolled from `RELIC_PRICES`, and whether it's sold). `get_open_slot`, `get_open_relic`, `rotate_slot`, `restock` (parts only), `REROLL_COST`.
 - **`Profile.gd`:** `path` (empty never writes), `runs`, `wins`, `fights_won`, `bosses_beaten`, `chassis_records` (id -> runs, wins, best_sector), and `unlocked`. `load_from(path)` (fresh if missing or unreadable), `save()`, `reset()`, `is_unlocked(id)`, `is_available(kind, target_id, unlocks)` and `get_lock(...)`, `sectors_cleared(run)` (all on a win, else the sectors before the one it ended in), and `record_run(run, unlocks)`, which counts the run and returns the unlocks it earned. Its shape follows Slay-The-Robot's `ProfileData`.
+- **`TechnicianOffer.gd`:** `roll(options, rng)` returns `PAIRS` (2) upside-and-downside `Boon`s ("Upside, but downside"; downside effects first) then `COMPLETE` (1) whole ones, each list shuffled once and nothing used twice; `apply(boon, run)` returns an `EventResult`. Adapted from Slay-The-Robot's `populate_run_start_options`, which shuffled its downsides twice and its complete options never.
 - **`EventPool.gd`:** `next(run)` as in section 1b, with the `fallback` kept aside; `get_queue()`. Adapted from Slay-The-Robot's event pools, whose failure strategies never ran (it didn't record failed events).
 - **`EventResult.gd`:** a choice's `text`, `lines`, and `fight_tier` (-1 for none).
 
@@ -239,6 +250,9 @@ The loot after a won fight, built in code: the run's HUD, SALVAGE (ELITE SALVAGE
 ### `MessageScreen.gd` (Extends Control)
 A full-screen message built in code: the run's HUD (when given a run), a title in a color, lines of text, a column of `options` (`add_option(label, hint, action)`), and one button that emits `confirmed`. It serves for SECTOR CLEARED and the run's end, and the two screens below build on it.
 
+### `TechnicianScreen.gd` (Extends MessageScreen)
+MECH TECHNICIAN, a line of dialogue, and a button per boon. `choose(index)` applies it once and shows it with its effects' lines; then **Head out** emits `confirmed`.
+
 ### `RestScreen.gd` (Extends MessageScreen)
 A Hangar stop: HANGAR / REFIT BAY, **Repair** ("Repair 9 hull (30% of max)."; off with nothing to repair), **Reinforce** ("+25 max HP for the rest of the run."), and **Upgrade** (off with nothing to upgrade; `show_upgrades()` lists "Point-Defense Laser → Mk II" per part, and Back), one of which the crew does (`repair()`, `reinforce()`, `upgrade(part)`), and **Leave**, then **Continue**.
 
@@ -246,7 +260,7 @@ A Hangar stop: HANGAR / REFIT BAY, **Repair** ("Repair 9 hull (30% of max)."; of
 An Event stop: the event's title and text and a button per choice (label over hint; off with "(Needs 30 gold)" when its requirement fails). `choose(index)` shows the outcome and its lines, then the button: **Continue**, or **Fight!** when the `result` starts a fight.
 
 ### `Game.tscn` (Extends Node) — the main scene
-Plays runs, one screen at a time (`screen`). It loads the parts, rules, sectors (in id order), relics, events, and unlocks from `res://resources/`, and the `profile` from `user://profile.json`, unless set (tests set them, and `run_seed`). It opens on the `ChassisSelectScreen`; a chosen frame starts a `RunState` (`start_gold` 20) and shows the `MapScreen`. A chosen node opens what's there:
+Plays runs, one screen at a time (`screen`). It loads the parts, rules, sectors (in id order), relics, events, and unlocks from `res://resources/`, and the `profile` from `user://profile.json`, unless set (tests set them, and `run_seed`). It opens on the `ChassisSelectScreen`; a chosen frame starts a `RunState` (`start_gold` 20), then, once the Technician is unlocked, a `TechnicianScreen` with an offer rolled on the run's "start" stream from `technician_options` (loaded from `res://resources/technician/` unless set), then the `MapScreen`. A chosen node opens what's there:
 - **Battle, Elite, Boss:** a `CombatScreen` with the player's mech from the run (`make_player_mech`, at the hull's current HP) on the left and the node's enemy (`make_enemy_mech`) on the right. When it's `finished`, the fight is recorded (`record_fight`). A loss or draw ends the run. A win rolls its loot (`roll_reward`) onto a `RewardScreen`; after it, a boss win shows SECTOR CLEARED ("The Junkyard King is down...", half the hull's damage repaired) and then the next sector's map, or, after the last sector, the run's end; any other win goes back to the map.
 - **Scrap Shop:** the run's shop opens (`open_shop`) on a `LoadoutScreen` for the run; Leave shop closes it and goes back to the map.
 - **Loadout** (from the map's button): a `LoadoutScreen` for the run with no shop; Back to map returns to the same map.

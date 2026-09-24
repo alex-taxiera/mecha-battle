@@ -228,6 +228,17 @@ static func unlock(id: String, kind: Unlock.Kind, target_id: String, milestone :
 	return result
 
 
+# Mech Technician options for run tests.
+
+static func start_option(id: String, kind: RunStartOption.Kind, effects: Array[EventEffect] = []) -> RunStartOption:
+	var result := RunStartOption.new()
+	result.id = id
+	result.text = id.replace("_", " ")
+	result.kind = kind
+	result.effects = effects
+	return result
+
+
 # Events for run tests.
 
 ## An event with [param choices], which comes up when [param requirement] passes (always, if null).

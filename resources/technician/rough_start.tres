@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RunStartOption" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_oinj4"]
+[ext_resource type="Script" path="res://src/data/events/HullEffect.gd" id="2_fdhx4"]
+[ext_resource type="Script" path="res://src/data/RunStartOption.gd" id="3_o6nfi"]
+
+[sub_resource type="Resource" id="Resource_rivqg"]
+script = ExtResource("2_fdhx4")
+amount = -60
+
+[resource]
+script = ExtResource("3_o6nfi")
+id = "rough_start"
+text = "start with 60 hull damage"
+kind = 1
+effects = Array[ExtResource("1_oinj4")]([SubResource("Resource_rivqg")])

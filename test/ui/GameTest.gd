@@ -18,9 +18,11 @@ func before_test() -> void:
 	_game.acts = [Fixtures.act(), Fixtures.act()]
 	_game.relics = Fixtures.relics()
 	_game.events = [Fixtures.gold_event("Windfall", 10)]
-	# A profile in memory, and one unlock nothing in these tests uses, so no real files are read.
+	# A profile in memory, and the Technician locked out of reach, so no real files are read and
+	# runs go straight to the map.
 	_game.profile = Profile.new()
-	_game.unlocks = [Fixtures.unlock("nobody", Unlock.Kind.NPC, "nobody", {"runs_finished": 99})]
+	_game.unlocks = [Fixtures.unlock("technician", Unlock.Kind.NPC, "technician", {"runs_finished": 99})]
+	_game.technician_options = [Fixtures.start_option("gold", RunStartOption.Kind.COMPLETE, [Fixtures.gold_effect(30)])]
 	_game.run_seed = 1
 	add_child(_game)
 
@@ -306,9 +308,24 @@ func test_locked_parts_and_relics_stay_out_of_the_run() -> void:
 	await await_idle_frame()
 
 
+func test_once_unlocked_the_technician_offers_a_boon_before_the_map() -> void:
+	_game.profile.unlocked.append("technician")
+	await _choose(_armed())
+	var technician := _game.screen as TechnicianScreen
+	assert_object(technician).is_not_null()
+	assert_array(technician.boons).has_size(1)
+	assert_bool(technician.choose(0)).is_true()
+	assert_int(_game.run.gold).is_equal(50) # 20 + 30
+	technician.button.pressed.emit()
+	await await_idle_frame()
+	assert_object(_map_screen()).is_not_null()
+	assert_array(_map_screen().get_view().reachable).contains_same_exactly(_game.run.map.floors[0])
+	await await_idle_frame()
+
+
 func test_resetting_progress_clears_the_profile() -> void:
 	_game.profile.runs = 4
-	_game.profile.unlocked.append("nobody")
+	_game.profile.unlocked.append("technician")
 	_game.chassis_select.reset_progress()
 	assert_int(_game.profile.runs).is_equal(0)
 	assert_array(_game.profile.unlocked).is_empty()

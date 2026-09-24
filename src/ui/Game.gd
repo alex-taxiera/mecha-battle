@@ -16,6 +16,9 @@ const ACTS_DIR := "res://resources/acts"
 const RELICS_DIR := "res://resources/relics"
 const EVENTS_DIR := "res://resources/events"
 const UNLOCKS_DIR := "res://resources/unlocks"
+const TECHNICIAN_DIR := "res://resources/technician"
+## The Mech Technician's id in the unlocks.
+const TECHNICIAN := "technician"
 # A fight's map node kind for each enemy tier, for fights events start.
 const _TIER_NODES := {
 	EnemyLoadout.Tier.NORMAL: MapNode.Type.BATTLE,
@@ -36,6 +39,8 @@ var relics: Array[Relic] = []
 var events: Array[GameEvent] = []
 ## Everything the profile can unlock. Left empty, it's loaded from its folder.
 var unlocks: Array[Unlock] = []
+## What the Mech Technician can offer. Left empty, it's loaded from its folder.
+var technician_options: Array[RunStartOption] = []
 ## The player's progress. Left unset, it's loaded from [constant Profile.DEFAULT_PATH] (tests set
 ## an in-memory one).
 var profile: Profile
@@ -72,6 +77,8 @@ func _ready() -> void:
 		events.assign(LoadoutScreen.load_dir(EVENTS_DIR).filter(func(resource: Resource) -> bool: return resource is GameEvent))
 	if unlocks.is_empty():
 		unlocks.assign(LoadoutScreen.load_dir(UNLOCKS_DIR).filter(func(resource: Resource) -> bool: return resource is Unlock))
+	if technician_options.is_empty():
+		technician_options.assign(LoadoutScreen.load_dir(TECHNICIAN_DIR).filter(func(resource: Resource) -> bool: return resource is RunStartOption))
 	if profile == null:
 		profile = Profile.load_from(Profile.DEFAULT_PATH)
 	chassis_select = %ChassisSelectScreen
@@ -97,7 +104,21 @@ func _start_run(chassis: MechChassis) -> void:
 	run_relics.assign(relics.filter(func(relic: Relic) -> bool: return profile.is_available(Unlock.Kind.RELIC, relic.id, unlocks)))
 	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts,
 		run_relics, events)
-	show_map()
+	if profile.is_available(Unlock.Kind.NPC, TECHNICIAN, unlocks):
+		_meet_technician()
+	else:
+		show_map()
+
+
+# The Mech Technician offers a boon before the first step.
+func _meet_technician() -> void:
+	var boons := TechnicianOffer.roll(technician_options, run.rng.stream("start"))
+	if boons.is_empty():
+		show_map()
+		return
+	var technician := TechnicianScreen.new(run, boons)
+	technician.confirmed.connect(show_map, CONNECT_DEFERRED)
+	_show(technician)
 
 
 # Opens what's at [param node], which the player has just traveled to.

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RunStartOption" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_h1vsr"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="2_xnaki"]
+[ext_resource type="Script" path="res://src/data/RunStartOption.gd" id="3_3kjti"]
+
+[sub_resource type="Resource" id="Resource_n8avo"]
+script = ExtResource("2_xnaki")
+rarity = 2
+
+[resource]
+script = ExtResource("3_3kjti")
+id = "rare_part"
+text = "gain a random rare part"
+kind = 0
+effects = Array[ExtResource("1_h1vsr")]([SubResource("Resource_n8avo")])

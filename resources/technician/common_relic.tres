@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RunStartOption" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_1l5wc"]
+[ext_resource type="Script" path="res://src/data/events/RelicEffect.gd" id="2_aeovi"]
+[ext_resource type="Script" path="res://src/data/RunStartOption.gd" id="3_j2mwq"]
+
+[sub_resource type="Resource" id="Resource_hp2eq"]
+script = ExtResource("2_aeovi")
+rarity = 0
+
+[resource]
+script = ExtResource("3_j2mwq")
+id = "common_relic"
+text = "gain a random common relic"
+effects = Array[ExtResource("1_1l5wc")]([SubResource("Resource_hp2eq")])

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RunStartOption" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_41pr8"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="2_4vw0c"]
+[ext_resource type="Script" path="res://src/data/RunStartOption.gd" id="3_c0485"]
+
+[sub_resource type="Resource" id="Resource_7h2gl"]
+script = ExtResource("2_4vw0c")
+amount = 30
+
+[resource]
+script = ExtResource("3_c0485")
+id = "pocket_money"
+text = "gain 30 gold"
+effects = Array[ExtResource("1_41pr8")]([SubResource("Resource_7h2gl")])

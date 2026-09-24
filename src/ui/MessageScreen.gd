@@ -72,6 +72,7 @@ func add_option(label: String, hint: String, action: Callable) -> Button:
 	var option := Button.new()
 	option.text = "%s\n%s" % [label, hint] if not hint.is_empty() else label
 	option.custom_minimum_size = Vector2(520, 56)
+	option.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	option.pressed.connect(action, CONNECT_DEFERRED)
 	options.add_child(option)
 	options.visible = true

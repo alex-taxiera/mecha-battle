@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RunStartOption" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_ce4r4"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="2_o2646"]
+[ext_resource type="Script" path="res://src/data/RunStartOption.gd" id="3_cig4r"]
+
+[sub_resource type="Resource" id="Resource_nc1uy"]
+script = ExtResource("2_o2646")
+amount = -9999
+
+[resource]
+script = ExtResource("3_cig4r")
+id = "empty_pockets"
+text = "lose all your gold"
+kind = 1
+effects = Array[ExtResource("1_ce4r4")]([SubResource("Resource_nc1uy")])
