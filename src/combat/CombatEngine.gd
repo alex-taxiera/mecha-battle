@@ -81,8 +81,8 @@ func start() -> void:
 		right.start_fight()
 
 
-## Advances a running fight by [param delta] seconds. Shutdowns count down first. Then both
-## mechs' chassis energy and venting for [param delta], cooldowns, generators, and upkeep, so
+## Advances a running fight by [param delta] seconds. Shutdowns count down first, then statuses
+## tick and wear off. Then both mechs' chassis energy and venting for [param delta], cooldowns, generators, and upkeep, so
 ## neither side's weapons act before the other has charged; then the left mech's weapons fire
 ## (a hit on reactive armor deals some back), then the right's; then
 ## any mech at full heat melts down, and the storm strikes if it's up. A shut-down mech does
@@ -94,6 +94,8 @@ func process_tick(delta: float) -> void:
 	elapsed += delta
 	for mech: BattleMech in [left, right]:
 		_tick_shutdown(mech, delta)
+	for mech: BattleMech in [left, right]:
+		mech.tick_statuses(delta)
 	for mech: BattleMech in [left, right]:
 		_tick_flow(mech, delta)
 	for mech: BattleMech in [left, right]:
@@ -226,8 +228,9 @@ func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> voi
 		heat = active.part.ability.modify_shot_heat(active, heat)
 	attacker.add_heat(heat)
 	active.streak += 1
-	active.last_shot = attacker.get_shot_damage(active)
-	var taken := target.take_damage(active.last_shot)
+	var hit := HitPipeline.Hit.new(HitPipeline.Kind.SHOT, target, active.damage, attacker, active)
+	var taken := target.take_hit(hit)
+	active.last_shot = hit.outgoing
 	active.shots += 1
 	active.damage_dealt += taken
 	attacker.damage_dealt += taken
@@ -236,7 +239,7 @@ func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> voi
 		var back := armor.part.ability.on_hit_taken(target, armor, active.last_shot)
 		if back <= 0:
 			continue
-		var returned := attacker.take_damage(back)
+		var returned := attacker.take_damage(back, HitPipeline.Kind.REFLECT, target)
 		target.damage_dealt += returned
 		target.announce(armor)
 		reflected.emit(target, attacker, returned)
@@ -248,7 +251,7 @@ func _check_meltdown(mech: BattleMech) -> void:
 	if chassis.passive != MechChassis.Passive.MELTDOWN or mech.heat < BattleMech.MAX_HEAT or mech.is_shut_down():
 		return
 	var target := _enemy_of(mech)
-	var taken := target.take_damage(chassis.meltdown_damage)
+	var taken := target.take_damage(chassis.meltdown_damage, HitPipeline.Kind.MELTDOWN, mech)
 	mech.damage_dealt += taken
 	mech.heat = 0
 	mech.shutdown_left = chassis.meltdown_shutdown

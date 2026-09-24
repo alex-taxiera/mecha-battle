@@ -4,7 +4,7 @@ extends VBoxContainer
 ## [constant ENERGY_SCALE] and shows the real bank past it. Heat runs 0 to
 ## [constant BattleMech.MAX_HEAT], with a tick where it starts to slow the weapons; past it the
 ## fill reddens as they slow. Above [constant HOT_HEAT], or while the mech is shut down, the
-## gauge runs hot.
+## gauge runs hot. A row under them shows the mech's statuses.
 
 ## A full energy bar. The engine has no cap, so a bigger bank just shows a full bar.
 const ENERGY_SCALE := 100.0
@@ -13,6 +13,8 @@ const HOT_HEAT := 80
 
 var energy := GaugeBar.new()
 var heat := GaugeBar.new()
+## The mech's statuses, one [StatusIcon] each, in the order they came.
+var statuses := HBoxContainer.new()
 ## Seconds both gauges take to glide to a new value.
 var smoothing := 0.1:
 	set(p_smoothing):
@@ -33,11 +35,16 @@ func _init() -> void:
 	heat.mark = float(BattleMech.THROTTLE_HEAT) / BattleMech.MAX_HEAT
 	add_child(energy)
 	add_child(heat)
+	statuses.custom_minimum_size.y = StatusIcon.SIZE
+	statuses.add_theme_constant_override("separation", 6)
+	statuses.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(statuses)
 	_show_heat(0, false)
 
 
-## Shows [param mech]'s energy and heat as they are now.
+## Shows [param mech]'s energy, heat, and statuses as they are now.
 func refresh(mech: BattleMech) -> void:
+	_show_statuses(mech)
 	energy.set_value(mech.current_energy)
 	# A thermal regulator moves where throttling starts.
 	heat.mark = float(mech.throttle_heat) / BattleMech.MAX_HEAT
@@ -51,3 +58,18 @@ func _show_heat(amount: int, shut_down: bool, fire_rate := 1.0) -> void:
 	var throttle := (1.0 - fire_rate) / (1.0 - BattleMech.MIN_FIRE_RATE)
 	heat.fill_color = CombatColors.HEAT.lerp(CombatColors.DANGER, throttle)
 	heat.set_value(amount, "OFFLINE" if shut_down else "")
+
+
+# Keeps one icon per status: new ones added, worn-off ones dropped, the rest redrawn.
+func _show_statuses(mech: BattleMech) -> void:
+	var shown := {}
+	for icon: StatusIcon in statuses.get_children():
+		if icon.status in mech.statuses:
+			shown[icon.status] = icon
+			icon.refresh()
+		else:
+			statuses.remove_child(icon)
+			icon.queue_free()
+	for status in mech.statuses:
+		if not shown.has(status):
+			statuses.add_child(StatusIcon.new(status))

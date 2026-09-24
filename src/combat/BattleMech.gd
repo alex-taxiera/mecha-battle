@@ -15,6 +15,9 @@ const MIN_FIRE_RATE := 0.5
 signal relic_triggered(relic: Relic)
 ## Emitted the first time in a fight that a part's ability acts, e.g. armor reflecting a hit.
 signal part_triggered(active: ActivePart)
+## Emitted when a status's charges wrap past its top, [param times] times at once.
+@warning_ignore("unused_signal") # emitted by ActiveStatus
+signal status_overflowed(status: ActiveStatus, times: int)
 
 ## The frame, for its passive. Only read.
 var chassis: MechChassis
@@ -51,9 +54,13 @@ var overclock_spent := false
 var damage_dealt := 0
 ## One per part on the grid, in the grid's placement order. A mounted weapon knows its bay.
 var active_parts: Array[ActivePart] = []
+## The statuses on the mech, one of each at most, each with charges.
+var statuses: Array[ActiveStatus] = []
 
 # Parts whose abilities have been announced this fight.
 var _announced: Array[ActivePart] = []
+# Thick Plating and the relics, in the hit pipeline.
+var _interceptors: Array[HitInterceptor] = []
 
 
 ## Pass the run's [param rules] so link bonuses count, the same way the shop's stats panel
@@ -73,33 +80,37 @@ func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, 
 	base_energy = stats.base_energy
 	max_shield = roundi(stats.shield * hp_scale)
 	shield = max_shield
+	if chassis.passive == MechChassis.Passive.THICK_PLATING:
+		_interceptors.append(PlatingInterceptor.new(chassis.plating))
+	for relic in relics:
+		_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.ATTACKER))
+		_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.TARGET))
 	for placement in grid.get_placements():
 		var active := ActivePart.new(placement.part, stats.part_stats[placement])
 		active.hardpoint = chassis.get_hardpoint_at(placement.origin)
 		active_parts.append(active)
 
 
-## Returns what a hit of [param amount] would take off, without taking it: a THICK_PLATING
-## chassis takes [member MechChassis.plating] less, never below 0, then relics have their say.
+## Returns what a hit of [param amount] would take off, without taking it: the target's side of
+## the [HitPipeline] (a THICK_PLATING chassis takes [member MechChassis.plating] less, never below
+## 0, then relics have their say), as a preview.
 func get_damage_taken(amount: int) -> int:
-	if chassis.passive == MechChassis.Passive.THICK_PLATING:
-		amount = maxi(0, amount - chassis.plating)
-	for relic in relics:
-		amount = relic.modify_damage_taken(self, amount)
-	return amount
+	var hit := HitPipeline.Hit.new(HitPipeline.Kind.OTHER, self, amount)
+	hit.preview = true
+	return HitPipeline.resolve(hit)
 
 
-## Takes a hit of [param amount], after plating (see [method get_damage_taken]): off the
-## [member shield] first, then [member current_health], stopping at 0. Returns the damage taken,
-## shield and hull together; [member last_absorbed] is the shield's share.
-func take_damage(amount: int) -> int:
-	amount = get_damage_taken(amount)
-	var absorbed := mini(shield, amount)
-	shield -= absorbed
-	current_health = maxi(0, current_health - (amount - absorbed))
-	last_taken = amount
-	last_absorbed = absorbed
-	return amount
+## Takes a hit of [param amount] of [param kind] through the [HitPipeline] (see
+## [method take_hit]). Returns the damage taken, shield and hull together.
+func take_damage(amount: int, kind := HitPipeline.Kind.OTHER, attacker: BattleMech = null) -> int:
+	return take_hit(HitPipeline.Hit.new(kind, self, amount, attacker))
+
+
+## Takes [param hit]: after the interceptors (plating, relics, statuses), off the [member shield]
+## first, then [member current_health], stopping at 0. Returns the damage taken, shield and hull
+## together; [member last_absorbed] is the shield's share.
+func take_hit(hit: HitPipeline.Hit) -> int:
+	return HitPipeline.resolve(hit)
 
 
 ## Starts a fight: each part ability's [method PartAbility.on_fight_start], then each relic's
@@ -112,16 +123,60 @@ func start_fight() -> void:
 			relic_triggered.emit(relic)
 
 
-## Returns the damage a shot from [param weapon] deals: its linked damage, changed by the
-## relics. A relic that changes it is announced.
+## Returns the damage a shot from [param weapon] would leave this mech with: its linked damage,
+## through this mech's side of the [HitPipeline] (relics). A relic that changes it is announced.
 func get_shot_damage(weapon: ActivePart) -> int:
-	var damage := weapon.damage
-	for relic in relics:
-		var changed := relic.modify_shot_damage(self, weapon, damage)
-		if changed != damage:
-			relic_triggered.emit(relic)
-		damage = changed
-	return damage
+	return HitPipeline.outgoing(HitPipeline.Hit.new(HitPipeline.Kind.SHOT, null, weapon.damage, self, weapon))
+
+
+## Returns this mech's interceptors for [param side] of a hit: on the attacker's side its relics'
+## shot changes; on the target's, Thick Plating and its relics. Then its statuses that change hits.
+func get_interceptors(side: HitInterceptor.Side) -> Array[HitInterceptor]:
+	var interceptors: Array[HitInterceptor] = []
+	for interceptor in _interceptors:
+		if interceptor.side == side:
+			interceptors.append(interceptor)
+	for status in statuses:
+		if status.charges != 0 and status.data.side == side and status.data.intercepts_hits():
+			interceptors.append(StatusInterceptor.new(status))
+	return interceptors
+
+
+## Adds [param amount] charges of [param status] (and [param secondary] secondary charges), onto
+## the one the mech has or a new one. Returns it, or null if it has no charges left.
+func add_status(status: MechStatus, amount: int, secondary := 0) -> ActiveStatus:
+	var active := get_status(status.id)
+	if active == null:
+		active = ActiveStatus.new(status, self)
+		statuses.append(active)
+	active.add(amount, secondary)
+	_prune_statuses()
+	return active if active in statuses else null
+
+
+## Returns the mech's status with [param id], or null.
+func get_status(id: String) -> ActiveStatus:
+	for status in statuses:
+		if status.data.id == id:
+			return status
+	return null
+
+
+## Returns the charges of the mech's status with [param id], or 0.
+func get_status_charges(id: String) -> int:
+	var status := get_status(id)
+	return status.charges if status else 0
+
+
+## Ticks every status (see [method ActiveStatus.tick]) and drops the ones worn off.
+func tick_statuses(delta: float) -> void:
+	for status in statuses.duplicate():
+		status.tick(delta)
+	_prune_statuses()
+
+
+func _prune_statuses() -> void:
+	statuses = statuses.filter(func(status: ActiveStatus) -> bool: return status.charges != 0)
 
 
 ## Adds [param amount] heat, or vents it when negative, keeping it between 0 and
@@ -217,4 +272,4 @@ func take_storm_strike(damage: int) -> int:
 		if changed != damage:
 			announce(active)
 		damage = changed
-	return take_damage(damage)
+	return take_damage(damage, HitPipeline.Kind.STORM)

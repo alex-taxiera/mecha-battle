@@ -104,3 +104,30 @@ func test_the_throttle_mark_follows_a_regulator() -> void:
 func _mech() -> BattleMech:
 	return BattleMech.new(MechGridData.new(Fixtures.cross_chassis()))
 
+
+
+func test_statuses_show_as_icons_with_their_charges() -> void:
+	var gauges: MechGauges = auto_free(MechGauges.new())
+	var mech := _mech()
+	gauges.refresh(mech)
+	assert_int(gauges.statuses.get_child_count()).is_equal(0)
+	var burn := MechStatus.new()
+	burn.id = "burn"
+	burn.status_name = "Burn"
+	burn.description = "Heat each second."
+	var status := mech.add_status(burn, 3)
+	gauges.refresh(mech)
+	assert_int(gauges.statuses.get_child_count()).is_equal(1)
+	var icon := gauges.statuses.get_child(0) as StatusIcon
+	assert_str(icon.get_count_text()).is_equal("3")
+	assert_str(icon.tooltip_text).is_equal("Burn ×3 (Debuff)\nHeat each second.")
+	# The same icon follows the charges, and goes when the status wears off.
+	status.add(2)
+	gauges.refresh(mech)
+	assert_object(gauges.statuses.get_child(0)).is_same(icon)
+	assert_str(icon.get_count_text()).is_equal("5")
+	status.charges = 0
+	mech.tick_statuses(0.0)
+	gauges.refresh(mech)
+	assert_int(gauges.statuses.get_child_count()).is_equal(0)
+	await await_idle_frame() # free the dropped icon
