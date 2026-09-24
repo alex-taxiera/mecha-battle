@@ -39,10 +39,11 @@ static func bastion() -> MechChassis:
 	var chassis := _frame("The Bastion", "Wide frame", Vector2i(4, 3), [], 450, 20)
 	chassis.hardpoints = [back(Vector2i(1, -2))]
 	chassis.playstyle = "Tank / Attrition"
-	chassis.passive = MechChassis.Passive.THICK_PLATING
+	var plating := ThickPlatingPassive.new()
+	plating.plating = 2
+	chassis.passive = plating
 	chassis.passive_name = "Thick Plating"
 	chassis.passive_text = "Reduces all incoming flat damage by 2."
-	chassis.plating = 2
 	return chassis
 
 
@@ -52,7 +53,7 @@ static func striker() -> MechChassis:
 	var chassis := _frame("The Striker", "Tall frame", Vector2i(2, 5), [], 220, 40)
 	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(2, 1)), back(Vector2i(0, -2))]
 	chassis.playstyle = "Glass Cannon / Burst"
-	chassis.passive = MechChassis.Passive.OVERCLOCK
+	chassis.passive = OverclockPassive.new()
 	chassis.passive_name = "Overclock"
 	chassis.passive_text = "The first weapon to fire each battle fires twice."
 	return chassis
@@ -69,11 +70,12 @@ static func reactor_frame() -> MechChassis:
 	var chassis := _frame("The Reactor", "Diamond frame", Vector2i(5, 5), disabled, 300, 30)
 	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(5, 1))]
 	chassis.playstyle = "Synergy / Combo"
-	chassis.passive = MechChassis.Passive.MELTDOWN
+	var meltdown := MeltdownPassive.new()
+	meltdown.damage = 100
+	meltdown.shutdown = 3.0
+	chassis.passive = meltdown
 	chassis.passive_name = "Meltdown"
 	chassis.passive_text = "When heat reaches 100%, deal massive damage and shut down for 3 seconds."
-	chassis.meltdown_damage = 100
-	chassis.meltdown_shutdown = 3.0
 	return chassis
 
 
@@ -502,6 +504,37 @@ static func flamer() -> MechPart:
 static func railgun() -> MechPart:
 	return part("Railgun", MechPart.PartType.WEAPON, ARM_SHAPE, 7, {"damage": 90, "energy_cost": 120, "heat": 60,
 		"cooldown_max": 3.0, "abilities": [Piercing.new()] as Array[PartAbility]})
+
+
+# The design doc's buffs.
+
+## Shots deal 10% more per charge, up to 5 charges.
+static func overcharged() -> Overcharged:
+	var status := _status_data(Overcharged.new(), "overcharged", "Overcharged", 5)
+	status.type = MechStatus.Type.BUFF
+	status.damage_per_charge = 0.1
+	status.side = HitInterceptor.Side.ATTACKER
+	status.priority = 9000
+	status.kinds = [HitPipeline.Kind.SHOT] as Array[HitPipeline.Kind]
+	return status
+
+
+## Hits taken are 2 smaller per charge, after plating, up to 10 charges.
+static func fortified() -> Fortified:
+	var status := _status_data(Fortified.new(), "fortified", "Fortified", 10)
+	status.type = MechStatus.Type.BUFF
+	status.block_per_charge = 2
+	status.priority = 8500
+	return status
+
+
+## Weapons count down 10% faster per charge, up to half again as fast, up to 5 charges.
+static func haste() -> Haste:
+	var status := _status_data(Haste.new(), "haste", "Haste", 5)
+	status.type = MechStatus.Type.BUFF
+	status.speed_per_charge = 0.1
+	status.max_speed = 1.5
+	return status
 
 
 static func _status_data(status: MechStatus, id: String, status_name: String, upper: int) -> MechStatus:

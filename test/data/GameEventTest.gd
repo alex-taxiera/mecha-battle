@@ -215,6 +215,21 @@ func test_fight_effects_ask_for_a_fight() -> void:
 	var result := EventResult.new()
 	effect.apply(_run, result)
 	assert_int(result.fight_tier).is_equal(EnemyLoadout.Tier.ELITE)
+	assert_object(result.fight_enemy).is_null()
+	assert_int(result.fight_relic_rarity).is_equal(-1)
+
+
+func test_a_fight_effect_can_name_its_enemy_and_prize() -> void:
+	var champion := Fixtures.enemy("Pit Champion", EnemyLoadout.Tier.ELITE)
+	var effect := FightEffect.new()
+	effect.tier = EnemyLoadout.Tier.NORMAL # the named enemy's own tier wins
+	effect.enemy = champion
+	effect.relic_rarity = Relic.Rarity.RARE
+	var result := EventResult.new()
+	effect.apply(_run, result)
+	assert_int(result.fight_tier).is_equal(EnemyLoadout.Tier.ELITE)
+	assert_object(result.fight_enemy).is_same(champion)
+	assert_int(result.fight_relic_rarity).is_equal(Relic.Rarity.RARE)
 
 
 func test_a_status_lasts_its_fights() -> void:

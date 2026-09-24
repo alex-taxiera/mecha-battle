@@ -185,6 +185,16 @@ func test_elites_roll_their_affixes_with_the_map() -> void:
 		assert_array(node.affixes).is_empty()
 
 
+func test_a_prize_fight_adds_a_relic_of_its_rarity() -> void:
+	var run := _loot_run()
+	var node: MapNode = run.get_reachable()[0]
+	var reward := run.roll_reward(node, Relic.Rarity.RARE)
+	assert_array(reward.relics).has_size(1)
+	assert_int(reward.relics[0].rarity).is_equal(Relic.Rarity.RARE)
+	# Positive control: a normal battle drops no relic.
+	assert_array(_loot_run().roll_reward(node).relics).is_empty()
+
+
 func test_an_elite_fights_with_copies_of_its_affixes_and_pays_more() -> void:
 	var run := _affix_run(7)
 	var elite: MapNode = run.map.get_nodes().filter(func(node: MapNode) -> bool: return node.type == MapNode.Type.ELITE)[0]

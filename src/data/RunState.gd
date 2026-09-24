@@ -163,9 +163,13 @@ func is_endless() -> bool:
 	return run_modifiers.any(func(modifier: RunModifier) -> bool: return modifier.endless)
 
 
-## Returns what [param part] costs at a shop in this run: its cost, as the modifiers scale it.
+## Returns what [param part] costs at a shop in this run: its cost, as the modifiers scale it and
+## relics change it (never below 0).
 func price_of(part: MechPart) -> int:
-	return scale_price(part.cost)
+	var price := scale_price(part.cost)
+	for modifier in get_modifiers():
+		price = modifier.modify_part_price(part, price)
+	return maxi(0, price)
 
 
 ## Returns [param price] as the modifiers scale shop prices, rounded up so that on parts costing
@@ -320,9 +324,10 @@ func record_fight(result: FightResult, mech: BattleMech) -> void:
 ## Rolls the loot for winning the fight at [param node] (by default the current node): gold from
 ## the sector's range for the enemy's tier (as relics change it), added at once, and a draft of
 ## parts from the catalog with that tier's odds. An elite also drops a relic, rolled with
-## [constant RelicPool.ELITE_WEIGHTS]; a boss offers three boss relics to choose from. Take a part
-## with [method take_reward_part] and a relic with [method take_reward_relic].
-func roll_reward(node: MapNode = null) -> FightReward:
+## [constant RelicPool.ELITE_WEIGHTS]; a boss offers three boss relics to choose from. A
+## [param relic_rarity] of 0 or more adds a relic of that rarity to the choice (an event's prize
+## fight). Take a part with [method take_reward_part] and a relic with [method take_reward_relic].
+func roll_reward(node: MapNode = null, relic_rarity := -1) -> FightReward:
 	node = node if node else map.current
 	var reward := FightReward.new()
 	reward.tier = node.get_tier()
@@ -345,6 +350,9 @@ func roll_reward(node: MapNode = null) -> FightReward:
 			reward.relics = relic_pool.take(BOSS_RELIC_CHOICES, [Relic.Rarity.BOSS])
 			# Or grow the frame instead, while it has room.
 			reward.cells = mini(BOSS_CELLS, get_expandable_cells())
+	if relic_rarity >= 0:
+		var rarities: Array[Relic.Rarity] = [relic_rarity as Relic.Rarity]
+		reward.relics.append_array(relic_pool.take(1, rarities))
 	gold += reward.gold
 	changed.emit()
 	return reward
@@ -492,6 +500,8 @@ func get_reachable() -> Array[MapNode]:
 func travel(node: MapNode) -> bool:
 	if is_over() or map == null or not map.travel(node):
 		return false
+	for modifier in get_modifiers():
+		modifier.on_node_entered(self, node)
 	changed.emit()
 	return true
 
@@ -711,6 +721,8 @@ func open_shop() -> void:
 	shop = ShopStock.new(catalog, rng.stream("shop"), for_sale)
 	for offer in shop.relic_offers:
 		offer.price = scale_price(offer.price)
+	for modifier in get_modifiers():
+		modifier.on_shop_opened(self, shop)
 	_fresh.clear()
 	changed.emit()
 
@@ -780,12 +792,22 @@ func rotate_slot(slot_index: int) -> bool:
 	return true
 
 
-## Pays [constant ShopStock.REROLL_COST] to restock the open shop. Returns false without a shop
+## Returns what restocking the open shop costs: [constant ShopStock.REROLL_COST], as relics change
+## it (never below 0).
+func get_reroll_cost() -> int:
+	var cost := ShopStock.REROLL_COST
+	for modifier in get_modifiers():
+		cost = modifier.modify_reroll_cost(self, cost)
+	return maxi(0, cost)
+
+
+## Pays [method get_reroll_cost] to restock the open shop. Returns false without a shop
 ## or the gold to pay.
 func reroll() -> bool:
-	if shop == null or gold < ShopStock.REROLL_COST:
+	var cost := get_reroll_cost()
+	if shop == null or gold < cost:
 		return false
-	gold -= ShopStock.REROLL_COST
+	gold -= cost
 	shop.restock()
 	changed.emit()
 	return true

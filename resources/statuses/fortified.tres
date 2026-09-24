@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Fortified" format=3]
+
+[ext_resource type="Script" path="res://src/data/statuses/Fortified.gd" id="1_j3381"]
+
+[resource]
+script = ExtResource("1_j3381")
+id = "fortified"
+status_name = "Fortified"
+description = "Every hit taken is 2 smaller per charge. Loses a charge a second."
+type = 0
+glyph = "F"
+color = Color(0.55, 0.8, 1, 1)
+upper_bound = 10
+priority = 8500

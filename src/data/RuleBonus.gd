@@ -3,7 +3,8 @@ extends Resource
 ## One change an adjacency rule makes to a linked part: a stat, added to or multiplied.
 ## A [SynergyRule] can make several, e.g. more energy and more heat.
 
-enum Stat { HP, ENERGY, DAMAGE, HEAT, COOLDOWN, ENERGY_COST }
+## New stats go at the end: rules save them as numbers.
+enum Stat { HP, ENERGY, DAMAGE, HEAT, COOLDOWN, ENERGY_COST, COOLING, SHIELD }
 enum Op { ADD, MULTIPLY }
 
 ## Short names for the stats, for bonus lines like "+20 EN / +10 HEAT".
@@ -14,6 +15,8 @@ const STAT_LABELS := {
 	Stat.HEAT: "HEAT",
 	Stat.COOLDOWN: "CD",
 	Stat.ENERGY_COST: "EN cost",
+	Stat.COOLING: "COOL",
+	Stat.SHIELD: "SHIELD",
 }
 
 @export var stat: Stat

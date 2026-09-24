@@ -4,7 +4,7 @@ extends RefCounted
 ## parts are only read: everything that changes during combat lives here and in the
 ## [ActivePart]s.
 
-## Full heat. A MELTDOWN chassis melts down when it gets there.
+## Full heat. A chassis with a [MeltdownPassive] melts down when it gets there.
 const MAX_HEAT := 100
 ## Thermal throttling: above this much heat, a mech's weapons cool down slower, down to
 ## MIN_FIRE_RATE of normal speed at full heat.
@@ -60,8 +60,9 @@ var throttle_heat := THROTTLE_HEAT
 ## Seconds left in a Meltdown shutdown. While it's above 0, none of the mech's parts act and
 ## its chassis adds no energy.
 var shutdown_left := 0.0
-## Whether the Striker's Overclock has been spent this fight.
-var overclock_spent := false
+## What the chassis's passive keeps for this fight, e.g. whether Overclock is spent (passives are
+## shared, so they keep nothing themselves).
+var passive_state := {}
 ## Damage the mech has done to its enemy this fight, from its weapons and meltdowns, after the
 ## enemy's plating.
 var damage_dealt := 0
@@ -98,8 +99,8 @@ func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, 
 	base_energy = stats.base_energy
 	max_shield = roundi(stats.shield * hp_scale)
 	shield = max_shield
-	if chassis.passive == MechChassis.Passive.THICK_PLATING:
-		_interceptors.append(PlatingInterceptor.new(chassis.plating))
+	if chassis.passive:
+		_interceptors.append_array(chassis.passive.make_interceptors(self))
 	for relic in relics:
 		_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.ATTACKER))
 		_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.TARGET))
@@ -117,7 +118,7 @@ func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, 
 
 
 ## Returns what a hit of [param amount] would take off, without taking it: the target's side of
-## the [HitPipeline] (a THICK_PLATING chassis takes [member MechChassis.plating] less, never below
+## the [HitPipeline] (a [ThickPlatingPassive] chassis takes its plating off, never below
 ## 0, then relics have their say), as a preview.
 func get_damage_taken(amount: int) -> int:
 	var hit := HitPipeline.Hit.new(HitPipeline.Kind.OTHER, self, amount)
@@ -141,11 +142,22 @@ func take_hit(hit: HitPipeline.Hit) -> int:
 ## Starts a fight: each part ability's [method PartAbility.on_fight_start], then each relic's
 ## [method Relic.on_fight_start], announcing the relics that act.
 func start_fight() -> void:
+	if chassis.passive:
+		chassis.passive.on_fight_start(self)
 	for acting in get_abilities():
 		acting.ability.on_fight_start(self, acting.active)
 	for relic in relics:
 		if relic.on_fight_start(self):
 			relic_triggered.emit(relic)
+
+
+## As the fight ends, [param won] saying whether this mech won: its parts' and relics'
+## [code]on_fight_end[/code] hooks.
+func end_fight(won: bool) -> void:
+	for acting in get_abilities():
+		acting.ability.on_fight_end(self, acting.active, won)
+	for relic in relics:
+		relic.on_fight_end(self, won)
 
 
 ## Returns the damage a shot from [param weapon] would leave this mech with: its linked damage,
@@ -204,6 +216,8 @@ func tick_statuses(delta: float) -> void:
 
 ## Runs each relic's [method Relic.on_tick].
 func tick_relics(delta: float) -> void:
+	if chassis.passive:
+		chassis.passive.on_tick(self, delta)
 	for relic in relics.duplicate():
 		relic.on_tick(self, delta)
 
@@ -278,6 +292,8 @@ func get_fire_rate() -> float:
 ## statuses change it (e.g. Jammed).
 func get_weapon_speed() -> float:
 	var speed := get_fire_rate()
+	if chassis.passive:
+		speed = chassis.passive.modify_weapon_speed(self, speed)
 	for status in statuses:
 		speed = status.data.modify_weapon_speed(self, status, speed)
 	return maxf(0.0, speed)

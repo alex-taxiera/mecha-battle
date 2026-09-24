@@ -61,6 +61,31 @@ func on_fight_won(_run: RunState) -> void:
 	pass
 
 
+## When [param mech]'s fight ends: [param won] is whether it won (false for a loss or a draw).
+func on_fight_end(_mech: BattleMech, _won: bool) -> void:
+	pass
+
+
+## When the run travels to [param node] on the map, before what's there opens.
+func on_node_entered(_run: RunState, _node: MapNode) -> void:
+	pass
+
+
+## When a Scrap Shop opens, stocked, e.g. to add a slot or discount its relics.
+func on_shop_opened(_run: RunState, _shop: ShopStock) -> void:
+	pass
+
+
+## Returns what [param part] costs at a shop, given [param price] so far (after Threat).
+func modify_part_price(_part: MechPart, price: int) -> int:
+	return price
+
+
+## Returns what the open shop's next reroll costs, given [param cost] so far.
+func modify_reroll_cost(_run: RunState, cost: int) -> int:
+	return cost
+
+
 ## Returns the gold a fight drops, given [param amount] so far.
 func modify_gold(amount: int) -> int:
 	return amount

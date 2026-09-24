@@ -102,6 +102,9 @@ func process_tick(delta: float) -> void:
 	for mech: BattleMech in [left, right]:
 		mech.tick_statuses(delta)
 		mech.tick_relics(delta)
+		if not mech.is_shut_down():
+			for acting in mech.get_abilities():
+				acting.ability.on_tick(mech, acting.active, delta)
 	for mech: BattleMech in [left, right]:
 		_tick_flow(mech, delta)
 	for mech: BattleMech in [left, right]:
@@ -212,8 +215,8 @@ func _tick_part(mech: BattleMech, active: ActivePart, delta: float) -> void:
 
 
 # Fires a ready weapon if its mech has the energy. One that can't pay stays ready and fires
-# on the first tick its mech can. On an OVERCLOCK chassis, the fight's first shot fires twice,
-# the second for free.
+# on the first tick its mech can. The chassis's passive can make it fire again for free (the
+# Striker's Overclock).
 func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> void:
 	if not _is_ready(active) or active.part.type != MechPart.PartType.WEAPON:
 		return
@@ -224,9 +227,9 @@ func _try_fire(attacker: BattleMech, target: BattleMech, active: ActivePart) -> 
 	attacker.current_energy -= active.energy_cost
 	active.current_cooldown = active.cooldown_max
 	_shoot(attacker, target, active)
-	if attacker.chassis.passive == MechChassis.Passive.OVERCLOCK and not attacker.overclock_spent:
-		attacker.overclock_spent = true
-		_shoot(attacker, target, active)
+	if attacker.chassis.passive:
+		for i in attacker.chassis.passive.extra_shots(attacker, active):
+			_shoot(attacker, target, active)
 
 
 # A shot: its heat (as the weapon's abilities change it), its hit (shaped by them, e.g. piercing,
@@ -266,16 +269,16 @@ func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> voi
 		reflected.emit(target, attacker, returned)
 
 
-# A MELTDOWN mech at full heat hits its enemy, cools to 0, and shuts down.
+# A mech with a [MeltdownPassive] at full heat hits its enemy, cools to 0, and shuts down.
 func _check_meltdown(mech: BattleMech) -> void:
-	var chassis := mech.chassis
-	if chassis.passive != MechChassis.Passive.MELTDOWN or mech.heat < BattleMech.MAX_HEAT or mech.is_shut_down():
+	var passive := mech.chassis.passive as MeltdownPassive
+	if passive == null or mech.heat < BattleMech.MAX_HEAT or mech.is_shut_down():
 		return
 	var target := _enemy_of(mech)
-	var taken := target.take_damage(chassis.meltdown_damage, HitPipeline.Kind.MELTDOWN, mech)
+	var taken := target.take_damage(passive.damage, HitPipeline.Kind.MELTDOWN, mech)
 	mech.damage_dealt += taken
 	mech.heat = 0
-	mech.shutdown_left = chassis.meltdown_shutdown
+	mech.shutdown_left = passive.shutdown
 	for active in mech.active_parts:
 		active.streak = 0
 	for acting in mech.get_abilities():
@@ -314,4 +317,6 @@ func _check_for_end() -> void:
 		winner = left
 	elif not right_down:
 		winner = right
+	left.end_fight(winner == left)
+	right.end_fight(winner == right)
 	battle_ended.emit(winner)

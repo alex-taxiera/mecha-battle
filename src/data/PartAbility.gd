@@ -15,6 +15,18 @@ func on_fight_start(_mech: BattleMech, _active: ActivePart) -> void:
 	pass
 
 
+## Every tick of a fight, [param delta] seconds long, while the part works and [param mech] isn't
+## shut down: e.g. repairing a little, or turning heat into energy.
+func on_tick(_mech: BattleMech, _active: ActivePart, _delta: float) -> void:
+	pass
+
+
+## When the fight ends: [param won] is whether [param mech] won (false for a loss or a draw).
+## [member ActivePart.part] is the run's own part, so a change to it lasts the run.
+func on_fight_end(_mech: BattleMech, _active: ActivePart, _won: bool) -> void:
+	pass
+
+
 ## Seconds sooner the electrical storm starts, for both mechs, while the part is installed.
 ## The fight takes the largest lead either mech has.
 func get_storm_lead() -> float:

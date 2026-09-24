@@ -289,6 +289,29 @@ func test_an_event_plays_its_choice_then_returns_to_the_map() -> void:
 	await await_idle_frame()
 
 
+func test_an_event_can_start_a_prize_fight_against_a_named_enemy() -> void:
+	var fight := FightEffect.new()
+	fight.enemy = Fixtures.enemy("Pit Champion", EnemyLoadout.Tier.NORMAL)
+	fight.relic_rarity = Relic.Rarity.RARE
+	_game.events = [Fixtures.event("Pit Fight", [Fixtures.choice("Fight", [Fixtures.outcome("Step in.", [fight])])])]
+	await _choose(_armed())
+	var node: MapNode = _game.run.get_reachable()[0]
+	node.type = MapNode.Type.EVENT
+	await _go(node)
+	var screen := _game.screen as EventScreen
+	assert_bool(screen.choose(0)).is_true()
+	screen.button.pressed.emit()
+	await await_idle_frame()
+	_game.combat.print_ticks = false
+	(_game.combat.get_node("%TickTimer") as Timer).stop()
+	assert_str(_game.combat.engine.right.mech_name).is_equal("Pit Champion")
+	await _finish_fight()
+	var loot := _game.screen as RewardScreen
+	assert_array(loot.reward.relics).has_size(1)
+	assert_int(loot.reward.relics[0].rarity).is_equal(Relic.Rarity.RARE)
+	await _collect_loot()
+
+
 func test_an_event_can_start_a_fight_with_its_loot() -> void:
 	var fight := FightEffect.new()
 	fight.tier = EnemyLoadout.Tier.ELITE

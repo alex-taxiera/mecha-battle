@@ -73,6 +73,8 @@ var combat: CombatScreen
 # current node, or a stand-in for a fight an event started.
 var _player: BattleMech
 var _fight_node: MapNode
+# The rarity of a relic an event's fight adds to its reward, or -1.
+var _fight_relic_rarity := -1
 
 
 func _ready() -> void:
@@ -167,10 +169,12 @@ func _enter(node: MapNode) -> void:
 
 # The player's build, as it stands, at the hull's current HP, against the current node's enemy,
 # or, for a fight an event starts, one of the sector's enemies of [param tier].
-func _start_fight(tier := -1) -> void:
+func _start_fight(tier := -1, enemy: EnemyLoadout = null, relic_rarity := -1) -> void:
 	_fight_node = run.map.current
+	_fight_relic_rarity = relic_rarity
 	if tier >= 0:
 		_fight_node = MapNode.new(run.map.current.floor_index, run.map.current.column, _TIER_NODES[tier])
+		_fight_node.enemy = enemy
 	_player = run.make_player_mech()
 	combat = COMBAT_SCENE.instantiate()
 	combat.setup(_player, run.make_enemy_mech(_fight_node), run)
@@ -190,7 +194,7 @@ func _end_fight(winner: BattleMech) -> void:
 	if run.is_over():
 		_show_end()
 		return
-	var loot := RewardScreen.new(run, run.roll_reward(_fight_node))
+	var loot := RewardScreen.new(run, run.roll_reward(_fight_node, _fight_relic_rarity))
 	loot.finished.connect(_after_loot, CONNECT_DEFERRED)
 	_show(loot)
 
@@ -254,8 +258,9 @@ func _open_event() -> void:
 
 
 func _after_event(event_screen: EventScreen) -> void:
-	if event_screen.result and event_screen.result.fight_tier >= 0:
-		_start_fight(event_screen.result.fight_tier)
+	var result := event_screen.result
+	if result and result.fight_tier >= 0:
+		_start_fight(result.fight_tier, result.fight_enemy, result.fight_relic_rarity)
 	else:
 		show_map()
 

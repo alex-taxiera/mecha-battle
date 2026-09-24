@@ -3,18 +3,6 @@ extends Resource
 ## A mech frame: the grid parts are placed on, the stats it gives before any parts, and its
 ## passive ability in a fight.
 
-## What a frame does in a fight on its own. Each passive's numbers are below it.
-enum Passive {
-	NONE,
-	## Every hit the mech takes, from any source, is [member plating] smaller.
-	THICK_PLATING,
-	## The first weapon to fire in a fight fires twice.
-	OVERCLOCK,
-	## At full heat the mech deals [member meltdown_damage] to its enemy, then shuts down for
-	## [member meltdown_shutdown] seconds.
-	MELTDOWN,
-}
-
 @export var id: String
 @export var chassis_name: String
 ## The frame's shape in a few words, e.g. "Wide frame".
@@ -43,15 +31,11 @@ enum Passive {
 @export var starter_lineup: Array[LoadoutPart] = []
 
 @export_group("Passive")
-@export var passive := Passive.NONE
+## What the frame does in a fight on its own, with its numbers (see [ChassisPassive]); null for
+## none.
+@export var passive: ChassisPassive
 @export var passive_name: String
 @export_multiline var passive_text: String
-## THICK_PLATING: damage taken off every hit, never below 0.
-@export var plating := 1
-## MELTDOWN: damage dealt to the enemy when the mech melts down.
-@export var meltdown_damage := 25
-## MELTDOWN: seconds the mech's parts and chassis stop after a meltdown.
-@export var meltdown_shutdown := 3.0
 
 
 ## Returns whether [param cell] lies inside the frame's bounds, disabled or not.

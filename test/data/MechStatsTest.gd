@@ -388,3 +388,27 @@ func _place(part: MechPart, origin: Vector2i, rotation := 0) -> MechGridData.Pla
 	var context := "%s at %s" % [part.part_name, origin]
 	assert_bool(_grid.place_part(part, origin, rotation)).append_failure_message(context).is_true()
 	return _grid.get_placement_at(MechGridData.get_footprint(part, origin, rotation)[0])
+
+
+func test_rules_can_change_cooling_and_shield() -> void:
+	# A sink touching a shield emitter: the sink vents twice as much, the emitter holds +50.
+	_rules = [
+		Fixtures._rule(MechPart.PartType.UTILITY, MechPart.PartType.DEFENSE, SynergyRule.Target.FIRST,
+			[Fixtures._bonus(RuleBonus.Stat.COOLING, RuleBonus.Op.MULTIPLY, 2.0)] as Array[RuleBonus], false),
+		Fixtures._rule(MechPart.PartType.DEFENSE, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST,
+			[Fixtures._bonus(RuleBonus.Stat.SHIELD, RuleBonus.Op.ADD, 50.0)] as Array[RuleBonus], false),
+	]
+	var sink := _place(Fixtures.part("Sink", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 0, {"cooling": 10}), Vector2i(1, 1))
+	var emitter := _place(Fixtures.part("Emitter", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 0, {"shield": 100}), Vector2i(2, 1))
+	var stats := _stats()
+	assert_int(stats.part_stats[sink].cooling).is_equal(20)
+	assert_int(stats.heat_vented).is_equal(20)
+	assert_int(stats.part_stats[emitter].shield).is_equal(150)
+	assert_int(stats.shield).is_equal(150)
+	# Positive control: apart, neither changes.
+	_grid.remove_part(Vector2i(2, 1))
+	_place(Fixtures.part("Emitter", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 0, {"shield": 100}), Vector2i(4, 4))
+	stats = _stats()
+	assert_int(stats.heat_vented).is_equal(10)
+	assert_int(stats.shield).is_equal(100)
+	assert_str(RuleBonus.STAT_LABELS[RuleBonus.Stat.COOLING]).is_equal("COOL")

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Haste" format=3]
+
+[ext_resource type="Script" path="res://src/data/statuses/Haste.gd" id="1_lq7kj"]
+
+[resource]
+script = ExtResource("1_lq7kj")
+id = "haste"
+status_name = "Haste"
+description = "Weapons count down 10% faster per charge, up to half again as fast. Loses a charge a second."
+type = 0
+glyph = "H"
+color = Color(0.5, 1, 0.6, 1)
+upper_bound = 5

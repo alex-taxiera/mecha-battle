@@ -151,9 +151,9 @@ func _refresh() -> void:
 		_chassis_info.text += " · %d to open" % run.cells_to_open
 	elif locked > 0:
 		_chassis_info.text += " · %d locked" % locked
-	_passive_label.visible = frame.passive != MechChassis.Passive.NONE
+	_passive_label.visible = frame.passive != null
 	_passive_label.text = "%s: %s" % [frame.passive_name, frame.passive_text]
-	_reroll_button.text = "Reroll · %dg" % ShopStock.REROLL_COST
+	_reroll_button.text = "Reroll · %dg" % run.get_reroll_cost()
 	for item in _slots.get_children():
 		_slots.remove_child(item)
 		item.queue_free()
