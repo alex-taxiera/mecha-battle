@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Reflective" format=3]
+
+[ext_resource type="Script" path="res://src/data/affixes/Reflective.gd" id="1_1h2i0"]
+
+[resource]
+script = ExtResource("1_1h2i0")
+id = "reflective"
+relic_name = "Reflective"
+description = "A shot of 30 dmg or more deals 15 back."
+rarity = 6
+glyph = "M"
+color = Color(0.78039217, 0.80784315, 0.8509804, 1)

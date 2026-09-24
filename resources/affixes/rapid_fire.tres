@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RapidFire" format=3]
+
+[ext_resource type="Script" path="res://src/data/affixes/RapidFire.gd" id="1_yadms"]
+
+[resource]
+script = ExtResource("1_yadms")
+id = "rapid_fire"
+relic_name = "Rapid-Fire"
+description = "Its weapons fire 15% faster."
+rarity = 6
+glyph = "R"
+color = Color(0.9490196, 0.827451, 0.2901961, 1)

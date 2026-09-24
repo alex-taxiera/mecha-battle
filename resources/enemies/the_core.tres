@@ -9,6 +9,9 @@
 [ext_resource type="Resource" path="res://resources/parts/laser.tres" id="7_chgwc"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="8_8tpbc"]
 [ext_resource type="Resource" path="res://resources/parts/shield_emitter.tres" id="8_hig38"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="9_hbvdc"]
+[ext_resource type="Script" path="res://src/data/Relic.gd" id="10_62rak"]
+[ext_resource type="Resource" path="res://resources/affixes/phase/exposed.tres" id="11_chgwc"]
 
 [sub_resource type="Resource" id="Resource_ak0rj"]
 script = ExtResource("2_hig38")
@@ -50,6 +53,20 @@ part = ExtResource("8_hig38")
 origin = Vector2i(0, 4)
 rotation = 1
 
+[sub_resource type="Resource" id="Resource_8tpbc"]
+script = ExtResource("9_hbvdc")
+title = "Overload"
+text = "The Core reroutes everything to its weapons."
+cooldown_scale = 0.7
+relics = Array[ExtResource("10_62rak")]([ExtResource("11_chgwc")])
+
+[sub_resource type="Resource" id="Resource_t5wyo"]
+script = ExtResource("9_hbvdc")
+title = "Last Protocol"
+text = "The Core reboots."
+revive = true
+heal_share = 0.3
+
 [resource]
 script = ExtResource("8_8tpbc")
 id = "the_core"
@@ -58,3 +75,4 @@ tier = 2
 chassis = ExtResource("1_dvncv")
 lineup = Array[ExtResource("2_hig38")]([SubResource("Resource_ak0rj"), SubResource("Resource_vn404"), SubResource("Resource_pnlfy"), SubResource("Resource_647r5"), SubResource("Resource_32ob3"), SubResource("Resource_e8nq2"), SubResource("Resource_wav53"), SubResource("Resource_giv0p")])
 hp_scale = 1.3
+phases = Array[ExtResource("9_hbvdc")]([SubResource("Resource_8tpbc"), SubResource("Resource_t5wyo")])

@@ -14,6 +14,7 @@ const LOADOUT_SCENE := preload("res://src/ui/LoadoutScreen.tscn")
 const COMBAT_SCENE := preload("res://src/ui/CombatScreen.tscn")
 const ACTS_DIR := "res://resources/acts"
 const RELICS_DIR := "res://resources/relics"
+const AFFIXES_DIR := "res://resources/affixes"
 const EVENTS_DIR := "res://resources/events"
 const UNLOCKS_DIR := "res://resources/unlocks"
 const TECHNICIAN_DIR := "res://resources/technician"
@@ -37,6 +38,8 @@ var rules: Array[SynergyRule] = []
 var acts: Array[ActData] = []
 var relics: Array[Relic] = []
 var events: Array[GameEvent] = []
+## The affixes elites can roll; loaded from [constant AFFIXES_DIR] unless set.
+var affixes: Array[Relic] = []
 ## Everything the profile can unlock. Left empty, it's loaded from its folder.
 var unlocks: Array[Unlock] = []
 ## What the Mech Technician can offer. Left empty, it's loaded from its folder.
@@ -75,6 +78,8 @@ func _ready() -> void:
 		relics.assign(LoadoutScreen.load_dir(RELICS_DIR).filter(func(resource: Resource) -> bool: return resource is Relic))
 	if events.is_empty():
 		events.assign(LoadoutScreen.load_dir(EVENTS_DIR).filter(func(resource: Resource) -> bool: return resource is GameEvent))
+	if affixes.is_empty():
+		affixes.assign(LoadoutScreen.load_dir(AFFIXES_DIR).filter(func(resource: Resource) -> bool: return resource is Relic))
 	if unlocks.is_empty():
 		unlocks.assign(LoadoutScreen.load_dir(UNLOCKS_DIR).filter(func(resource: Resource) -> bool: return resource is Unlock))
 	if technician_options.is_empty():
@@ -103,7 +108,7 @@ func _start_run(chassis: MechChassis) -> void:
 	var run_relics: Array[Relic] = []
 	run_relics.assign(relics.filter(func(relic: Relic) -> bool: return profile.is_available(Unlock.Kind.RELIC, relic.id, unlocks)))
 	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts,
-		run_relics, events)
+		run_relics, events, affixes)
 	if profile.is_available(Unlock.Kind.NPC, TECHNICIAN, unlocks):
 		_meet_technician()
 	else:

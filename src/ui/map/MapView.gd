@@ -106,7 +106,10 @@ static func describe(node: MapNode) -> String:
 	var title: String = kind[2]
 	if node.type == MapNode.Type.BOSS and node.enemy:
 		title = "Sector Boss: %s" % node.enemy.enemy_name
-	return "%s\n%s" % [title, kind[3]]
+	var text := "%s\n%s" % [title, kind[3]]
+	if not node.affixes.is_empty():
+		text += "\nAffixes: %s" % ", ".join(node.affixes.map(func(affix: Relic) -> String: return affix.relic_name))
+	return text
 
 
 func _get_tooltip(at_position: Vector2) -> String:

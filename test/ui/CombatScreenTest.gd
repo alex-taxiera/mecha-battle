@@ -445,3 +445,23 @@ func _gunner() -> BattleMech:
 # 30 HP and nothing else.
 func _bare() -> BattleMech:
 	return BattleMech.new(MechGridData.new(Fixtures.cross_chassis()))
+
+
+func test_the_opponents_affixes_show_under_its_bar() -> void:
+	var foe := BattleMech.new(MechGridData.new(Fixtures.cross_chassis()), [], 1.0, -1, [Fixtures.shielded(), Fixtures.armored()] as Array[Relic])
+	var screen := _screen(_gunner(), foe)
+	var icons := screen.get_affix_icons()
+	assert_array(icons.map(func(icon: RelicIcon) -> String: return icon.relic.relic_name)).contains_exactly(["Shielded", "Armored"])
+	assert_str(icons[0].tooltip_text.get_slice("\n", 0)).is_equal("Shielded (Affix)")
+	# Positive control: a plain opponent shows none.
+	assert_array(_screen(_gunner(), _bare()).get_affix_icons()).is_empty()
+
+
+func test_a_boss_phase_pops_its_title() -> void:
+	var boss := _bare()
+	boss.phases.assign([Fixtures.boss_phase("Scrap Armor", 0.5, {"shield_share": 0.3})])
+	var screen := _screen(_gunner(), boss)
+	# The gunner's 8 a second takes the boss under half at 2 seconds.
+	_tick(screen, 20)
+	assert_array(_popup_texts(screen)).contains(["SCRAP ARMOR"])
+	assert_int(boss.shield).is_equal(9)

@@ -551,3 +551,75 @@ static func kinetic_dynamo() -> MechPart:
 	ability.energy = 3
 	return part("Kinetic Dynamo", MechPart.PartType.DEFENSE, [Vector2i(0, 0), Vector2i(0, 1)], 3,
 		{"hp": 40, "abilities": [ability] as Array[PartAbility]})
+
+
+# The design doc's elite affixes.
+
+## Every hit taken 3 smaller.
+static func armored() -> Armored:
+	var affix := _affix(Armored.new(), "armored", "Armored")
+	affix.plating = 3
+	return affix
+
+
+## Starts each fight with a quarter of its max HP as shield.
+static func shielded() -> Shielded:
+	var affix := _affix(Shielded.new(), "shielded", "Shielded")
+	affix.shield_share = 0.25
+	return affix
+
+
+## Weapons cool down 85% as long.
+static func rapid_fire() -> RapidFire:
+	var affix := _affix(RapidFire.new(), "rapid_fire", "Rapid-Fire")
+	affix.cooldown_scale = 0.85
+	return affix
+
+
+## A shot of 30 or more deals 15 back.
+static func reflective() -> Reflective:
+	var affix := _affix(Reflective.new(), "reflective", "Reflective")
+	affix.threshold = 30
+	affix.damage = 15
+	return affix
+
+
+## Repairs 1% of max HP a second.
+static func regenerating() -> Regenerating:
+	var affix := _affix(Regenerating.new(), "regenerating", "Regenerating")
+	affix.heal_share = 0.01
+	return affix
+
+
+## Weapons hit 1.2 times as hard and make 10 more heat a shot.
+static func unstable() -> Unstable:
+	var affix := _affix(Unstable.new(), "unstable", "Unstable")
+	affix.damage_scale = 1.2
+	affix.heat_add = 10
+	return affix
+
+
+## Shots leave 1 Burn.
+static func burning() -> Burning:
+	var affix := _affix(Burning.new(), "burning", "Burning")
+	affix.status = burn()
+	affix.charges = 1
+	return affix
+
+
+## A boss phase at [param threshold] of max HP with [param values] (e.g. [code]{"shield_share": 0.3}[/code]).
+static func boss_phase(title: String, threshold := 0.5, values := {}) -> BossPhase:
+	var phase := BossPhase.new()
+	phase.title = title
+	phase.threshold = threshold
+	for key in values:
+		assert(key in phase, "BossPhase has no '%s'" % key)
+		phase.set(key, values[key])
+	return phase
+
+
+static func _affix(affix: Relic, id: String, relic_name: String) -> Relic:
+	affix.id = id
+	affix.relic_name = relic_name
+	affix.rarity = Relic.Rarity.AFFIX
+	return affix

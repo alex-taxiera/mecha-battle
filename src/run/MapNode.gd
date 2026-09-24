@@ -34,6 +34,8 @@ var visited := false
 var enemy: EnemyLoadout
 ## The event here, for events: picked the first time it's needed.
 var event: GameEvent
+## An elite's affixes: rolled with the map, so the map can show them, and carried into its fight.
+var affixes: Array[Relic] = []
 ## Where the node is drawn, off its lattice point, in fractions of the spacing between points,
 ## so the map doesn't look like a grid. Rolled with the map.
 var jitter := Vector2.ZERO

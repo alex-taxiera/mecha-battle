@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Regenerating" format=3]
+
+[ext_resource type="Script" path="res://src/data/affixes/Regenerating.gd" id="1_waoxc"]
+
+[resource]
+script = ExtResource("1_waoxc")
+id = "regenerating"
+relic_name = "Regenerating"
+description = "Repairs 1% of its max HP a second."
+rarity = 6
+glyph = "+"
+color = Color(0.37254903, 0.827451, 0.5411765, 1)

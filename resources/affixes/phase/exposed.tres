@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Exposed" format=3]
+
+[ext_resource type="Script" path="res://src/data/affixes/Exposed.gd" id="1_hf14r"]
+
+[resource]
+script = ExtResource("1_hf14r")
+id = "exposed"
+relic_name = "Exposed"
+description = "Every hit it takes is 20% bigger."
+rarity = 6
+glyph = "X"
+color = Color(1, 0.3019608, 0.3019608, 1)

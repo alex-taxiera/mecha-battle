@@ -168,6 +168,46 @@ func test_a_scrapper_drone_refunds_everything_in_full() -> void:
 	assert_int(_run.stash_sell_value(0)).is_equal(1)
 
 
+func test_elites_roll_their_affixes_with_the_map() -> void:
+	var run := _affix_run(7)
+	var elites := run.map.get_nodes().filter(func(node: MapNode) -> bool: return node.type == MapNode.Type.ELITE)
+	assert_array(elites).is_not_empty()
+	for node: MapNode in run.map.get_nodes():
+		var expected := 1 if node.type == MapNode.Type.ELITE else 0
+		assert_array(node.affixes).append_failure_message(node.id).has_size(expected)
+	# The same seed rolls the same affixes.
+	var again := _affix_run(7)
+	for node: MapNode in elites:
+		assert_str(again.map.find_node(node.id).affixes[0].id).is_equal(node.affixes[0].id)
+	# Positive control: without an affix pool, elites have none.
+	var plain := _sector_run(1, 7)
+	for node: MapNode in plain.map.get_nodes():
+		assert_array(node.affixes).is_empty()
+
+
+func test_an_elite_fights_with_copies_of_its_affixes_and_pays_more() -> void:
+	var run := _affix_run(7)
+	var elite: MapNode = run.map.get_nodes().filter(func(node: MapNode) -> bool: return node.type == MapNode.Type.ELITE)[0]
+	var mech := run.make_enemy_mech(elite)
+	assert_array(mech.relics).has_size(1)
+	assert_object(mech.relics[0]).is_not_same(elite.affixes[0])
+	assert_str(mech.relics[0].id).is_equal(elite.affixes[0].id)
+	# Its gold is a fifth more than the same roll without the affix.
+	var plain := _sector_run(1, 7)
+	var base := plain.roll_reward(plain.map.find_node(elite.id)).gold
+	assert_int(run.roll_reward(elite).gold).is_equal(roundi(base * 1.2))
+
+
+func test_a_boss_fights_with_its_phases() -> void:
+	var acts: Array[ActData] = [Fixtures.act()]
+	var phase := Fixtures.boss_phase("Scrap Armor", 0.5, {"shield_share": 0.3})
+	for enemy in acts[0].get_enemies(EnemyLoadout.Tier.BOSS):
+		enemy.phases.assign([phase])
+	var run := RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink], [], 10, RunRng.new(3), acts)
+	var mech := run.make_enemy_mech(run.map.boss)
+	assert_array(mech.phases).contains_exactly([phase])
+
+
 func test_the_shop_only_trades_while_open() -> void:
 	_run.close_shop()
 	assert_bool(_run.can_sell()).is_false()
@@ -793,3 +833,12 @@ func _parts_of(run: RunState) -> Array[MechPart]:
 	for slot in run.shop.slots:
 		parts.append(slot.part)
 	return parts
+
+
+# A one-sector run whose elites roll from three affixes.
+func _affix_run(rng_seed: int) -> RunState:
+	var acts: Array[ActData] = [Fixtures.act(1.5, 0.1)]
+	var affixes: Array[Relic] = [Fixtures.armored(), Fixtures.shielded(), Fixtures.rapid_fire()]
+	return RunState.new(Fixtures.armed_cross(), [_gatling, _laser, _reactor, _heatsink],
+		[Fixtures.cooled(), Fixtures.overcharge(), Fixtures.stable(), Fixtures.plated()], 10, RunRng.new(rng_seed), acts,
+		[], [], affixes)

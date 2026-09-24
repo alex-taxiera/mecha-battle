@@ -62,5 +62,8 @@ func test_tooltips_explain_each_node() -> void:
 	assert_str(MapView.describe(_map.boss)).is_equal("Sector Boss: Boss\nThe sector's boss. Beat it to move on.")
 	var elite := MapNode.new(5, 1, MapNode.Type.ELITE)
 	assert_str(MapView.describe(elite)).is_equal("Elite\nA tougher mech with better loot.")
+	# An elite's affixes are named.
+	elite.affixes.assign([Fixtures.shielded(), Fixtures.armored()])
+	assert_str(MapView.describe(elite)).is_equal("Elite\nA tougher mech with better loot.\nAffixes: Shielded, Armored")
 	# Every kind has a glyph, color, name, and blurb.
 	assert_array(MapView.KINDS.keys()).contains_exactly_in_any_order(MapNode.Type.values())

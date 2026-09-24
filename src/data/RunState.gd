@@ -22,6 +22,8 @@ const SHOP_RELICS := 2
 const REPAIR_SHARE := 0.3
 ## A Hangar's Reinforce: this much max HP, for good.
 const REINFORCE_HP := 25
+## Each affix on an elite adds this share to its gold.
+const AFFIX_GOLD_BONUS := 0.2
 
 
 ## A spare part in the stash, and the way it's turned for installing.
@@ -82,6 +84,9 @@ var upgrades: Array[Relic] = []
 var statuses: Array[TimedStatus] = []
 ## The events the run can still come across.
 var event_pool: EventPool
+## The affixes elites can roll, and how many each one gets.
+var affix_pool: Array[Relic] = []
+var elite_affixes := 1
 
 # Parts bought at the open shop, which still sell back for their full cost.
 var _fresh: Array[MechPart] = []
@@ -92,10 +97,11 @@ var _last_enemy: EnemyLoadout
 ## Starts a run on [param chassis], with its starter kit installed, [param start_gold], and the
 ## first of [param p_acts]' maps. [param p_catalog] is filtered to the parts the chassis can use;
 ## [param p_relics] are the relics it can find and [param p_events] the events it can come
-## across. Pass a [RunRng] with a set seed to repeat a run.
+## across. [param p_affixes] are the affixes elites can roll. Pass a [RunRng] with a set seed to
+## repeat a run.
 func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[SynergyRule], start_gold := 10,
 		p_rng: RunRng = null, p_acts: Array[ActData] = [], p_relics: Array[Relic] = [],
-		p_events: Array[GameEvent] = []) -> void:
+		p_events: Array[GameEvent] = [], p_affixes: Array[Relic] = []) -> void:
 	grid = MechGridData.new(chassis)
 	LoadoutPart.place_all(grid, chassis.starter_lineup)
 	catalog.assign(p_catalog.filter(func(part: MechPart) -> bool:
@@ -105,6 +111,7 @@ func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[Syne
 	rng = p_rng if p_rng else RunRng.new()
 	relic_pool = RelicPool.new(p_relics, rng.stream("relics"))
 	event_pool = EventPool.new(p_events, rng.stream("events"))
+	affix_pool.assign(p_affixes)
 	acts.assign(p_acts)
 	if not acts.is_empty():
 		_start_act(0)
@@ -193,12 +200,19 @@ func get_enemy(node: MapNode = null) -> EnemyLoadout:
 
 
 ## Returns the enemy's mech for the fight at [param node] (by default the current node), named
-## for the enemy, its HP scaled for the sector and how far up the map the node is.
+## for the enemy, its HP scaled for the sector and how far up the map the node is, with the node's
+## affixes and a boss's phases.
 func make_enemy_mech(node: MapNode = null) -> BattleMech:
 	node = node if node else map.current
 	var enemy := get_enemy(node)
-	var mech := BattleMech.new(enemy.build_grid(), rules, get_act().get_enemy_hp_scale(node.floor_index) * enemy.hp_scale)
+	# The fight gets its own copies of the node's affixes, so any state they keep starts fresh.
+	var affixes: Array[Relic] = []
+	for affix in node.affixes:
+		affixes.append(affix.duplicate())
+	var hp_scale := get_act().get_enemy_hp_scale(node.floor_index) * enemy.hp_scale
+	var mech := BattleMech.new(enemy.build_grid(), rules, hp_scale, -1, affixes)
 	mech.mech_name = enemy.enemy_name
+	mech.phases.assign(enemy.phases)
 	return mech
 
 
@@ -226,6 +240,8 @@ func roll_reward(node: MapNode = null) -> FightReward:
 	reward.tier = node.get_tier()
 	var loot_rng := rng.stream("loot")
 	reward.gold = RewardRoller.roll_gold(loot_rng, get_act().get_gold_range(reward.tier))
+	# Each affix makes an elite worth a little more.
+	reward.gold = roundi(reward.gold * (1.0 + AFFIX_GOLD_BONUS * node.affixes.size()))
 	for modifier in get_modifiers():
 		reward.gold = modifier.modify_gold(reward.gold)
 	_tick_statuses()
@@ -373,6 +389,19 @@ func _start_act(index: int) -> void:
 	var act := acts[index]
 	var generator: MapGenerator = act.generator.new() if act.generator else MapGenerator.new()
 	map = generator.generate(act, rng.stream("map"))
+	_roll_affixes()
+
+
+# Rolls each elite's affixes on the run's "affixes" stream: [member elite_affixes] different
+# ones each, from [member affix_pool].
+func _roll_affixes() -> void:
+	if affix_pool.is_empty():
+		return
+	var stream := rng.stream("affixes")
+	for node in map.get_nodes():
+		if node.type == MapNode.Type.ELITE:
+			var picks := RunRng.shuffle(stream, affix_pool.duplicate())
+			node.affixes.assign(picks.slice(0, mini(elite_affixes, picks.size())))
 
 #endregion
 #region Stash

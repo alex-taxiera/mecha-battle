@@ -78,6 +78,8 @@ var _last_popup := {}
 # Camera shakes: a small one for heavy hits and storm strikes, a big one for meltdowns and KOs.
 var _small_shake: PhantomCameraNoiseEmitter2D
 var _big_shake: PhantomCameraNoiseEmitter2D
+# The opponent's affix badges, built on first use.
+var _affix_row: HBoxContainer
 
 @onready var result_panel: ResultPanel = %ResultPanel
 @onready var _tick_timer: Timer = %TickTimer
@@ -99,7 +101,6 @@ var _big_shake: PhantomCameraNoiseEmitter2D
 @onready var _playback: PlaybackControls = %Playback
 @onready var _playback_label: Label = %PlaybackLabel
 
-
 func _ready() -> void:
 	if engine == null:
 		if rules.is_empty():
@@ -116,6 +117,7 @@ func _ready() -> void:
 	engine.storm_struck.connect(_on_storm_struck)
 	engine.reflected.connect(_on_reflected)
 	engine.shield_collapsed.connect(_on_shield_collapsed)
+	engine.phase_changed.connect(_on_phase_changed)
 	engine.battle_ended.connect(_on_battle_ended)
 	for mech: BattleMech in [engine.left, engine.right]:
 		mech.relic_triggered.connect(_on_relic_triggered.bind(mech))
@@ -320,6 +322,7 @@ func _bind() -> void:
 		hp.owner_text = side[5]
 		hp.accent = CombatColors.accent(left)
 		hp.mirrored = not left
+	_show_affixes()
 	if run:
 		_round_badge.set_progress(_sector(), run.get_floor_number(), run.fights_won, _tier_tag())
 	_set_smoothing(TICK)
@@ -450,6 +453,48 @@ func _flush_popup(target: BattleMech) -> void:
 func _process(_delta: float) -> void:
 	for target: BattleMech in _pending_popups.keys():
 		_flush_popup(target)
+
+
+# A boss turning: its phase's title across the stage, a hard shake, and any new affixes.
+func _on_phase_changed(mech: BattleMech, phase: BossPhase) -> void:
+	_show_affixes()
+	if not _animate:
+		return
+	var view := _fighter_of(mech)
+	_effects.popup(phase.title.to_upper(), view.position + Vector2(view.size.x / 2.0, -24), CombatColors.DANGER,
+		_popup_time() * 2.0, 28)
+	_effects.flash(Color(CombatColors.DANGER, 0.25), 0.3)
+	_big_shake.emit()
+
+
+## Returns the opponent's affix badges, in order.
+func get_affix_icons() -> Array[RelicIcon]:
+	var icons: Array[RelicIcon] = []
+	if _affix_row:
+		icons.assign(_affix_row.get_children())
+	return icons
+
+
+# The opponent's affixes (an elite's, or a boss's from a phase) as badges under its HP bar.
+func _show_affixes() -> void:
+	if _affix_row == null:
+		_affix_row = HBoxContainer.new()
+		_affix_row.alignment = BoxContainer.ALIGNMENT_END
+		_affix_row.mouse_filter = MOUSE_FILTER_IGNORE
+		_affix_row.add_theme_constant_override("separation", 6)
+		_right_hp.get_parent().add_child(_affix_row)
+		_affix_row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		_affix_row.offset_left = _right_hp.offset_left
+		_affix_row.offset_right = _right_hp.offset_right - 4
+		_affix_row.offset_top = _right_hp.offset_bottom + 4
+		_affix_row.offset_bottom = _affix_row.offset_top + RelicIcon.SIZE
+		_affix_row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	for icon in _affix_row.get_children():
+		_affix_row.remove_child(icon)
+		icon.queue_free()
+	for relic in engine.right.relics:
+		if relic.rarity == Relic.Rarity.AFFIX:
+			_affix_row.add_child(RelicIcon.new(relic))
 
 
 func _on_meltdown(_mech: BattleMech, target: BattleMech, damage: int) -> void:

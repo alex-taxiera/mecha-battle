@@ -8,6 +8,8 @@
 [ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_2d66j"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_oa38b"]
 [ext_resource type="Resource" path="res://resources/parts/thermal_regulator.tres" id="7_tbpqb"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="8_e8dse"]
+[ext_resource type="Script" path="res://src/data/Relic.gd" id="9_hq21y"]
 
 [sub_resource type="Resource" id="Resource_cnn13"]
 script = ExtResource("2_tbpqb")
@@ -50,6 +52,13 @@ part = ExtResource("7_tbpqb")
 origin = Vector2i(2, 2)
 rotation = 1
 
+[sub_resource type="Resource" id="Resource_2d66j"]
+script = ExtResource("8_e8dse")
+title = "Meltdown Protocol"
+text = "The Crucible opens its vents and runs hot."
+heat = 90
+cooldown_scale = 0.8
+
 [resource]
 script = ExtResource("7_oa38b")
 id = "crucible"
@@ -58,3 +67,4 @@ tier = 2
 chassis = ExtResource("1_n50hx")
 lineup = Array[ExtResource("2_tbpqb")]([SubResource("Resource_cnn13"), SubResource("Resource_a6044"), SubResource("Resource_tna8i"), SubResource("Resource_vv0x6"), SubResource("Resource_updms"), SubResource("Resource_m02sc"), SubResource("Resource_2s2pv"), SubResource("Resource_p0qnf")])
 hp_scale = 1.4
+phases = Array[ExtResource("8_e8dse")]([SubResource("Resource_2d66j")])

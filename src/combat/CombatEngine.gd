@@ -25,6 +25,9 @@ signal storm_struck(damage: int)
 signal reflected(source: BattleMech, target: BattleMech, damage: int)
 ## Emitted when [param mech] can't pay its parts' upkeep and its shield collapses for the fight.
 signal shield_collapsed(mech: BattleMech)
+## Emitted when a boss enters [param phase], once its HP drops far enough (or, for a revive, when
+## it would have gone down: it's back up, and the fight goes on).
+signal phase_changed(mech: BattleMech, phase: BossPhase)
 ## Emitted once, on the tick a mech goes down. [param winner] is null for a draw: both mechs
 ## going down in the same tick.
 signal battle_ended(winner: BattleMech)
@@ -82,12 +85,14 @@ func start() -> void:
 
 
 ## Advances a running fight by [param delta] seconds. Shutdowns count down first, then statuses
-## tick and wear off. Then both mechs' chassis energy and venting for [param delta], cooldowns, generators, and upkeep, so
-## neither side's weapons act before the other has charged; then the left mech's weapons fire
-## (a hit on reactive armor deals some back), then the right's; then
+## tick and wear off, and relics tick. Then both mechs' chassis energy and venting for
+## [param delta], cooldowns, generators, and upkeep, so neither side's weapons act before the
+## other has charged; then the left mech's weapons fire (a hit on reactive armor deals some
+## back), then the right's; then
 ## any mech at full heat melts down, and the storm strikes if it's up. A shut-down mech does
 ## none of this. A tick's damage lands together: a mech that goes down still fires back that
-## tick, so the fight is only checked for an end once everything has hit.
+## tick, so the fight is only checked for an end once everything has hit, and a boss's phases
+## (including a revive) come just before that check.
 func process_tick(delta: float) -> void:
 	if state != State.RUNNING:
 		return
@@ -96,6 +101,7 @@ func process_tick(delta: float) -> void:
 		_tick_shutdown(mech, delta)
 	for mech: BattleMech in [left, right]:
 		mech.tick_statuses(delta)
+		mech.tick_relics(delta)
 	for mech: BattleMech in [left, right]:
 		_tick_flow(mech, delta)
 	for mech: BattleMech in [left, right]:
@@ -111,6 +117,9 @@ func process_tick(delta: float) -> void:
 	for mech: BattleMech in [left, right]:
 		_check_meltdown(mech)
 	_tick_storm()
+	for mech: BattleMech in [left, right]:
+		for phase in mech.check_phases():
+			phase_changed.emit(mech, phase)
 	_check_for_end()
 
 
@@ -241,6 +250,8 @@ func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> voi
 	if not hit.rejected:
 		for ability in abilities:
 			ability.on_hit(hit)
+		for relic in attacker.relics:
+			relic.on_hit_dealt(attacker, hit)
 	for neighbor in active.neighbors:
 		if neighbor.is_active:
 			for ability in neighbor.part.get_abilities():

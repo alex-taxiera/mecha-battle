@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Burning" format=3]
+
+[ext_resource type="Script" path="res://src/data/affixes/Burning.gd" id="1_mahqh"]
+[ext_resource type="Resource" path="res://resources/statuses/burn.tres" id="2_8hj0q"]
+
+[resource]
+script = ExtResource("1_mahqh")
+status = ExtResource("2_8hj0q")
+id = "burning"
+relic_name = "Burning"
+description = "Its shots leave 1 Burn."
+rarity = 6
+glyph = "B"
+color = Color(1, 0.47843137, 0.23921569, 1)

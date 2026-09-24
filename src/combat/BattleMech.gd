@@ -50,7 +50,7 @@ var last_absorbed := 0
 var current_energy := 0
 ## Energy the chassis adds every turn, on top of what generators make, with any relic bonus.
 var base_energy: int
-## The run's relics, for the player's mech. Enemies have none.
+## The run's relics, for the player's mech; an elite's affixes, for an enemy's.
 var relics: Array[Relic] = []
 ## Heat built up by firing, from 0 to [constant MAX_HEAT]. Heatsinks vent it each turn. Above
 ## [constant THROTTLE_HEAT] it slows the mech's weapons (see [method get_fire_rate]).
@@ -69,6 +69,11 @@ var damage_dealt := 0
 var active_parts: Array[ActivePart] = []
 ## The statuses on the mech, one of each at most, each with charges.
 var statuses: Array[ActiveStatus] = []
+## A boss's phases (see [BossPhase]) and the ones it has entered this fight.
+var phases: Array[BossPhase] = []
+var phases_done: Array[BossPhase] = []
+## Added to every phase's threshold, e.g. by Threat (bosses turning sooner).
+var phase_threshold_bonus := 0.0
 
 # Parts whose abilities have been announced this fight.
 var _announced: Array[ActivePart] = []
@@ -197,6 +202,57 @@ func tick_statuses(delta: float) -> void:
 	_prune_statuses()
 
 
+## Runs each relic's [method Relic.on_tick].
+func tick_relics(delta: float) -> void:
+	for relic in relics.duplicate():
+		relic.on_tick(self, delta)
+
+
+## Gives the mech [param relic] partway through a fight, e.g. from a boss phase: its fight hooks
+## and hit changes from now on (stats were set when the fight began).
+func add_relic(relic: Relic) -> void:
+	relics.append(relic)
+	_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.ATTACKER))
+	_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.TARGET))
+
+
+## Enters each of the mech's [member phases] whose moment has come: a revive the first time it's
+## down, any other once its HP is at or below its threshold (and above 0). Returns the phases it
+## entered, in order.
+func check_phases() -> Array[BossPhase]:
+	var entered: Array[BossPhase] = []
+	for phase in phases:
+		if phase in phases_done:
+			continue
+		var due := current_health <= 0 if phase.revive else \
+			current_health > 0 and current_health <= max_hp * (phase.threshold + phase_threshold_bonus)
+		if due:
+			_enter_phase(phase)
+			entered.append(phase)
+	return entered
+
+
+func _enter_phase(phase: BossPhase) -> void:
+	phases_done.append(phase)
+	if phase.revive:
+		current_health = maxi(1, roundi(max_hp * phase.heal_share))
+	elif phase.heal_share > 0.0:
+		current_health = mini(max_hp, current_health + roundi(max_hp * phase.heal_share))
+	if phase.shield_share > 0.0:
+		var extra := roundi(max_hp * phase.shield_share)
+		max_shield += extra
+		shield += extra
+	if phase.heat >= 0:
+		heat = clampi(phase.heat, 0, MAX_HEAT)
+	for active in active_parts:
+		if active.part.type == MechPart.PartType.WEAPON:
+			active.cooldown_max *= phase.cooldown_scale
+			active.current_cooldown = minf(active.current_cooldown, active.cooldown_max)
+			active.damage = roundi(active.damage * phase.damage_scale)
+	for relic in phase.relics:
+		add_relic(relic.duplicate())
+
+
 func _prune_statuses() -> void:
 	statuses = statuses.filter(func(status: ActiveStatus) -> bool: return status.charges != 0)
 
@@ -298,9 +354,11 @@ func collapse_shield() -> void:
 		_break_shield()
 
 
-## After [param hit] lands on this mech: the abilities that answer damage, and those that answer
-## the shield breaking if this hit took its last point. [param shield_before] is the shield it had.
+## After [param hit] lands on this mech: its relics' [method Relic.on_hit_taken], the abilities
+## that answer damage, and those that answer the shield breaking if this hit took its last point. [param shield_before] is the shield it had.
 func on_hit_landed(hit: HitPipeline.Hit, shield_before: int) -> void:
+	for relic in relics.duplicate():
+		relic.on_hit_taken(self, hit)
 	if hit.taken <= 0:
 		return
 	for acting in get_abilities():

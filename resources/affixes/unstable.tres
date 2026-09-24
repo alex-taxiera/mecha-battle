@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unstable" format=3]
+
+[ext_resource type="Script" path="res://src/data/affixes/Unstable.gd" id="1_udly3"]
+
+[resource]
+script = ExtResource("1_udly3")
+id = "unstable"
+relic_name = "Unstable"
+description = "Its weapons hit 20% harder but make 10 more heat a shot."
+rarity = 6
+glyph = "U"
+color = Color(1, 0.5411765, 0.23921569, 1)

@@ -12,6 +12,8 @@ enum Tier { NORMAL, ELITE, BOSS }
 @export var lineup: Array[LoadoutPart] = []
 ## This enemy's HP, times the sector's scaling (see [method ActData.get_enemy_hp_scale]).
 @export var hp_scale := 1.0
+## A boss's turns partway through a fight (see [BossPhase]).
+@export var phases: Array[BossPhase] = []
 
 
 ## Returns a new grid on [member chassis] holding [member lineup].

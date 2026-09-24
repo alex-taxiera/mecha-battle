@@ -8,8 +8,9 @@ extends Resource
 ## The hooks-on-a-resource shape follows Slay-The-Robot's artifacts (MIT, DesirePathGames).
 
 ## How rarely the relic turns up. BOSS relics come only from bosses; SHOP ones only from shops,
-## and EVENT ones only from events.
-enum Rarity { COMMON, UNCOMMON, RARE, BOSS, SHOP, EVENT }
+## and EVENT ones only from events. AFFIX ones are never found: they're enemy modifiers, like an
+## elite's Shielded.
+enum Rarity { COMMON, UNCOMMON, RARE, BOSS, SHOP, EVENT, AFFIX }
 
 @export var id: String
 @export var relic_name: String
@@ -61,3 +62,18 @@ func on_fight_won(_run: RunState) -> void:
 ## Returns the gold a fight drops, given [param amount] so far.
 func modify_gold(amount: int) -> int:
 	return amount
+
+
+## Every tick of a fight, e.g. repairing a little.
+func on_tick(_mech: BattleMech, _delta: float) -> void:
+	pass
+
+
+## After [param hit] lands on [param mech] (not a rejected one), e.g. reflecting a heavy shot.
+func on_hit_taken(_mech: BattleMech, _hit: HitPipeline.Hit) -> void:
+	pass
+
+
+## After a shot from [param mech] lands, e.g. leaving a status on the target.
+func on_hit_dealt(_mech: BattleMech, _hit: HitPipeline.Hit) -> void:
+	pass

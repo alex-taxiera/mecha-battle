@@ -6,7 +6,9 @@
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="4_tyshp"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_gkon7"]
 [ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_6xe0x"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="7_4381p"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_k3gie"]
+[ext_resource type="Script" path="res://src/data/Relic.gd" id="8_tyshp"]
 
 [sub_resource type="Resource" id="Resource_jjuxg"]
 script = ExtResource("2_msfxg")
@@ -37,6 +39,12 @@ script = ExtResource("2_msfxg")
 part = ExtResource("6_6xe0x")
 origin = Vector2i(3, 1)
 
+[sub_resource type="Resource" id="Resource_gkon7"]
+script = ExtResource("7_4381p")
+title = "Scrap Armor"
+text = "The King welds scrap over its wounds."
+shield_share = 0.3
+
 [resource]
 script = ExtResource("7_k3gie")
 id = "junkyard_king"
@@ -45,3 +53,4 @@ tier = 2
 chassis = ExtResource("1_c0r68")
 lineup = Array[ExtResource("2_msfxg")]([SubResource("Resource_jjuxg"), SubResource("Resource_mrs20"), SubResource("Resource_64gcj"), SubResource("Resource_hwuye"), SubResource("Resource_vowk0"), SubResource("Resource_iv1k3")])
 hp_scale = 1.2
+phases = Array[ExtResource("7_4381p")]([SubResource("Resource_gkon7")])

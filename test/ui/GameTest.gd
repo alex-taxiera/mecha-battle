@@ -18,6 +18,7 @@ func before_test() -> void:
 	_game.acts = [Fixtures.act(), Fixtures.act()]
 	_game.relics = Fixtures.relics()
 	_game.events = [Fixtures.gold_event("Windfall", 10)]
+	_game.affixes = [Fixtures.armored()]
 	# A profile in memory, and the Technician locked out of reach, so no real files are read and
 	# runs go straight to the map.
 	_game.profile = Profile.new()
