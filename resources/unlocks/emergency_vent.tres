@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_md2ci"]
+
+[resource]
+script = ExtResource("1_md2ci")
+id = "emergency_vent"
+kind = 1
+target_id = "emergency_vent"
+title = "Emergency Vents in loot and shops"
+hint = "Win 20 fights"
+fights_won_total = 20

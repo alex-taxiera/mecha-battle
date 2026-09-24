@@ -98,10 +98,17 @@ func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, 
 	for relic in relics:
 		_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.ATTACKER))
 		_interceptors.append(RelicInterceptor.new(relic, HitInterceptor.Side.TARGET))
+	var by_placement := {}
 	for placement in grid.get_placements():
 		var active := ActivePart.new(placement.part, stats.part_stats[placement])
 		active.hardpoint = chassis.get_hardpoint_at(placement.origin)
 		active_parts.append(active)
+		by_placement[placement] = active
+	for contact in grid.get_contacts():
+		var a: ActivePart = by_placement[contact.a]
+		var b: ActivePart = by_placement[contact.b]
+		a.neighbors.append(b)
+		b.neighbors.append(a)
 
 
 ## Returns what a hit of [param amount] would take off, without taking it: the target's side of
@@ -282,10 +289,29 @@ func get_upkeep() -> int:
 
 ## Drops the shield for the rest of the fight and switches off the parts that paid to keep it up.
 func collapse_shield() -> void:
+	var had_shield := shield > 0
 	shield = 0
 	for active in active_parts:
 		if active.upkeep > 0:
 			active.is_active = false
+	if had_shield:
+		_break_shield()
+
+
+## After [param hit] lands on this mech: the abilities that answer damage, and those that answer
+## the shield breaking if this hit took its last point. [param shield_before] is the shield it had.
+func on_hit_landed(hit: HitPipeline.Hit, shield_before: int) -> void:
+	if hit.taken <= 0:
+		return
+	for acting in get_abilities():
+		acting.ability.on_damaged(self, acting.active, hit.taken)
+	if shield_before > 0 and shield == 0:
+		_break_shield()
+
+
+func _break_shield() -> void:
+	for acting in get_abilities():
+		acting.ability.on_shield_broken(self, acting.active)
 
 
 ## Takes a storm strike of [param damage]: the mech's abilities change it first (a lightning rod

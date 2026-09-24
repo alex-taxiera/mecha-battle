@@ -32,6 +32,10 @@ var damage_dealt := 0
 var last_shot := 0
 ## Shots fired in a row without waiting for energy or a shutdown in between.
 var streak := 0
+## The parts touching this one (for a weapon, the parts touching its bay), for triggers.
+var neighbors: Array[ActivePart] = []
+## Each ability's count toward its next trigger (see [method count]).
+var counters := {}
 
 
 ## [param numbers] are the part's stats on its grid, links applied; without them the part
@@ -66,3 +70,14 @@ func get_charge() -> float:
 	if cooldown_max <= 0.0:
 		return 0.0
 	return clampf(1.0 - current_cooldown / cooldown_max, 0.0, 1.0)
+
+
+## Counts one toward [param ability]'s next trigger and returns whether this is it: every
+## [param every]th time, when the count starts over.
+func count(ability: PartAbility, every: int) -> bool:
+	var reached: int = counters.get(ability, 0) + 1
+	if reached >= maxi(1, every):
+		counters[ability] = 0
+		return true
+	counters[ability] = reached
+	return false

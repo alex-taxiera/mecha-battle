@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_w726k"]
+[ext_resource type="Script" path="res://src/data/abilities/ChargeOnMeltdown.gd" id="2_lkfga"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_8abnw"]
+
+[sub_resource type="Resource" id="Resource_rbgux"]
+script = ExtResource("2_lkfga")
+
+[resource]
+script = ExtResource("3_8abnw")
+id = "meltdown_capacitor"
+part_name = "Meltdown Capacitor"
+type = 1
+cost = 3
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "On a meltdown, the weapons it touches charge fully: they fire the moment the shutdown ends."
+abilities = Array[ExtResource("1_w726k")]([SubResource("Resource_rbgux")])

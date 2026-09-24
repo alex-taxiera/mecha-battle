@@ -47,6 +47,26 @@ func modify_storm_strike(_mech: BattleMech, damage: int) -> int:
 	return damage
 
 
+## When [param weapon], a neighbor of the part's [param active] on [param mech], fires a shot.
+func on_neighbor_fired(_mech: BattleMech, _active: ActivePart, _weapon: ActivePart) -> void:
+	pass
+
+
+## When [param mech]'s shield breaks: a hit takes its last point, or it collapses.
+func on_shield_broken(_mech: BattleMech, _active: ActivePart) -> void:
+	pass
+
+
+## When [param mech] melts down, after its hit and before its shutdown runs.
+func on_meltdown(_mech: BattleMech, _active: ActivePart) -> void:
+	pass
+
+
+## After any hit of [param damage] lands on [param mech] (shield and hull together, above 0).
+func on_damaged(_mech: BattleMech, _active: ActivePart, _damage: int) -> void:
+	pass
+
+
 ## Whether, while the part is installed, a shop buys every part back at its full value.
 func refunds_in_full() -> bool:
 	return false

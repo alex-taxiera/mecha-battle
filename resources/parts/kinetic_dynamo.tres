@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_b7sg0"]
+[ext_resource type="Script" path="res://src/data/abilities/EnergyOnDamage.gd" id="2_1fbj2"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_0a50f"]
+
+[sub_resource type="Resource" id="Resource_kvcb8"]
+script = ExtResource("2_1fbj2")
+
+[resource]
+script = ExtResource("3_0a50f")
+id = "kinetic_dynamo"
+part_name = "Kinetic Dynamo"
+type = 2
+cost = 3
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1)])
+description = "+40 HP. +3 EN for every hit the mech takes."
+abilities = Array[ExtResource("1_b7sg0")]([SubResource("Resource_kvcb8")])
+hp = 40

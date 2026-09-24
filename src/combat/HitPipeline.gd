@@ -58,12 +58,14 @@ static func resolve(hit: Hit) -> int:
 	if hit.preview:
 		return hit.damage
 	var target := hit.target
+	var shield_before := target.shield
 	hit.absorbed = 0 if hit.pierce_shield else mini(target.shield, hit.damage)
 	target.shield -= hit.absorbed
 	target.current_health = maxi(0, target.current_health - (hit.damage - hit.absorbed))
 	hit.taken = hit.damage
 	target.last_taken = hit.taken
 	target.last_absorbed = hit.absorbed
+	target.on_hit_landed(hit, shield_before)
 	return hit.taken
 
 

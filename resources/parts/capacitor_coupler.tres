@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_mrgf6"]
+[ext_resource type="Script" path="res://src/data/abilities/EnergyOnNeighborFire.gd" id="2_fqt6w"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_7xds3"]
+
+[sub_resource type="Resource" id="Resource_ysg4w"]
+script = ExtResource("2_fqt6w")
+
+[resource]
+script = ExtResource("3_7xds3")
+id = "capacitor_coupler"
+part_name = "Capacitor Coupler"
+type = 3
+cost = 3
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "+5 EN every time a weapon it touches fires."
+abilities = Array[ExtResource("1_mrgf6")]([SubResource("Resource_ysg4w")])

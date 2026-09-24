@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_mvcm2"]
+[ext_resource type="Script" path="res://src/data/abilities/VentOnShieldBreak.gd" id="2_glpnr"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_ojbv0"]
+
+[sub_resource type="Resource" id="Resource_1fu7i"]
+script = ExtResource("2_glpnr")
+
+[resource]
+script = ExtResource("3_ojbv0")
+id = "emergency_vent"
+part_name = "Emergency Vent"
+type = 3
+cost = 4
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1)])
+description = "When the shield breaks or collapses, vents 40 heat at once."
+abilities = Array[ExtResource("1_mvcm2")]([SubResource("Resource_1fu7i")])

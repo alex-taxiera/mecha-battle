@@ -509,3 +509,45 @@ static func _status_data(status: MechStatus, id: String, status_name: String, up
 	status.status_name = status_name
 	status.upper_bound = upper
 	return status
+
+
+# The design doc's trigger parts.
+
+## A 1x1 utility part: +5 energy each time a weapon it touches fires.
+static func capacitor_coupler() -> MechPart:
+	var ability := EnergyOnNeighborFire.new()
+	ability.energy = 5
+	ability.every = 1
+	return part("Capacitor Coupler", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 3,
+		{"abilities": [ability] as Array[PartAbility]})
+
+
+## A 2x1 utility part: every 3rd shot from a weapon it touches takes 0.5 s off the others'.
+static func ammo_feeder() -> MechPart:
+	var ability := FeedOnNeighborFire.new()
+	ability.every = 3
+	ability.seconds = 0.5
+	return part("Ammo Feeder", MechPart.PartType.UTILITY, [Vector2i(0, 0), Vector2i(1, 0)], 4,
+		{"abilities": [ability] as Array[PartAbility]})
+
+
+## A 1x2 utility part: vents 40 heat when the shield breaks.
+static func emergency_vent() -> MechPart:
+	var ability := VentOnShieldBreak.new()
+	ability.heat = 40
+	return part("Emergency Vent", MechPart.PartType.UTILITY, [Vector2i(0, 0), Vector2i(0, 1)], 4,
+		{"abilities": [ability] as Array[PartAbility]})
+
+
+## A 1x1 generator: on a meltdown, the weapons it touches charge fully.
+static func meltdown_capacitor() -> MechPart:
+	return part("Meltdown Capacitor", MechPart.PartType.GENERATOR, [Vector2i(0, 0)], 3,
+		{"abilities": [ChargeOnMeltdown.new()] as Array[PartAbility]})
+
+
+## A 1x2 defense part: +40 HP, and +3 energy for every hit the mech takes.
+static func kinetic_dynamo() -> MechPart:
+	var ability := EnergyOnDamage.new()
+	ability.energy = 3
+	return part("Kinetic Dynamo", MechPart.PartType.DEFENSE, [Vector2i(0, 0), Vector2i(0, 1)], 3,
+		{"hp": 40, "abilities": [ability] as Array[PartAbility]})

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_y0v2o"]
+
+[resource]
+script = ExtResource("1_y0v2o")
+id = "meltdown_capacitor"
+kind = 1
+target_id = "meltdown_capacitor"
+title = "Meltdown Capacitors in loot and shops"
+hint = "Clear Sector 2 with the Reactor"
+sectors_cleared = 2
+with_chassis = "reactor"

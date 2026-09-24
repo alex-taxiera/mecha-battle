@@ -241,6 +241,10 @@ func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> voi
 	if not hit.rejected:
 		for ability in abilities:
 			ability.on_hit(hit)
+	for neighbor in active.neighbors:
+		if neighbor.is_active:
+			for ability in neighbor.part.get_abilities():
+				ability.on_neighbor_fired(attacker, neighbor, active)
 	for armor in target.get_abilities():
 		var back := armor.ability.on_hit_taken(target, armor.active, active.last_shot)
 		if back <= 0:
@@ -263,6 +267,8 @@ func _check_meltdown(mech: BattleMech) -> void:
 	mech.shutdown_left = chassis.meltdown_shutdown
 	for active in mech.active_parts:
 		active.streak = 0
+	for acting in mech.get_abilities():
+		acting.ability.on_meltdown(mech, acting.active)
 	meltdown.emit(mech, target, taken)
 
 
