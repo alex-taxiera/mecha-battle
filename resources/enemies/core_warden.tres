@@ -5,7 +5,7 @@
 [ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_d2i4l"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="4_1okrn"]
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="5_oawk7"]
-[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_8gdka"]
+[ext_resource type="Resource" path="res://resources/parts/shield_emitter.tres" id="6_d2i4l"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_2n6wr"]
 
 [sub_resource type="Resource" id="Resource_f574b"]
@@ -33,14 +33,15 @@ script = ExtResource("2_4mgyv")
 part = ExtResource("5_oawk7")
 origin = Vector2i(3, 1)
 
-[sub_resource type="Resource" id="Resource_4evfb"]
+[sub_resource type="Resource" id="Resource_oawk7"]
 script = ExtResource("2_4mgyv")
-part = ExtResource("6_8gdka")
-origin = Vector2i(2, 3)
+part = ExtResource("6_d2i4l")
+origin = Vector2i(2, 2)
 
 [resource]
 script = ExtResource("7_2n6wr")
 id = "core_warden"
 enemy_name = "Core Warden"
 chassis = ExtResource("1_t1sr5")
-lineup = Array[ExtResource("2_4mgyv")]([SubResource("Resource_f574b"), SubResource("Resource_sfcpg"), SubResource("Resource_0t287"), SubResource("Resource_nwlmn"), SubResource("Resource_y6hrl"), SubResource("Resource_4evfb")])
+lineup = Array[ExtResource("2_4mgyv")]([SubResource("Resource_f574b"), SubResource("Resource_sfcpg"), SubResource("Resource_0t287"), SubResource("Resource_nwlmn"), SubResource("Resource_y6hrl"), SubResource("Resource_oawk7")])
+hp_scale = 0.9

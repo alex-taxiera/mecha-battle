@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_hjlvy"]
 [ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_ld8xu"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_dkk08"]
+[ext_resource type="Resource" path="res://resources/parts/lightning_rod.tres" id="7_r5hj6"]
 
 [sub_resource type="Resource" id="Resource_2q5ta"]
 script = ExtResource("2_r5hj6")
@@ -32,21 +33,6 @@ script = ExtResource("2_r5hj6")
 part = ExtResource("6_ld8xu")
 origin = Vector2i(0, 1)
 
-[sub_resource type="Resource" id="Resource_4qv7n"]
-script = ExtResource("2_r5hj6")
-part = ExtResource("6_ld8xu")
-origin = Vector2i(0, 2)
-
-[sub_resource type="Resource" id="Resource_plfak"]
-script = ExtResource("2_r5hj6")
-part = ExtResource("6_ld8xu")
-origin = Vector2i(1, 2)
-
-[sub_resource type="Resource" id="Resource_kd54k"]
-script = ExtResource("2_r5hj6")
-part = ExtResource("6_ld8xu")
-origin = Vector2i(2, 2)
-
 [sub_resource type="Resource" id="Resource_wmowv"]
 script = ExtResource("2_r5hj6")
 part = ExtResource("6_ld8xu")
@@ -57,10 +43,16 @@ script = ExtResource("2_r5hj6")
 part = ExtResource("6_ld8xu")
 origin = Vector2i(3, 2)
 
+[sub_resource type="Resource" id="Resource_qosy1"]
+script = ExtResource("2_r5hj6")
+part = ExtResource("7_r5hj6")
+origin = Vector2i(0, 2)
+rotation = 1
+
 [resource]
 script = ExtResource("7_dkk08")
 id = "praetorian"
 enemy_name = "Praetorian"
 tier = 1
 chassis = ExtResource("1_c70tq")
-lineup = Array[ExtResource("2_r5hj6")]([SubResource("Resource_2q5ta"), SubResource("Resource_oysqa"), SubResource("Resource_0vy24"), SubResource("Resource_yvqw6"), SubResource("Resource_jyeiu"), SubResource("Resource_4qv7n"), SubResource("Resource_plfak"), SubResource("Resource_kd54k"), SubResource("Resource_wmowv"), SubResource("Resource_qj7qb")])
+lineup = Array[ExtResource("2_r5hj6")]([SubResource("Resource_2q5ta"), SubResource("Resource_oysqa"), SubResource("Resource_0vy24"), SubResource("Resource_yvqw6"), SubResource("Resource_jyeiu"), SubResource("Resource_wmowv"), SubResource("Resource_qj7qb"), SubResource("Resource_qosy1")])

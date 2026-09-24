@@ -3,10 +3,12 @@
 [ext_resource type="Resource" path="res://resources/chassis/striker.tres" id="1_h58uu"]
 [ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_t7mpo"]
 [ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_2aswg"]
-[ext_resource type="Resource" path="res://resources/parts/missile_pod.tres" id="4_i42j2"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_d6j65"]
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="6_0mjth"]
+[ext_resource type="Resource" path="res://resources/parts/autocannon.tres" id="6_2aswg"]
+[ext_resource type="Resource" path="res://resources/parts/overdrive_logic_chip.tres" id="7_i42j2"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_ie1ef"]
+[ext_resource type="Resource" path="res://resources/parts/reactive_armor.tres" id="8_d6j65"]
 
 [sub_resource type="Resource" id="Resource_y6dqg"]
 script = ExtResource("2_t7mpo")
@@ -17,11 +19,6 @@ origin = Vector2i(-1, 1)
 script = ExtResource("2_t7mpo")
 part = ExtResource("3_2aswg")
 origin = Vector2i(2, 1)
-
-[sub_resource type="Resource" id="Resource_f3xrh"]
-script = ExtResource("2_t7mpo")
-part = ExtResource("4_i42j2")
-origin = Vector2i(0, -2)
 
 [sub_resource type="Resource" id="Resource_neb3b"]
 script = ExtResource("2_t7mpo")
@@ -38,10 +35,24 @@ script = ExtResource("2_t7mpo")
 part = ExtResource("6_0mjth")
 origin = Vector2i(0, 3)
 
+[sub_resource type="Resource" id="Resource_0mjth"]
+script = ExtResource("2_t7mpo")
+part = ExtResource("6_2aswg")
+origin = Vector2i(0, -2)
+
+[sub_resource type="Resource" id="Resource_ie1ef"]
+script = ExtResource("2_t7mpo")
+part = ExtResource("7_i42j2")
+
+[sub_resource type="Resource" id="Resource_f3xrh"]
+script = ExtResource("2_t7mpo")
+part = ExtResource("8_d6j65")
+origin = Vector2i(1, 0)
+
 [resource]
 script = ExtResource("7_ie1ef")
 id = "foundry_overseer"
 enemy_name = "Foundry Overseer"
 tier = 1
 chassis = ExtResource("1_h58uu")
-lineup = Array[ExtResource("2_t7mpo")]([SubResource("Resource_y6dqg"), SubResource("Resource_23n53"), SubResource("Resource_f3xrh"), SubResource("Resource_neb3b"), SubResource("Resource_v0pfo"), SubResource("Resource_kam6w")])
+lineup = Array[ExtResource("2_t7mpo")]([SubResource("Resource_y6dqg"), SubResource("Resource_23n53"), SubResource("Resource_neb3b"), SubResource("Resource_v0pfo"), SubResource("Resource_kam6w"), SubResource("Resource_0mjth"), SubResource("Resource_ie1ef"), SubResource("Resource_f3xrh")])

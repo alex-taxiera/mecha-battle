@@ -7,6 +7,7 @@
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="5_hq21y"]
 [ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_2d66j"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_oa38b"]
+[ext_resource type="Resource" path="res://resources/parts/thermal_regulator.tres" id="7_tbpqb"]
 
 [sub_resource type="Resource" id="Resource_cnn13"]
 script = ExtResource("2_tbpqb")
@@ -38,15 +39,16 @@ script = ExtResource("2_tbpqb")
 part = ExtResource("6_2d66j")
 origin = Vector2i(1, 3)
 
-[sub_resource type="Resource" id="Resource_4gau8"]
-script = ExtResource("2_tbpqb")
-part = ExtResource("6_2d66j")
-origin = Vector2i(2, 3)
-
 [sub_resource type="Resource" id="Resource_2s2pv"]
 script = ExtResource("2_tbpqb")
 part = ExtResource("6_2d66j")
 origin = Vector2i(2, 4)
+
+[sub_resource type="Resource" id="Resource_p0qnf"]
+script = ExtResource("2_tbpqb")
+part = ExtResource("7_tbpqb")
+origin = Vector2i(2, 2)
+rotation = 1
 
 [resource]
 script = ExtResource("7_oa38b")
@@ -54,5 +56,5 @@ id = "crucible"
 enemy_name = "The Crucible"
 tier = 2
 chassis = ExtResource("1_n50hx")
-lineup = Array[ExtResource("2_tbpqb")]([SubResource("Resource_cnn13"), SubResource("Resource_a6044"), SubResource("Resource_tna8i"), SubResource("Resource_vv0x6"), SubResource("Resource_updms"), SubResource("Resource_m02sc"), SubResource("Resource_4gau8"), SubResource("Resource_2s2pv")])
-hp_scale = 1.2
+lineup = Array[ExtResource("2_tbpqb")]([SubResource("Resource_cnn13"), SubResource("Resource_a6044"), SubResource("Resource_tna8i"), SubResource("Resource_vv0x6"), SubResource("Resource_updms"), SubResource("Resource_m02sc"), SubResource("Resource_2s2pv"), SubResource("Resource_p0qnf")])
+hp_scale = 1.4

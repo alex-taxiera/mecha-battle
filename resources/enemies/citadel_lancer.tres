@@ -5,12 +5,9 @@
 [ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="3_d4yb2"]
 [ext_resource type="Resource" path="res://resources/parts/missile_pod.tres" id="4_l1ckx"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_p5ja3"]
+[ext_resource type="Resource" path="res://resources/parts/plasma_lance.tres" id="6_d4yb2"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="6_pothm"]
-
-[sub_resource type="Resource" id="Resource_endcl"]
-script = ExtResource("2_7is55")
-part = ExtResource("3_d4yb2")
-origin = Vector2i(-1, 1)
+[ext_resource type="Resource" path="res://resources/parts/overdrive_logic_chip.tres" id="7_l1ckx"]
 
 [sub_resource type="Resource" id="Resource_cg6g1"]
 script = ExtResource("2_7is55")
@@ -32,9 +29,19 @@ script = ExtResource("2_7is55")
 part = ExtResource("5_p5ja3")
 origin = Vector2i(0, 2)
 
+[sub_resource type="Resource" id="Resource_p5ja3"]
+script = ExtResource("2_7is55")
+part = ExtResource("6_d4yb2")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_pothm"]
+script = ExtResource("2_7is55")
+part = ExtResource("7_l1ckx")
+origin = Vector2i(0, 3)
+
 [resource]
 script = ExtResource("6_pothm")
 id = "citadel_lancer"
 enemy_name = "Citadel Lancer"
 chassis = ExtResource("1_rv4n7")
-lineup = Array[ExtResource("2_7is55")]([SubResource("Resource_endcl"), SubResource("Resource_cg6g1"), SubResource("Resource_ske3b"), SubResource("Resource_hmxxd"), SubResource("Resource_ccgy4")])
+lineup = Array[ExtResource("2_7is55")]([SubResource("Resource_cg6g1"), SubResource("Resource_ske3b"), SubResource("Resource_hmxxd"), SubResource("Resource_ccgy4"), SubResource("Resource_p5ja3"), SubResource("Resource_pothm")])

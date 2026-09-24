@@ -237,6 +237,14 @@ func test_the_shield_takes_hits_before_the_hull() -> void:
 	assert_int(mech.last_taken).is_equal(60)
 
 
+func test_an_hp_scale_scales_the_shield_too() -> void:
+	# An enemy up the map: HP and shield both ×1.5.
+	var mech := BattleMech.new(_grid_with([[Fixtures.shield_emitter(), Vector2i(1, 0)]]), [], 1.5)
+	assert_int(mech.max_hp).is_equal(45)
+	assert_int(mech.max_shield).is_equal(300)
+	assert_int(mech.shield).is_equal(300)
+
+
 func test_plating_comes_off_before_the_shield() -> void:
 	var bastion := Fixtures.bastion() # every hit 2 smaller
 	var grid := MechGridData.new(bastion)

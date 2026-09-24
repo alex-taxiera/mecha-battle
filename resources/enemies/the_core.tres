@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="6_62rak"]
 [ext_resource type="Resource" path="res://resources/parts/laser.tres" id="7_chgwc"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="8_8tpbc"]
+[ext_resource type="Resource" path="res://resources/parts/shield_emitter.tres" id="8_hig38"]
 
 [sub_resource type="Resource" id="Resource_ak0rj"]
 script = ExtResource("2_hig38")
@@ -43,15 +44,11 @@ script = ExtResource("2_hig38")
 part = ExtResource("7_chgwc")
 origin = Vector2i(1, 2)
 
-[sub_resource type="Resource" id="Resource_t5wyo"]
+[sub_resource type="Resource" id="Resource_giv0p"]
 script = ExtResource("2_hig38")
-part = ExtResource("7_chgwc")
+part = ExtResource("8_hig38")
 origin = Vector2i(0, 4)
-
-[sub_resource type="Resource" id="Resource_na38b"]
-script = ExtResource("2_hig38")
-part = ExtResource("7_chgwc")
-origin = Vector2i(1, 4)
+rotation = 1
 
 [resource]
 script = ExtResource("8_8tpbc")
@@ -59,5 +56,5 @@ id = "the_core"
 enemy_name = "The Core"
 tier = 2
 chassis = ExtResource("1_dvncv")
-lineup = Array[ExtResource("2_hig38")]([SubResource("Resource_ak0rj"), SubResource("Resource_vn404"), SubResource("Resource_pnlfy"), SubResource("Resource_647r5"), SubResource("Resource_32ob3"), SubResource("Resource_e8nq2"), SubResource("Resource_wav53"), SubResource("Resource_t5wyo"), SubResource("Resource_na38b")])
+lineup = Array[ExtResource("2_hig38")]([SubResource("Resource_ak0rj"), SubResource("Resource_vn404"), SubResource("Resource_pnlfy"), SubResource("Resource_647r5"), SubResource("Resource_32ob3"), SubResource("Resource_e8nq2"), SubResource("Resource_wav53"), SubResource("Resource_giv0p")])
 hp_scale = 1.3

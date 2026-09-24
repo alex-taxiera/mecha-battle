@@ -5,7 +5,7 @@
 [ext_resource type="Resource" path="res://resources/parts/missile_pod.tres" id="3_5rfdv"]
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="4_qw7el"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_3t2sx"]
-[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="6_u2pho"]
+[ext_resource type="Resource" path="res://resources/parts/reactive_armor.tres" id="6_0dtpp"]
 [ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="7_x8qxw"]
 
 [sub_resource type="Resource" id="Resource_udkj3"]
@@ -23,9 +23,9 @@ script = ExtResource("2_a23ky")
 part = ExtResource("5_3t2sx")
 origin = Vector2i(2, 0)
 
-[sub_resource type="Resource" id="Resource_xumkr"]
+[sub_resource type="Resource" id="Resource_a23ky"]
 script = ExtResource("2_a23ky")
-part = ExtResource("6_u2pho")
+part = ExtResource("6_0dtpp")
 
 [resource]
 script = ExtResource("7_x8qxw")
@@ -33,4 +33,4 @@ id = "scrapyard_brute"
 enemy_name = "Scrapyard Brute"
 tier = 1
 chassis = ExtResource("1_0dtpp")
-lineup = Array[ExtResource("2_a23ky")]([SubResource("Resource_udkj3"), SubResource("Resource_e051a"), SubResource("Resource_2t5jk"), SubResource("Resource_xumkr")])
+lineup = Array[ExtResource("2_a23ky")]([SubResource("Resource_udkj3"), SubResource("Resource_e051a"), SubResource("Resource_2t5jk"), SubResource("Resource_a23ky")])
