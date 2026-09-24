@@ -118,3 +118,27 @@ func _texts_of(card: Control) -> Array:
 	return card.find_children("*", "", true, false) \
 		.filter(func(node: Node) -> bool: return node is Label or node is Button) \
 		.map(func(node: Node) -> String: return node.text)
+
+
+func test_a_boss_can_grow_the_frame_instead_of_a_relic() -> void:
+	var chassis := Fixtures.armed_cross()
+	chassis.size = Vector2i(4, 5)
+	for x in 4:
+		chassis.expansion_cells.append(Vector2i(x, 4))
+	_run = RunState.new(chassis, [], [], 30)
+	var reward := FightReward.new()
+	reward.tier = EnemyLoadout.Tier.BOSS
+	reward.relics = [Fixtures.relic("Boss A", Relic.Rarity.BOSS)]
+	reward.cells = 2
+	var screen: RewardScreen = auto_free(RewardScreen.new(_run, reward))
+	add_child(screen)
+	assert_str(screen.relic_label.text).is_equal("Choose a relic, or grow your frame:")
+	var cards := screen.get_relic_cards()
+	assert_array(cards).has_size(2)
+	assert_array(_texts_of(cards[1])).contains(["Frame Expansion", "Take"])
+	assert_bool(screen.take_cells()).is_true()
+	assert_int(_run.cells_to_open).is_equal(2)
+	assert_str(screen.relic_label.text).is_equal("Your frame can grow: open 2 cells from the map's Loadout.")
+	assert_array(_texts_of(screen.get_relic_cards()[0])).contains(["Left behind"])
+	assert_bool(screen.take_relic(0)).is_false()
+	await await_idle_frame()

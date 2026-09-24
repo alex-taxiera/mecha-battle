@@ -623,3 +623,34 @@ static func _affix(affix: Relic, id: String, relic_name: String) -> Relic:
 	affix.relic_name = relic_name
 	affix.rarity = Relic.Rarity.AFFIX
 	return affix
+
+
+# The design doc's Hangar jobs.
+
+## Repair (30% of max, needs damage), Reinforce (+25 max HP), Upgrade (a part a Mk), and Expand
+## (one more cell to open): all exclusive and free.
+static func hangar_jobs() -> Array[HangarJob]:
+	var repair := RepairShareEffect.new()
+	repair.share = 0.3
+	var reinforce := MaxHpEffect.new()
+	reinforce.hp = 25
+	var expand := ExpandEffect.new()
+	expand.cells = 1
+	return [
+		hangar_job("repair", "Repair", [repair], DamagedRequirement.new()),
+		hangar_job("reinforce", "Reinforce", [reinforce]),
+		hangar_job("upgrade", "Upgrade", [], UpgradableRequirement.new(), HangarJob.Kind.UPGRADE, "Raise one part a Mk."),
+		hangar_job("expand", "Expand", [expand], ExpandableRequirement.new()),
+	]
+
+
+static func hangar_job(id: String, label: String, effects: Array[EventEffect], requirement: EventRequirement = null,
+		kind := HangarJob.Kind.EFFECTS, hint := "") -> HangarJob:
+	var job := HangarJob.new()
+	job.id = id
+	job.label = label
+	job.effects = effects
+	job.requirement = requirement
+	job.kind = kind
+	job.hint = hint
+	return job

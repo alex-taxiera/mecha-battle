@@ -145,6 +145,12 @@ func _refresh() -> void:
 	_chassis_label.text = "Chassis · %s" % frame.chassis_name
 	_chassis_info.text = "%s · %d / %d slots · %d / %d hardpoints" % [frame.frame_name, run.grid.get_used_cell_count(),
 		frame.get_usable_cell_count(), run.grid.get_mounted_count(), frame.hardpoints.size()]
+	var locked := frame.get_locked_cells().size()
+	# Cells the player can open glow on the grid, and their tooltips say to click them.
+	if run.cells_to_open > 0:
+		_chassis_info.text += " · %d to open" % run.cells_to_open
+	elif locked > 0:
+		_chassis_info.text += " · %d locked" % locked
 	_passive_label.visible = frame.passive != MechChassis.Passive.NONE
 	_passive_label.text = "%s: %s" % [frame.passive_name, frame.passive_text]
 	_reroll_button.text = "Reroll · %dg" % ShopStock.REROLL_COST

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HangarJob" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_2kngd"]
+[ext_resource type="Script" path="res://src/data/events/ExpandEffect.gd" id="2_238lf"]
+[ext_resource type="Script" path="res://src/data/events/ExpandableRequirement.gd" id="3_ihsvj"]
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="4_qjott"]
+
+[sub_resource type="Resource" id="Resource_khs6a"]
+script = ExtResource("2_238lf")
+
+[sub_resource type="Resource" id="Resource_5q7ih"]
+script = ExtResource("3_ihsvj")
+
+[resource]
+script = ExtResource("4_qjott")
+id = "expand"
+order = 3
+label = "Expand"
+effects = Array[ExtResource("1_2kngd")]([SubResource("Resource_khs6a")])
+requirement = SubResource("Resource_5q7ih")

@@ -579,17 +579,26 @@ func test_relics_change_the_gold_a_fight_drops() -> void:
 	assert_int(run.gold).is_equal(gold_before + reward.gold)
 
 
-func test_a_hangar_repairs_or_reinforces() -> void:
+func test_hangar_effects_repair_or_reinforce() -> void:
 	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true() # 42 max HP
 	_run.hull_damage = 30
 	# Repair: 30% of 42 is 12.6, rounded up to 13.
-	assert_int(_run.repair_at_hangar()).is_equal(13)
+	var repair := RepairShareEffect.new()
+	repair.share = 0.3
+	assert_str(repair.describe(_run)).is_equal("Repair 13 hull (30% of max).")
+	var result := EventResult.new()
+	repair.apply(_run, result)
 	assert_int(_run.hull_damage).is_equal(17)
 	# Never more than what's missing.
 	_run.hull_damage = 5
-	assert_int(_run.repair_at_hangar()).is_equal(5)
+	assert_str(repair.describe(_run)).is_equal("Repair 5 hull (30% of max).")
+	repair.apply(_run, result)
+	assert_int(_run.hull_damage).is_equal(0)
+	assert_array(result.lines).contains_exactly(["Repaired 13 hull", "Repaired 5 hull"])
 	# Reinforce: +25 max HP for good, as an upgrade rather than a relic.
-	_run.reinforce_at_hangar()
+	var reinforce := MaxHpEffect.new()
+	reinforce.hp = 25
+	reinforce.apply(_run, result)
 	assert_int(_run.get_max_hp()).is_equal(67)
 	assert_array(_run.relics).is_empty()
 	assert_array(_run.get_modifiers()).has_size(1)

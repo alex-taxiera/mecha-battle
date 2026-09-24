@@ -305,3 +305,22 @@ func _cell_under(control: Control) -> Vector2i:
 
 func _cell_center(cell: Vector2i) -> Vector2:
 	return _grid_ui.cell_center(cell)
+
+
+func test_a_glowing_cell_opens_on_a_click() -> void:
+	var chassis := Fixtures.armed_cross()
+	chassis.size = Vector2i(4, 5)
+	for x in 4:
+		chassis.expansion_cells.append(Vector2i(x, 4))
+	_run = RunState.new(chassis, [], Fixtures.rules(), 10)
+	_grid_ui.run = _run
+	# Locked, with nothing to open: the tooltip says how cells open, and clicks do nothing.
+	var locked := Vector2i(1, 4)
+	assert_str(_grid_ui.locked_text(locked)).contains("Hangars")
+	assert_bool(_grid_ui.open_at(locked)).is_false()
+	_run.grant_cells(1)
+	assert_str(_grid_ui.locked_text(locked)).is_equal("Locked cell\nClick to open it (1 to open)")
+	assert_bool(_grid_ui.open_at(locked)).is_true()
+	assert_bool(_run.grid.chassis.is_usable(locked)).is_true()
+	assert_array(_messages).contains([["Opened a cell on the frame", true]])
+	await await_idle_frame()

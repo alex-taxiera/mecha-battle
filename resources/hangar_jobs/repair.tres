@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="HangarJob" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_fcn5i"]
+[ext_resource type="Script" path="res://src/data/events/RepairShareEffect.gd" id="2_2vtdf"]
+[ext_resource type="Script" path="res://src/data/events/DamagedRequirement.gd" id="3_ktx16"]
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="4_f2ia3"]
+
+[sub_resource type="Resource" id="Resource_1b66u"]
+script = ExtResource("2_2vtdf")
+
+[sub_resource type="Resource" id="Resource_jlw8e"]
+script = ExtResource("3_ktx16")
+
+[resource]
+script = ExtResource("4_f2ia3")
+id = "repair"
+label = "Repair"
+effects = Array[ExtResource("1_fcn5i")]([SubResource("Resource_1b66u")])
+requirement = SubResource("Resource_jlw8e")

@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="4_tylgw"]
 [ext_resource type="Resource" path="res://resources/parts/laser.tres" id="5_lsadk"]
 [ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="6_6dxtg"]
-[ext_resource type="Script" path="res://src/data/events/MaxHpEffect.gd" id="7_xkrjm"]
+[ext_resource type="Script" path="res://src/data/events/ExpandEffect.gd" id="7_7ks6n"]
 [ext_resource type="Script" path="res://src/data/events/HullEffect.gd" id="8_nexbd"]
 [ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="9_7y73s"]
 
@@ -29,15 +29,14 @@ label = "Pry it open"
 hint = "Gain 25 gold and a common armor part."
 outcomes = Array[ExtResource("2_el3rr")]([SubResource("Resource_ce4sn")])
 
-[sub_resource type="Resource" id="Resource_6eyha"]
-script = ExtResource("7_xkrjm")
-hp = 40
+[sub_resource type="Resource" id="Resource_el3rr"]
+script = ExtResource("7_7ks6n")
 
 [sub_resource type="Resource" id="Resource_nm1e7"]
 script = ExtResource("2_el3rr")
 weight = 3
-text = "The titan's reactor plating bolts onto your frame."
-effects = Array[ExtResource("3_vrvve")]([SubResource("Resource_6eyha")])
+text = "The titan's core frame welds onto yours: your frame can grow."
+effects = Array[ExtResource("3_vrvve")]([SubResource("Resource_el3rr")])
 
 [sub_resource type="Resource" id="Resource_85r0a"]
 script = ExtResource("8_nexbd")
@@ -52,7 +51,7 @@ effects = Array[ExtResource("3_vrvve")]([SubResource("Resource_85r0a")])
 [sub_resource type="Resource" id="Resource_tafu2"]
 script = ExtResource("1_7ks6n")
 label = "Cut into the core grid"
-hint = "60%: +40 max HP from its plating. 40%: the core blows."
+hint = "60%: a cell to open on your frame (or +40 max HP if it's fully open). 40%: the core blows."
 outcomes = Array[ExtResource("2_el3rr")]([SubResource("Resource_nm1e7"), SubResource("Resource_ucx12")])
 
 [sub_resource type="Resource" id="Resource_igpdq"]

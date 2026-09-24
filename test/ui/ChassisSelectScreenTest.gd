@@ -97,3 +97,11 @@ func _screen(options: Array) -> ChassisSelectScreen:
 	screen.options.assign(options)
 	add_child(screen)
 	return screen
+
+
+func test_the_stats_line_counts_the_cells_a_frame_can_grow_into() -> void:
+	var chassis := Fixtures.bastion()
+	chassis.size = Vector2i(4, 4)
+	for x in 4:
+		chassis.expansion_cells.append(Vector2i(x, 3))
+	assert_str(ChassisSelectScreen.stats_line(chassis)).is_equal("450 HP · 20 EN a turn · 12 slots (+4) · 1 hardpoint")

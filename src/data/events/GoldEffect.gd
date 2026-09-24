@@ -10,3 +10,7 @@ func apply(run: RunState, result: EventResult) -> void:
 	run.gold += amount if amount >= 0 else -paid
 	run.changed.emit()
 	result.lines.append("+%d gold" % amount if amount >= 0 else "-%d gold" % paid)
+
+
+func describe(_run: RunState) -> String:
+	return "%+d gold." % amount

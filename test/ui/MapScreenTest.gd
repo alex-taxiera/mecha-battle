@@ -55,6 +55,8 @@ func test_the_loadout_button_asks_for_the_loadout() -> void:
 	_run.stash_part(Fixtures.laser())
 	_run.stash_part(Fixtures.laser())
 	assert_str(MapScreen.loadout_text(_run)).is_equal("Loadout · 2 in stash")
+	_run.cells_to_open = 1
+	assert_str(MapScreen.loadout_text(_run)).is_equal("Loadout · 2 in stash · 1 cell to open")
 
 
 func test_an_unreachable_node_is_refused() -> void:

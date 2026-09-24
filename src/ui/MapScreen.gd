@@ -48,9 +48,14 @@ func get_view() -> MapView:
 	return _view
 
 
-## Returns the Loadout button's text, e.g. "Loadout · 2 in stash".
+## Returns the Loadout button's text, e.g. "Loadout · 2 in stash · 1 cell to open".
 static func loadout_text(p_run: RunState) -> String:
-	return "Loadout" if p_run.stash.is_empty() else "Loadout · %d in stash" % p_run.stash.size()
+	var bits: PackedStringArray = ["Loadout"]
+	if not p_run.stash.is_empty():
+		bits.append("%d in stash" % p_run.stash.size())
+	if p_run.cells_to_open > 0:
+		bits.append("%d %s to open" % [p_run.cells_to_open, "cell" if p_run.cells_to_open == 1 else "cells"])
+	return " · ".join(bits)
 
 
 func _hint_text() -> String:

@@ -24,6 +24,12 @@ enum Passive {
 @export var size := Vector2i(4, 4)
 ## Cells inside [member size] that can never hold a part.
 @export var disabled_cells: Array[Vector2i] = []
+## Cells inside [member size] that are locked until a run opens them (see [member opened_cells]):
+## the frame grows into them.
+@export var expansion_cells: Array[Vector2i] = []
+## The expansion cells a run has opened. It belongs to the run's own copy of the chassis, so it's
+## kept when the copy is duplicated but never set in a [code].tres[/code].
+@export_storage var opened_cells: Array[Vector2i] = []
 ## Hull points before any parts.
 @export var base_hp: int
 ## Energy generated each turn before any generators.
@@ -53,9 +59,37 @@ func contains(cell: Vector2i) -> bool:
 	return Rect2i(Vector2i.ZERO, size).has_point(cell)
 
 
-## Returns whether a part can occupy [param cell]: inside the frame and not disabled.
+## Returns whether a part can occupy [param cell]: inside the frame, not disabled, and not locked.
 func is_usable(cell: Vector2i) -> bool:
-	return contains(cell) and cell not in disabled_cells
+	return contains(cell) and cell not in disabled_cells and not is_locked(cell)
+
+
+## Returns whether [param cell] is an expansion cell the run hasn't opened yet.
+func is_locked(cell: Vector2i) -> bool:
+	return cell in expansion_cells and cell not in opened_cells
+
+
+## Returns the expansion cells still locked.
+func get_locked_cells() -> Array[Vector2i]:
+	return expansion_cells.filter(func(cell: Vector2i) -> bool: return is_locked(cell))
+
+
+## Returns the locked cells that can open now: those touching a usable cell, so the frame grows
+## outward from itself.
+func get_frontier() -> Array[Vector2i]:
+	return get_locked_cells().filter(func(cell: Vector2i) -> bool:
+		for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if is_usable(cell + step):
+				return true
+		return false)
+
+
+## Opens [param cell] if it's on the frontier. Returns whether it did.
+func open_cell(cell: Vector2i) -> bool:
+	if cell not in get_frontier():
+		return false
+	opened_cells.append(cell)
+	return true
 
 
 ## Returns how many cells can hold parts.

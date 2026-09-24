@@ -1,7 +1,8 @@
 class_name RewardScreen
 extends Control
 ## What a won fight dropped: the gold (already collected), an elite's relic or a boss's choice of
-## three, and a draft of parts, one of which the player can take into their stash. Anything left
+## three (or growing the frame instead), and a draft of parts, one of which the player can take
+## into their stash. Anything left
 ## is skipped. The button at the bottom emits [signal finished].
 
 ## Emitted when the player is done with the loot.
@@ -11,6 +12,8 @@ const THEME := preload("res://resources/ui/theme.tres")
 const TITLE_COLOR := Color("#5fd38a")
 const DIM_COLOR := Color(0.72, 0.74, 0.78)
 const GOLD_COLOR := Color(0.96, 0.83, 0.43)
+## The Frame Expansion card's title.
+const CELLS_COLOR := Color("#7de8f0")
 ## Each rarity's name color.
 const RARITY_COLORS := {
 	MechPart.Rarity.COMMON: Color(0.85, 0.87, 0.9),
@@ -95,6 +98,14 @@ func take_relic(index: int) -> bool:
 	return true
 
 
+## Takes the boss's offer to grow the frame instead of a relic. Returns false if the group is closed.
+func take_cells() -> bool:
+	if not run.take_reward_cells(reward):
+		return false
+	_refresh()
+	return true
+
+
 ## Returns the relic offer's cards, left to right.
 func get_relic_cards() -> Array[PanelContainer]:
 	var found: Array[PanelContainer] = []
@@ -113,15 +124,21 @@ func _refresh() -> void:
 	for card in cards.get_children() + relic_cards.get_children():
 		card.get_parent().remove_child(card)
 		card.queue_free()
-	relic_label.visible = not reward.relics.is_empty()
-	if reward.relic_taken >= 0:
+	relic_label.visible = not reward.relics.is_empty() or reward.cells > 0
+	if reward.relic_taken == FightReward.CELLS_TAKEN:
+		relic_label.text = "Your frame can grow: open %d cells from the map's Loadout." % reward.cells
+	elif reward.relic_taken >= 0:
 		relic_label.text = "%s is yours." % reward.relics[reward.relic_taken].relic_name
+	elif reward.cells > 0:
+		relic_label.text = "Choose a relic, or grow your frame:"
 	elif reward.relics.size() > 1:
 		relic_label.text = "Choose a relic:"
 	else:
 		relic_label.text = "Recovered a relic:"
 	for i in reward.relics.size():
 		relic_cards.add_child(_make_relic_card(i))
+	if reward.cells > 0:
+		relic_cards.add_child(_make_cells_card())
 	if reward.parts.is_empty():
 		draft_label.text = "Nothing else worth salvaging."
 	elif reward.taken >= 0:
@@ -205,21 +222,52 @@ func _make_relic_card(index: int) -> PanelContainer:
 	description.text = relic.description
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.custom_minimum_size.x = 190
+	_finish_group_card(card, box, reward.relic_taken == index, take_relic.bind(index))
+	return card
+
+
+# The boss's offer to grow the frame, in the relic group.
+func _make_cells_card() -> PanelContainer:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(220, 0)
+	var margin := MarginContainer.new()
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 10)
+	card.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	margin.add_child(box)
+	var name_label := Label.new()
+	_add_label(box, name_label, 17, CELLS_COLOR)
+	name_label.text = "Frame Expansion"
+	var kind_label := Label.new()
+	_add_label(box, kind_label, 12, DIM_COLOR)
+	kind_label.text = "Instead of a relic"
+	var description := Label.new()
+	_add_label(box, description, 12, DIM_COLOR)
+	description.text = "Open %d more cells on your frame, picked on the map's Loadout." % reward.cells
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.custom_minimum_size.x = 190
+	_finish_group_card(card, box, reward.relic_taken == FightReward.CELLS_TAKEN, take_cells)
+	return card
+
+
+# A group card's button: Taken, Left behind once something else in the group was, or Take.
+func _finish_group_card(card: PanelContainer, box: VBoxContainer, taken: bool, take_action: Callable) -> void:
 	var button := Button.new()
 	button.custom_minimum_size.y = 36
-	if reward.relic_taken == index:
+	if taken:
 		button.text = "Taken"
 		button.disabled = true
-	elif reward.relic_taken >= 0:
+	elif reward.relic_taken != -1:
 		button.text = "Left behind"
 		button.disabled = true
 		card.modulate = Color(1, 1, 1, 0.45)
 	else:
 		button.text = "Take"
 		# Deferred: taking rebuilds the cards, this button included.
-		button.pressed.connect(take_relic.bind(index), CONNECT_DEFERRED)
+		button.pressed.connect(take_action, CONNECT_DEFERRED)
 	box.add_child(button)
-	return card
 
 
 func _add_label(box: Container, label: Label, font_size: int, color: Color) -> void:

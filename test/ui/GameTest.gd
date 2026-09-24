@@ -19,6 +19,7 @@ func before_test() -> void:
 	_game.relics = Fixtures.relics()
 	_game.events = [Fixtures.gold_event("Windfall", 10)]
 	_game.affixes = [Fixtures.armored()]
+	_game.hangar_jobs = Fixtures.hangar_jobs()
 	# A profile in memory, and the Technician locked out of reach, so no real files are read and
 	# runs go straight to the map.
 	_game.profile = Profile.new()
@@ -229,7 +230,7 @@ func test_a_hangar_repairs_the_hull() -> void:
 	await _go(hangar)
 	var rest := _game.screen as RestScreen
 	assert_object(rest).is_not_null()
-	assert_bool(rest.repair()).is_true()
+	assert_bool(rest.do_job(run.get_hangar_jobs()[0])).is_true() # the fixtures list Repair first
 	assert_int(run.hull_damage).is_equal(11) # 30% of 30 repaired
 	rest.button.pressed.emit()
 	await await_idle_frame()

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="Relic" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_txfud"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="2_s52xs"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="3_ctc0e"]
+[ext_resource type="Script" path="res://src/data/Relic.gd" id="4_f7uud"]
+
+[sub_resource type="Resource" id="Resource_hbd2j"]
+script = ExtResource("3_ctc0e")
+amount = 15
+
+[sub_resource type="Resource" id="Resource_yh2fb"]
+script = ExtResource("1_txfud")
+id = "scrap"
+order = 10
+label = "Strip for scrap"
+effects = Array[ExtResource("2_s52xs")]([SubResource("Resource_hbd2j")])
+cost_type = 1
+
+[resource]
+script = ExtResource("4_f7uud")
+id = "salvage_rig"
+relic_name = "Salvage Rig"
+description = "Every Hangar can also strip wreckage for 15 gold, on top of its one job."
+rarity = 1
+glyph = "$"
+color = Color(0.9490196, 0.827451, 0.2901961, 1)
+hangar_jobs = Array[ExtResource("1_txfud")]([SubResource("Resource_yh2fb")])

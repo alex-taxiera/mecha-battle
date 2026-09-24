@@ -1,18 +1,23 @@
 class_name RestScreen
 extends MessageScreen
-## A Hangar / Refit Bay stop: the crew does one job, repairing the hull, reinforcing it for good,
-## or raising one part a Mk, or the player moves on. The bottom button emits
+## A Hangar / Refit Bay stop: a button for each of the run's [HangarJob]s (repair the hull,
+## reinforce it, raise a part a Mk, grow the frame, and any a relic adds), or the player moves on.
+## Doing an exclusive job ends the visit; the others can go alongside it. The bottom button emits
 ## [signal MessageScreen.confirmed].
 
 const TITLE_COLOR := Color("#5fd38a")
 const INTRO := "The refit crew has time for one job before you move on."
 
 var run: RunState
-var repair_button: Button
-var reinforce_button: Button
-var upgrade_button: Button
-## Whether the crew has done its job.
+## Each job's button, by the job's id.
+var job_buttons := {}
+## Whether an exclusive job is done, which ends the visit.
 var job_done := false
+
+# The jobs done this visit, so an inclusive one isn't done twice.
+var _done: Array[HangarJob] = []
+# The Upgrade job waiting for the player to pick a part.
+var _upgrading: HangarJob
 
 
 func _init(p_run: RunState = null) -> void:
@@ -22,21 +27,43 @@ func _init(p_run: RunState = null) -> void:
 		show_jobs()
 
 
-## Lists the crew's three jobs.
+## Lists the crew's jobs, each off when it can't be done now.
 func show_jobs() -> void:
 	_clear_options()
-	body_label.text = INTRO
-	var repair_amount := mini(ceili(run.get_max_hp() * RunState.REPAIR_SHARE), run.hull_damage)
-	repair_button = add_option("Repair", "Repair %d hull (%d%% of max)." % [repair_amount, roundi(RunState.REPAIR_SHARE * 100)], repair)
-	repair_button.disabled = run.hull_damage == 0
-	reinforce_button = add_option("Reinforce", "+%d max HP for the rest of the run." % RunState.REINFORCE_HP, reinforce)
-	upgrade_button = add_option("Upgrade", "Raise one part a Mk.", show_upgrades)
-	upgrade_button.disabled = run.get_upgradable_parts().is_empty()
+	job_buttons.clear()
+	for job in run.get_hangar_jobs():
+		var job_button := add_option(job.label, job.describe(run), do_job.bind(job))
+		job_button.disabled = not can_do(job)
+		job_buttons[job.id] = job_button
 
 
-## Lists the parts the crew can upgrade, each a button, and a way back to the jobs.
-func show_upgrades() -> void:
-	if job_done:
+## Returns whether [param job] can be done now: nothing exclusive done yet, it's available, and
+## it isn't a one-off already done.
+func can_do(job: HangarJob) -> bool:
+	return not job_done and job.is_available(run) \
+		and not (job.cost_type != HangarJob.CostType.REPEATABLE and job in _done)
+
+
+## Does [param job]: an Upgrade lists the parts to pick from; anything else applies its effects.
+## Returns false if it can't be done now.
+func do_job(job: HangarJob) -> bool:
+	if not can_do(job):
+		return false
+	if job.kind == HangarJob.Kind.UPGRADE:
+		show_upgrades(job)
+		return true
+	var result := EventResult.new()
+	for effect in job.effects:
+		effect.apply(run, result)
+	_pay_and_finish(job, ". ".join(result.lines) + ".")
+	return true
+
+
+## Lists the parts [param job] (by default the first Upgrade job) can raise a Mk, each a button,
+## and a way back to the jobs.
+func show_upgrades(job: HangarJob = null) -> void:
+	_upgrading = job if job else _first_upgrade_job()
+	if job_done or _upgrading == null:
 		return
 	_clear_options()
 	body_label.text = "Which part?"
@@ -46,37 +73,38 @@ func show_upgrades() -> void:
 	add_option("Back", "", show_jobs)
 
 
-## Repairs the hull. Returns false if the crew's job is already done.
-func repair() -> bool:
-	if job_done:
-		return false
-	var repaired := run.repair_at_hangar()
-	_finish("Repaired %d hull." % repaired)
-	return true
-
-
-## Reinforces the hull. Returns false if the crew's job is already done.
-func reinforce() -> bool:
-	if job_done:
-		return false
-	run.reinforce_at_hangar()
-	_finish("+%d max HP. The hull is sturdier for good." % RunState.REINFORCE_HP)
-	return true
-
-
-## Raises [param part] a Mk. Returns false if the crew's job is already done or it can't go up.
+## Raises [param part] a Mk, for the Upgrade job being done. Returns false if there's none or it
+## can't go up.
 func upgrade(part: MechPart) -> bool:
-	if job_done or not run.upgrade_part(part):
+	if _upgrading == null or not can_do(_upgrading) or not run.upgrade_part(part):
 		return false
-	_finish("Upgraded to %s." % part.get_display_name())
+	var job := _upgrading
+	_upgrading = null
+	_pay_and_finish(job, "Upgraded to %s." % part.get_display_name())
 	return true
 
 
-func _finish(text: String) -> void:
-	job_done = true
+# Pays for [param job] and shows [param text]: the visit ends if it was exclusive, and the jobs
+# come back otherwise.
+func _pay_and_finish(job: HangarJob, text: String) -> void:
+	if job.cost > 0:
+		run.gold -= job.cost
+		run.changed.emit()
+	_done.append(job)
 	body_label.text = text
-	options.visible = false
-	button.text = "Continue"
+	if job.cost_type == HangarJob.CostType.EXCLUSIVE:
+		job_done = true
+		options.visible = false
+		button.text = "Continue"
+	else:
+		show_jobs()
+
+
+func _first_upgrade_job() -> HangarJob:
+	for job in run.get_hangar_jobs():
+		if job.kind == HangarJob.Kind.UPGRADE:
+			return job
+	return null
 
 
 func _clear_options() -> void:

@@ -97,11 +97,14 @@ func get_card_texts() -> Array[PackedStringArray]:
 	return texts
 
 
-## A frame's numbers in a line, e.g. "45 HP · 2 EN a turn · 12 slots · 1 hardpoint".
+## A frame's numbers in a line, e.g. "45 HP · 2 EN a turn · 12 slots (+4) · 1 hardpoint", the
+## "+4" being the locked cells it can grow into.
 static func stats_line(chassis: MechChassis) -> String:
 	var hardpoints := chassis.hardpoints.size()
-	return "%d HP · %d EN a turn · %d slots · %d hardpoint%s" % [chassis.base_hp, chassis.base_energy,
-		chassis.get_usable_cell_count(), hardpoints, "" if hardpoints == 1 else "s"]
+	var locked := chassis.get_locked_cells().size()
+	var slots := "%d slots" % chassis.get_usable_cell_count() + (" (+%d)" % locked if locked > 0 else "")
+	return "%d HP · %d EN a turn · %s · %d hardpoint%s" % [chassis.base_hp, chassis.base_energy, slots,
+		hardpoints, "" if hardpoints == 1 else "s"]
 
 
 func _make_card(chassis: MechChassis, preview: ChassisPreview, preview_height: float) -> Control:

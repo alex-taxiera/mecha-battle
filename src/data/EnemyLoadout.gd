@@ -14,10 +14,17 @@ enum Tier { NORMAL, ELITE, BOSS }
 @export var hp_scale := 1.0
 ## A boss's turns partway through a fight (see [BossPhase]).
 @export var phases: Array[BossPhase] = []
+## Expansion cells its frame has open, for enemies that have grown theirs.
+@export var opened_cells: Array[Vector2i] = []
 
 
-## Returns a new grid on [member chassis] holding [member lineup].
+## Returns a new grid on [member chassis] (grown by [member opened_cells], if any) holding
+## [member lineup].
 func build_grid() -> MechGridData:
-	var grid := MechGridData.new(chassis)
+	var frame := chassis
+	if not opened_cells.is_empty():
+		frame = chassis.duplicate()
+		frame.opened_cells = opened_cells.duplicate()
+	var grid := MechGridData.new(frame)
 	LoadoutPart.place_all(grid, lineup)
 	return grid

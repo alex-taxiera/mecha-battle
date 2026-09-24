@@ -12,8 +12,9 @@ signal preview_changed(stats: MechStats)
 ## Emitted with a short status line for the player, e.g. when a rotation has no room.
 signal message(text: String, good: bool)
 
-# Sized so the tallest layout, the Striker's 7 rows with its back bay, fits the shop's window.
-const CELL_SIZE := 56.0
+# Sized so the tallest layout, the Striker's 8 rows (with its back bay and its locked row), fits
+# the shop's window beside the tallest shop cards.
+const CELL_SIZE := 42.0
 const CELL_GAP := 4.0
 const CELL_PITCH := CELL_SIZE + CELL_GAP
 ## How long a newly placed part's open edges stay lit.
@@ -21,6 +22,11 @@ const FLASH_SECONDS := 1.6
 
 const CELL_COLOR := Color(0.2, 0.22, 0.26)
 const DISABLED_CELL_COLOR := Color(0.07, 0.07, 0.09)
+## Locked cells the frame can grow into, and the ones that can open now while there are cells to
+## open.
+const LOCKED_CELL_COLOR := Color(0.11, 0.12, 0.15)
+const LOCK_COLOR := Color(0.36, 0.39, 0.45)
+const FRONTIER_COLOR := Color(0.49, 0.91, 0.94)
 const BAY_COLOR := Color(0.16, 0.13, 0.14)
 const BAY_EDGE_COLOR := Color(0.86, 0.33, 0.31, 0.45)
 const OPEN_BAY_COLOR := Color(0.4, 1.0, 0.5)
@@ -169,6 +175,10 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click and run and click.pressed and click.button_index == MOUSE_BUTTON_LEFT and open_at(cell_at(click.position)):
+		accept_event()
+		return
 	var motion := event as InputEventMouseMotion
 	if motion and run:
 		var hovered := run.grid.get_placement_at(cell_at(motion.position))
@@ -187,6 +197,8 @@ func _get_tooltip(at_position: Vector2) -> String:
 	var cell := cell_at(at_position)
 	_tooltip_placement = run.grid.get_placement_at(cell)
 	if _tooltip_placement == null:
+		if run.grid.chassis.is_locked(cell):
+			return locked_text(cell)
 		var hardpoint := run.grid.chassis.get_hardpoint_at(cell)
 		return bay_text(hardpoint) if hardpoint else ""
 	return PartInfo.text_for(_tooltip_placement.part, _tooltip_placement.rotation, _stats.part_stats[_tooltip_placement])
@@ -220,7 +232,15 @@ func _draw() -> void:
 	for y in chassis.size.y:
 		for x in chassis.size.x:
 			var cell := Vector2i(x, y)
-			draw_rect(_cell_rect(cell), CELL_COLOR if chassis.is_usable(cell) else DISABLED_CELL_COLOR)
+			if chassis.is_usable(cell):
+				draw_rect(_cell_rect(cell), CELL_COLOR)
+			elif chassis.is_locked(cell):
+				_draw_locked(cell)
+			else:
+				draw_rect(_cell_rect(cell), DISABLED_CELL_COLOR)
+	if run.cells_to_open > 0:
+		for cell in chassis.get_frontier():
+			draw_rect(_cell_rect(cell).grow(-1.5), FRONTIER_COLOR, false, 3.0)
 	for hardpoint in chassis.hardpoints:
 		_draw_bay(hardpoint)
 	for cell in _shown_edges():
@@ -244,6 +264,23 @@ func _draw() -> void:
 		_draw_link(link)
 	if _preview:
 		_draw_preview_label()
+
+
+## Opens the locked [param cell] if the player has a cell to open and it's on the frontier.
+## Returns whether it did.
+func open_at(cell: Vector2i) -> bool:
+	if not run.open_cell(cell):
+		return false
+	message.emit("Opened a cell on the frame", true)
+	_flash(cell)
+	return true
+
+
+## Returns a locked cell's tooltip: how it opens, or that it can open now.
+func locked_text(cell: Vector2i) -> String:
+	if run.cells_to_open > 0 and cell in run.grid.chassis.get_frontier():
+		return "Locked cell\nClick to open it (%d to open)" % run.cells_to_open
+	return "Locked cell\nThe frame can grow here: Hangars, some events, and bosses let you open cells."
 
 
 ## Returns the words a hovered drop shows: what it does, or why it can't.
@@ -405,6 +442,15 @@ func _make_rotate_button(placement: MechGridData.Placement) -> RotateButton:
 
 # A bay's cells, set apart from the frame's by their color and a weapon-red border. While a
 # weapon that fits it is dragged, the border lights up green.
+# A locked cell: dim, with a small padlock.
+func _draw_locked(cell: Vector2i) -> void:
+	var rect := _cell_rect(cell)
+	draw_rect(rect, LOCKED_CELL_COLOR)
+	var center := rect.get_center()
+	draw_rect(Rect2(center + Vector2(-7, -2), Vector2(14, 11)), LOCK_COLOR)
+	draw_arc(center + Vector2(0, -3), 5.0, PI, TAU, 12, LOCK_COLOR, 2.0)
+
+
 func _draw_bay(hardpoint: Hardpoint) -> void:
 	var edge := OPEN_BAY_COLOR if hardpoint in _open_bays else BAY_EDGE_COLOR
 	for cell in hardpoint.get_cells():

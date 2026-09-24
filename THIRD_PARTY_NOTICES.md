@@ -17,6 +17,8 @@ Parts of the run and combat code are adapted from [Slay-The-Robot](https://githu
 - `src/combat/HitPipeline.gd` and `src/combat/HitInterceptor.gd`: `scripts/action_interceptors/ActionInterceptorProcessor.gd` and `BaseActionInterceptor.gd` (the priority-ordered interceptor chain and its CONTINUE / STOPPED / REJECTED results)
 - `src/data/MechStatus.gd` and `src/combat/ActiveStatus.gd`: `data/readonly/StatusEffectData.gd` and `scripts/status_effects/BaseStatusEffect.gd` (charge bounds and overflow, secondary-charge strategies, decay types)
 - `src/data/WeaponMod.gd`: `data/readonly/CardDecoratorData.gd` (value changes and added behavior on one item, with one slot)
+- `src/data/HangarJob.gd`: `data/readonly/RestActionData.gd` (jobs as data with requirements and cost types; relics adding jobs, after `ActionUpdateRestActions`)
+- `src/run/FightReward.gd`: the reward groups of `scripts/ui/RewardOverlay.gd` (taking one reward in a group closes the others)
 
 ```
 MIT License

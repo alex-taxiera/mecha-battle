@@ -25,7 +25,7 @@ var items := HFlowContainer.new()
 
 
 func _init() -> void:
-	custom_minimum_size.y = 150
+	custom_minimum_size.y = 120
 	var margin := MarginContainer.new()
 	for side in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 14)

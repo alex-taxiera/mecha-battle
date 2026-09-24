@@ -7,6 +7,8 @@ signal rotate_requested
 
 const COST_COLOR := Color(0.94, 0.71, 0.24)
 const TOO_EXPENSIVE_COLOR := Color(0.94, 0.42, 0.42)
+## Lines of a part's blurb a card shows, so a long one can't stretch the shop past the window.
+const MAX_DESCRIPTION_LINES := 5
 
 var slot_index := -1
 var part: MechPart
@@ -38,11 +40,15 @@ func _ready() -> void:
 	_shape_view.turns = turns
 	_info_label.text = PartInfo.summary(part, turns)
 	_description_label.text = part.description
+	# A long blurb is cut to fit the card; the tooltip has all of it.
+	_description_label.max_lines_visible = MAX_DESCRIPTION_LINES
+	_description_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tooltip_text = part.description
 	_rotate_button.visible = part.can_rotate()
 	_rotate_button.pressed.connect(rotate_requested.emit)
 	mouse_default_cursor_shape = CURSOR_DRAG
 	if not affordable:
-		tooltip_text = "Not enough gold"
+		tooltip_text = "Not enough gold\n\n%s" % part.description
 
 
 func _get_drag_data(at_position: Vector2) -> Variant:

@@ -302,3 +302,13 @@ func _cell_center(cell: Vector2i) -> Vector2:
 
 static func _tres_in(dir: String) -> Array:
 	return Array(ResourceLoader.list_directory(dir)).filter(func(file: String) -> bool: return file.ends_with(".tres"))
+
+
+func test_a_long_blurb_is_cut_on_the_card_and_whole_in_its_tooltip() -> void:
+	_laser.description = "A long blurb about a laser."
+	_screen.run.changed.emit() # rebuild the cards
+	var item := _item_for(_laser)
+	var label: Label = item.get_node("%DescriptionLabel")
+	assert_int(label.max_lines_visible).is_equal(ShopItem.MAX_DESCRIPTION_LINES)
+	assert_str(item.tooltip_text).contains(_laser.description)
+	await await_idle_frame() # free the cards the refresh replaced

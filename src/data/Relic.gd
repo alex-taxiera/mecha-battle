@@ -19,6 +19,8 @@ enum Rarity { COMMON, UNCOMMON, RARE, BOSS, SHOP, EVENT, AFFIX }
 ## The placeholder icon: a short glyph on a badge of this color.
 @export var glyph := "*"
 @export var color := Color(0.8, 0.8, 0.85)
+## Jobs the relic adds to every Hangar (see [HangarJob]).
+@export var hangar_jobs: Array[HangarJob] = []
 
 
 ## Once, when the run gets the relic.

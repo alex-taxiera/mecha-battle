@@ -10,3 +10,7 @@ func apply(run: RunState, result: EventResult) -> void:
 	upgrade.hp = hp
 	run.add_upgrade(upgrade)
 	result.lines.append("%+d max HP" % hp)
+
+
+func describe(_run: RunState) -> String:
+	return "%+d max HP for the rest of the run." % hp

@@ -18,10 +18,8 @@ const ACT_HEAL := 0.5
 const BOSS_RELIC_CHOICES := 3
 ## Relics a Scrap Shop puts up for sale.
 const SHOP_RELICS := 2
-## A Hangar's Repair: this share of max HP, rounded up.
-const REPAIR_SHARE := 0.3
-## A Hangar's Reinforce: this much max HP, for good.
-const REINFORCE_HP := 25
+## Cells a boss offers to open, in place of a boss relic.
+const BOSS_CELLS := 2
 ## Each affix on an elite adds this share to its gold.
 const AFFIX_GOLD_BONUS := 0.2
 
@@ -84,6 +82,11 @@ var upgrades: Array[Relic] = []
 var statuses: Array[TimedStatus] = []
 ## The events the run can still come across.
 var event_pool: EventPool
+## Cells the player can still open on the frame (see [method open_cell]), from Hangars, events,
+## and bosses.
+var cells_to_open := 0
+## The Hangar's own jobs; relics can add more (see [method get_hangar_jobs]).
+var hangar_jobs: Array[HangarJob] = []
 ## The affixes elites can roll, and how many each one gets.
 var affix_pool: Array[Relic] = []
 var elite_affixes := 1
@@ -102,7 +105,10 @@ var _last_enemy: EnemyLoadout
 func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[SynergyRule], start_gold := 10,
 		p_rng: RunRng = null, p_acts: Array[ActData] = [], p_relics: Array[Relic] = [],
 		p_events: Array[GameEvent] = [], p_affixes: Array[Relic] = []) -> void:
-	grid = MechGridData.new(chassis)
+	# The run grows its own copy of the frame; the shared chassis never changes.
+	var frame: MechChassis = chassis.duplicate()
+	frame.opened_cells = chassis.opened_cells.duplicate()
+	grid = MechGridData.new(frame)
 	LoadoutPart.place_all(grid, chassis.starter_lineup)
 	catalog.assign(p_catalog.filter(func(part: MechPart) -> bool:
 		return part.type != MechPart.PartType.WEAPON or chassis.can_mount(part)))
@@ -253,6 +259,8 @@ func roll_reward(node: MapNode = null) -> FightReward:
 				reward.relics.append(relic)
 		EnemyLoadout.Tier.BOSS:
 			reward.relics = relic_pool.take(BOSS_RELIC_CHOICES, [Relic.Rarity.BOSS])
+			# Or grow the frame instead, while it has room.
+			reward.cells = mini(BOSS_CELLS, get_expandable_cells())
 	gold += reward.gold
 	changed.emit()
 	return reward
@@ -269,6 +277,16 @@ func take_reward_part(reward: FightReward, index: int) -> bool:
 
 ## Gives the run relic [param index] of [param reward]'s offer, closing it. Returns false,
 ## taking nothing, if the offer is closed or there's no such relic.
+## Takes a boss reward's cells to open instead of a relic. Returns false if the group is closed or
+## offers none.
+func take_reward_cells(reward: FightReward) -> bool:
+	if not reward.is_relic_open() or reward.cells <= 0:
+		return false
+	reward.relic_taken = FightReward.CELLS_TAKEN
+	grant_cells(reward.cells)
+	return true
+
+
 func take_reward_relic(reward: FightReward, index: int) -> bool:
 	if not reward.is_relic_open() or index < 0 or index >= reward.relics.size():
 		return false
@@ -312,17 +330,38 @@ func add_relic(relic: Relic) -> Relic:
 #endregion
 #region Stops
 
-## A Hangar's Repair: repairs [constant REPAIR_SHARE] of max HP, rounded up. Returns how much it
-## repaired.
-func repair_at_hangar() -> int:
-	return heal(ceili(get_max_hp() * REPAIR_SHARE))
+## Returns the jobs a Hangar offers: its own, then the ones the run's relics add.
+func get_hangar_jobs() -> Array[HangarJob]:
+	var jobs: Array[HangarJob] = hangar_jobs.duplicate()
+	for relic in relics:
+		jobs.append_array(relic.hangar_jobs)
+	return jobs
 
 
-## A Hangar's Reinforce: [constant REINFORCE_HP] more max HP for the rest of the run.
-func reinforce_at_hangar() -> void:
-	var upgrade := HullUpgrade.new()
-	upgrade.hp = REINFORCE_HP
-	add_upgrade(upgrade)
+## Returns how many more cells the frame can still grow: its locked cells not already owed.
+func get_expandable_cells() -> int:
+	return maxi(0, grid.chassis.get_locked_cells().size() - cells_to_open)
+
+
+## Lets the player open up to [param count] more cells, as many as the frame has room for.
+## Returns how many it granted.
+func grant_cells(count: int) -> int:
+	var granted := clampi(count, 0, get_expandable_cells())
+	cells_to_open += granted
+	if granted > 0:
+		changed.emit()
+	return granted
+
+
+## Opens [param cell] on the frame, if the player has a cell to open and it's on the frontier
+## (touching the frame). Returns whether it did.
+func open_cell(cell: Vector2i) -> bool:
+	if cells_to_open <= 0 or not grid.chassis.open_cell(cell):
+		return false
+	cells_to_open -= 1
+	grid.grid_updated.emit()
+	changed.emit()
+	return true
 
 
 ## Returns the event at [param node] (by default the current node), drawing it from the pool the

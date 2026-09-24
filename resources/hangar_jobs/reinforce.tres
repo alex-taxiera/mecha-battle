@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="HangarJob" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_10wef"]
+[ext_resource type="Script" path="res://src/data/events/MaxHpEffect.gd" id="2_bbsdi"]
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="3_jjq7w"]
+
+[sub_resource type="Resource" id="Resource_vu000"]
+script = ExtResource("2_bbsdi")
+
+[resource]
+script = ExtResource("3_jjq7w")
+id = "reinforce"
+order = 1
+label = "Reinforce"
+effects = Array[ExtResource("1_10wef")]([SubResource("Resource_vu000")])
