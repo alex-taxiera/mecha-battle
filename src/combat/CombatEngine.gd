@@ -246,6 +246,7 @@ func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> voi
 		ability.modify_hit(hit)
 	var taken := target.take_hit(hit)
 	active.last_shot = hit.outgoing
+	active.last_missed = hit.rejected
 	active.shots += 1
 	active.damage_dealt += taken
 	attacker.damage_dealt += taken

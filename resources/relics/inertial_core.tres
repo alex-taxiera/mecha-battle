@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PassiveTuning" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_eq6ni"]
+[ext_resource type="Script" path="res://src/data/relics/PassiveTuning.gd" id="2_vd0km"]
+
+[resource]
+script = ExtResource("2_vd0km")
+key = &"momentum_rate"
+value = 2.0
+id = "inertial_core"
+relic_name = "Inertial Core"
+description = "The Juggernaut's: Momentum builds twice as fast."
+rarity = 1
+glyph = "I"
+color = Color(0.6, 0.75, 0.4, 1)
+chassis_id = "juggernaut"

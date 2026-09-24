@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://src/data/ActData.gd" id="7_cgyiy"]
 [ext_resource type="Resource" path="res://resources/enemies/ion_lancer.tres" id="7_m1at6"]
 [ext_resource type="Resource" path="res://resources/enemies/siege_warden.tres" id="8_4njjo"]
+[ext_resource type="Resource" path="res://resources/enemies/iron_juggernaut.tres" id="9_4njjo"]
 
 [resource]
 script = ExtResource("7_cgyiy")
@@ -16,7 +17,7 @@ id = "act_3"
 sector_name = "The Core Citadel"
 battle_weight = 43
 elite_weight = 12
-enemies = Array[ExtResource("1_nv2mn")]([ExtResource("2_dmb7u"), ExtResource("3_m1at6"), ExtResource("4_4njjo"), ExtResource("5_b00fj"), ExtResource("6_bd1kb"), ExtResource("7_m1at6"), ExtResource("8_4njjo")])
+enemies = Array[ExtResource("1_nv2mn")]([ExtResource("2_dmb7u"), ExtResource("3_m1at6"), ExtResource("4_4njjo"), ExtResource("5_b00fj"), ExtResource("6_bd1kb"), ExtResource("7_m1at6"), ExtResource("8_4njjo"), ExtResource("9_4njjo")])
 enemy_hp_scale = 1.8
 battle_gold = Vector2i(12, 16)
 elite_gold = Vector2i(26, 34)

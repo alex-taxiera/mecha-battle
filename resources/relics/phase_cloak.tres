@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PassiveTuning" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_8i42p"]
+[ext_resource type="Script" path="res://src/data/relics/PassiveTuning.gd" id="2_gci0s"]
+
+[resource]
+script = ExtResource("2_gci0s")
+key = &"evasion_every"
+value = 3.0
+id = "phase_cloak"
+relic_name = "Phase Cloak"
+description = "The Phantom's: every 3rd shot aimed at you misses, not every 4th."
+rarity = 1
+glyph = "~"
+color = Color(0.6, 0.5, 1, 1)
+chassis_id = "phantom"

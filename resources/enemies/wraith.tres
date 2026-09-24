@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/phantom.tres" id="1_nf7ii"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_mn72k"]
+[ext_resource type="Resource" path="res://resources/parts/shock_lance.tres" id="3_ripb1"]
+[ext_resource type="Resource" path="res://resources/parts/flamer.tres" id="4_llq8n"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_1a0nc"]
+[ext_resource type="Resource" path="res://resources/parts/capacitor_coupler.tres" id="6_s4hha"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="7_t8l1y"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="8_3t7ut"]
+
+[sub_resource type="Resource" id="Resource_1ohna"]
+script = ExtResource("2_mn72k")
+part = ExtResource("3_ripb1")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_jd4sv"]
+script = ExtResource("2_mn72k")
+part = ExtResource("4_llq8n")
+origin = Vector2i(3, 1)
+
+[sub_resource type="Resource" id="Resource_tk4tn"]
+script = ExtResource("2_mn72k")
+part = ExtResource("5_1a0nc")
+origin = Vector2i(0, 1)
+
+[sub_resource type="Resource" id="Resource_l2bch"]
+script = ExtResource("2_mn72k")
+part = ExtResource("6_s4hha")
+origin = Vector2i(2, 1)
+
+[resource]
+script = ExtResource("8_3t7ut")
+id = "wraith"
+enemy_name = "Wraith"
+chassis = ExtResource("1_nf7ii")
+lineup = Array[ExtResource("2_mn72k")]([SubResource("Resource_1ohna"), SubResource("Resource_jd4sv"), SubResource("Resource_tk4tn"), SubResource("Resource_l2bch")])
+hp_scale = 1.6

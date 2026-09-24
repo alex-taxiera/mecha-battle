@@ -22,6 +22,10 @@ var energy: StatBox
 var damage: StatBox
 var heat: StatBox
 
+## The links list's and the rules legend's height: past about 5 rows they scroll, so more rules
+## or links never push the Loadout past the window (its tallest shop cards leave this much).
+const LIST_HEIGHT := 100.0
+
 var _links: VBoxContainer
 var _rules: VBoxContainer
 # The stats the links list was last built from, to skip rebuilding it on every hover.
@@ -34,8 +38,8 @@ func _init() -> void:
 	energy = _add_stat_box("Energy / turn", Color(0.65, 0.55, 0.94))
 	damage = _add_stat_box("Damage / turn", Color(0.93, 0.43, 0.32))
 	heat = _add_stat_box("Heat / turn", Color(1.0, 0.54, 0.24))
-	_links = _add_list_box("Active links", true)
-	_rules = _add_list_box("Adjacency rules", false)
+	_links = _add_list_box("Active links", true, LIST_HEIGHT)
+	_rules = _add_list_box("Adjacency rules", false, LIST_HEIGHT)
 
 
 ## Lists every adjacency rule with its color and effect.
@@ -142,12 +146,21 @@ func _add_stat_box(title: String, title_color: Color) -> StatBox:
 	return box
 
 
-func _add_list_box(title: String, expand: bool) -> VBoxContainer:
+# A titled list in a panel. With a [param height] above 0 the list scrolls within it.
+func _add_list_box(title: String, expand: bool, height := 0.0) -> VBoxContainer:
 	var column := _add_panel(expand)
 	column.add_child(_label(title.to_upper(), 12, NOTE_COLOR))
 	var list := VBoxContainer.new()
 	list.add_theme_constant_override("separation", 4)
-	column.add_child(list)
+	if height <= 0.0:
+		column.add_child(list)
+		return list
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = height
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	list.size_flags_horizontal = SIZE_EXPAND_FILL
+	scroll.add_child(list)
+	column.add_child(scroll)
 	return list
 
 

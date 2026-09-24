@@ -15,7 +15,7 @@ signal reset_requested
 
 const CHASSIS_DIR := "res://resources/chassis"
 ## Frames in the order the design lists them, by id. Any others follow, by id.
-const ORDER := ["bastion", "striker", "reactor"]
+const ORDER := ["bastion", "striker", "reactor", "phantom", "juggernaut"]
 const TEXT_COLOR := Color(0.93, 0.94, 0.96)
 const DIM_COLOR := Color(0.72, 0.74, 0.78)
 const PASSIVE_COLOR := Color(0.96, 0.83, 0.43)
@@ -197,7 +197,8 @@ func _make_card(chassis: MechChassis, preview: ChassisPreview, preview_height: f
 	frame.custom_minimum_size.y = preview_height
 	frame.add_child(preview)
 	box.add_child(frame)
-	box.add_child(_label(stats_line(chassis), 14, TEXT_COLOR))
+	# Five frames share the width, so the longer lines wrap rather than widen the card.
+	box.add_child(_wrapped(_label(stats_line(chassis), 14, TEXT_COLOR)))
 	box.add_child(_label(chassis.passive_name, 16, PASSIVE_COLOR))
 	var passive := _label(chassis.passive_text, 13, DIM_COLOR)
 	passive.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -246,7 +247,8 @@ func _make_threat_picker(chassis: MechChassis) -> Control:
 	row.add_child(up)
 	if highest < threat_levels.size():
 		up.tooltip_text = "Win a run at Threat %d to unlock Threat %d" % [highest, highest + 1]
-		row.add_child(_label("Win at %d to unlock %d" % [highest, highest + 1], 12, DIM_COLOR))
+		# Under the picker, not beside it: a narrow card has no room for it in the row.
+		box.add_child(_wrapped(_label("Win at Threat %d to unlock %d" % [highest, highest + 1], 12, DIM_COLOR)))
 	var summary := _label(threat_text(chassis), 12, DIM_COLOR)
 	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var lines := PackedStringArray()
@@ -291,6 +293,12 @@ func _add_footer() -> void:
 	_reset_dialog.confirmed.connect(reset_progress)
 	footer.add_child(_reset_dialog)
 	_cards.get_parent().add_child(footer)
+
+
+# Lets [param label] wrap at word boundaries, so it doesn't set its container's width.
+func _wrapped(label: Label) -> Label:
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return label
 
 
 func _label(text: String, font_size: int, color: Color) -> Label:

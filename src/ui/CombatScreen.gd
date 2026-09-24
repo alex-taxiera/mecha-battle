@@ -407,6 +407,8 @@ func _on_weapon_fired(attacker: BattleMech, weapon: ActivePart, target: BattleMe
 	# The engine emits right after the hit, so the target's shield share is this shot's.
 	var landed := _land_shot.bind(target, damage - target.last_absorbed, weapon.last_shot - damage, weapon.last_shot >= HEAVY_HIT,
 		target.last_absorbed)
+	if weapon.last_missed:
+		landed = _miss_shot.bind(target)
 	_effects.shoot(weapon.part.projectile_sprite, _fighter_of(attacker).get_muzzle(weapon), to, tint, not left,
 		FLIGHT_TIME / speed, landed, nth * SHOT_STAGGER / speed)
 
@@ -416,6 +418,11 @@ func _land_shot(target: BattleMech, damage: int, blocked: int, heavy: bool, shie
 	_pop_damage(target, damage, blocked, _hit_color(target), shielded)
 	if heavy:
 		_small_shake.emit()
+
+
+# A shot turned away, e.g. by the Phantom's Evasion: no hit, just a MISS.
+func _miss_shot(target: BattleMech) -> void:
+	_effects.popup("MISS", _popup_spot(_fighter_of(target)), CombatColors.DIM, _popup_time())
 
 
 # Adds a hit to [param target]'s next popup: [param damage] to the hull, [param blocked] by plating,

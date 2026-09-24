@@ -911,3 +911,35 @@ static func siphon_mod() -> WeaponMod:
 static func corrosive_mod() -> WeaponMod:
 	return weapon_mod("corrosive", "Corrosive", {"damage_scale": 0.9,
 		"abilities": [apply_status(corroded(), 1)] as Array[PartAbility]})
+
+
+# The design doc's second-round frames.
+
+## Evasion: 3 wide by 4 tall with the top corners cut, 250 HP, 45 energy a turn; every 4th shot
+## at it misses. Arms beside rows 1-3.
+static func phantom_frame() -> MechChassis:
+	var chassis := _frame("The Phantom", "Slim frame", Vector2i(3, 4), [Vector2i(0, 0), Vector2i(2, 0)], 250, 45)
+	chassis.hardpoints = [left_arm(Vector2i(-1, 1)), right_arm(Vector2i(3, 1))]
+	chassis.playstyle = "Evasion / Tempo"
+	var evasion := EvasionPassive.new()
+	evasion.every = 4
+	chassis.passive = evasion
+	chassis.passive_name = "Evasion"
+	chassis.passive_text = "Every 4th shot aimed at it misses."
+	return chassis
+
+
+## Siege: 5 wide by 3 tall, 450 HP, 15 energy a turn; weapons fire 2% faster a second of the
+## fight, up to 30%. Two backs over columns 0-1 and 3-4, and arms beside rows 1-2.
+static func juggernaut_frame() -> MechChassis:
+	var chassis := _frame("The Juggernaut", "Heavy frame", Vector2i(5, 3), [], 450, 15)
+	chassis.hardpoints = [back(Vector2i(0, -2)), hardpoint("back_right", "Back Right", Vector2i(3, -2), BACK_SHAPE),
+		left_arm(Vector2i(-1, 1)), right_arm(Vector2i(5, 1))]
+	chassis.playstyle = "Siege / Momentum"
+	var momentum := MomentumPassive.new()
+	momentum.per_second = 0.02
+	momentum.max_bonus = 0.3
+	chassis.passive = momentum
+	chassis.passive_name = "Momentum"
+	chassis.passive_text = "Weapons fire 2% faster for every second of the fight, up to 30%."
+	return chassis

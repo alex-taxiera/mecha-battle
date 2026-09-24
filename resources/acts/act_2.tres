@@ -9,12 +9,13 @@
 [ext_resource type="Script" path="res://src/data/ActData.gd" id="7_bj0d8"]
 [ext_resource type="Resource" path="res://resources/enemies/acid_crawler.tres" id="7_phn7j"]
 [ext_resource type="Resource" path="res://resources/enemies/slag_reaver.tres" id="8_e7hyv"]
+[ext_resource type="Resource" path="res://resources/enemies/wraith.tres" id="9_e7hyv"]
 
 [resource]
 script = ExtResource("7_bj0d8")
 id = "act_2"
 sector_name = "The Orbital Foundry"
-enemies = Array[ExtResource("1_3px3w")]([ExtResource("2_0tlxa"), ExtResource("3_phn7j"), ExtResource("4_e7hyv"), ExtResource("5_5f7h3"), ExtResource("6_6d21g"), ExtResource("7_phn7j"), ExtResource("8_e7hyv")])
+enemies = Array[ExtResource("1_3px3w")]([ExtResource("2_0tlxa"), ExtResource("3_phn7j"), ExtResource("4_e7hyv"), ExtResource("5_5f7h3"), ExtResource("6_6d21g"), ExtResource("7_phn7j"), ExtResource("8_e7hyv"), ExtResource("9_e7hyv")])
 enemy_hp_scale = 1.4
 battle_gold = Vector2i(10, 14)
 elite_gold = Vector2i(22, 30)

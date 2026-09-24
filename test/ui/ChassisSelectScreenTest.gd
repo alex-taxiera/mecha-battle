@@ -38,7 +38,7 @@ func test_loads_the_frames_in_design_order_by_default() -> void:
 	var screen: ChassisSelectScreen = auto_free(SCENE.instantiate())
 	add_child(screen)
 	assert_array(screen.options.map(func(chassis: MechChassis) -> String: return chassis.id)) \
-		.contains_exactly(["bastion", "striker", "reactor"])
+		.contains_exactly(["bastion", "striker", "reactor", "phantom", "juggernaut"])
 
 
 func test_without_a_profile_nothing_is_locked_and_there_is_no_footer() -> void:
@@ -166,7 +166,7 @@ func test_a_card_shows_its_threat_and_what_it_adds() -> void:
 	var levels := Fixtures.threat_levels()
 	levels[1].description = "Shop prices are 15% higher."
 	screen.set_modifiers(levels, [])
-	assert_array(screen.get_card_texts()[0]).contains(["Threat 0", "Threat 0 · the standard run", "Win at 2 to unlock 3"])
+	assert_array(screen.get_card_texts()[0]).contains(["Threat 0", "Threat 0 · the standard run", "Win at Threat 2 to unlock 3"])
 	screen.set_threat(bastion, 2)
 	assert_array(screen.get_card_texts()[0]).contains(["Threat 2", "Threat 2 · Shop prices are 15% higher. (+1 below)"])
 	# The -/+ buttons step the level.

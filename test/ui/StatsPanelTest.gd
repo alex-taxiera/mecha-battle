@@ -119,3 +119,18 @@ func _grid_with(placements: Array) -> MechGridData:
 	for entry in placements:
 		assert_bool(grid.place_part(entry[0], entry[1])).is_true()
 	return grid
+
+
+func test_long_lists_scroll_instead_of_growing() -> void:
+	var many: Array[SynergyRule] = []
+	for i in 12:
+		many.append(Fixtures.cooled())
+	_panel.show_rules(many)
+	assert_array(_panel.get_rule_rows()).has_size(12)
+	# However many rules, the panel is no taller than a few rows.
+	var scrolls := _panel.find_children("*", "ScrollContainer", true, false)
+	assert_array(scrolls).has_size(2)
+	for scroll: ScrollContainer in scrolls:
+		assert_float(scroll.custom_minimum_size.y).is_equal(StatsPanel.LIST_HEIGHT)
+	assert_float(_panel.get_combined_minimum_size().y).is_less(StatsPanel.LIST_HEIGHT + 60.0)
+	await await_idle_frame()

@@ -30,6 +30,8 @@ var shots := 0
 var damage_dealt := 0
 ## What the part's last shot hit for, before the target's plating: its damage as relics changed it.
 var last_shot := 0
+## Whether the part's last shot was turned away, e.g. by an evasive frame, and never landed.
+var last_missed := false
 ## Shots fired in a row without waiting for energy or a shutdown in between.
 var streak := 0
 ## The parts touching this one (for a weapon, the parts touching its bay), for triggers.
