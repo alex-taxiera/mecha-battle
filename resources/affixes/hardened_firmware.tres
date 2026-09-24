@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="HardenedFirmware" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_u046x"]
+[ext_resource type="Script" path="res://src/data/affixes/HardenedFirmware.gd" id="2_sex38"]
+
+[resource]
+script = ExtResource("2_sex38")
+id = "hardened_firmware"
+relic_name = "Hardened Firmware"
+description = "The first debuff on it each fight doesn't land."
+rarity = 6
+glyph = "H"
+color = Color(0.5, 1, 0.6, 1)

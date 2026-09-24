@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Vampiric" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_wv66p"]
+[ext_resource type="Script" path="res://src/data/affixes/Vampiric.gd" id="2_tmc7b"]
+
+[resource]
+script = ExtResource("2_tmc7b")
+id = "vampiric"
+relic_name = "Vampiric"
+description = "Its shots repair it by a fifth of their damage."
+rarity = 6
+glyph = "V"
+color = Color(0.8, 0.2, 0.35, 1)

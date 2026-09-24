@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_kui62"]
+[ext_resource type="Script" path="res://src/data/abilities/DamageCap.gd" id="2_gkc22"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_7bes1"]
+
+[sub_resource type="Resource" id="Resource_eglyo"]
+script = ExtResource("2_gkc22")
+stacks = false
+
+[resource]
+script = ExtResource("3_7bes1")
+id = "damage_limiter"
+part_name = "Damage Limiter"
+type = 2
+cost = 5
+rarity = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "No single hit takes more than 60. (One works.)"
+abilities = Array[ExtResource("1_kui62")]([SubResource("Resource_eglyo")])

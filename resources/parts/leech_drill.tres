@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_wv0jh"]
+[ext_resource type="Script" path="res://src/data/abilities/Leech.gd" id="2_oxy2h"]
+[ext_resource type="Texture2D" path="res://assets/combat/leech_drill.png" id="3_fk7wp"]
+[ext_resource type="Texture2D" path="res://assets/combat/bullet.png" id="4_ntc8t"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="5_s53as"]
+
+[sub_resource type="Resource" id="Resource_qswqk"]
+script = ExtResource("2_oxy2h")
+
+[resource]
+script = ExtResource("5_s53as")
+id = "leech_drill"
+part_name = "Leech Drill"
+cost = 5
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+description = "Arm mount. Every half second: 10 dmg for 15 EN and 8 heat, repairing a quarter of the damage. Heatsink touching: ×1.5. Each generator touching: +5."
+abilities = Array[ExtResource("1_wv0jh")]([SubResource("Resource_qswqk")])
+battle_sprite = ExtResource("3_fk7wp")
+projectile_sprite = ExtResource("4_ntc8t")
+energy_cost = 15
+damage = 10
+cooldown_max = 0.5
+heat = 8

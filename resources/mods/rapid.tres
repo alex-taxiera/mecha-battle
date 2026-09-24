@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_kng51"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="2_4ebsn"]
+
+[resource]
+script = ExtResource("2_4ebsn")
+id = "rapid"
+prefix = "Rapid"
+description = "Fires 25% faster, 15% less damage."
+damage_scale = 0.85
+cooldown_scale = 0.8

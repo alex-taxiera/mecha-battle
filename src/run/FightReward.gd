@@ -8,6 +8,8 @@ extends RefCounted
 
 ## [member relic_taken] when the frame's growth was taken instead of a relic.
 const CELLS_TAKEN := -2
+## [member relic_taken] when the weapon mod was taken instead of a relic.
+const MOD_TAKEN := -3
 
 var tier := EnemyLoadout.Tier.NORMAL
 var gold := 0
@@ -19,6 +21,9 @@ var taken := -1
 var relics: Array[Relic] = []
 ## Cells to open on the frame, offered in the same group as [member relics] (0 for none).
 var cells := 0
+## A weapon mod for the mech's strongest weapon, offered in the same group as [member relics]
+## (an elite's), or null.
+var mod: WeaponMod
 ## Which of [member relics] was taken, [constant CELLS_TAKEN] for the cells, or -1.
 var relic_taken := -1
 
@@ -29,4 +34,4 @@ func is_draft_open() -> bool:
 
 ## Whether the relic group (relics, and any cells) still has something to take.
 func is_relic_open() -> bool:
-	return relic_taken == -1 and (not relics.is_empty() or cells > 0)
+	return relic_taken == -1 and (not relics.is_empty() or cells > 0 or mod != null)

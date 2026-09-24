@@ -147,7 +147,7 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Arr
 		numbers.hp = roundi(numbers.apply(roundi(part.hp * scale), RuleBonus.Stat.HP))
 		numbers.energy = roundi(numbers.apply(roundi(part.energy_gen * scale), RuleBonus.Stat.ENERGY))
 		numbers.energy_draw = roundi(numbers.apply(roundi(part.energy_cost * mod.energy_scale), RuleBonus.Stat.ENERGY_COST))
-		numbers.damage = roundi(numbers.apply(roundi(part.damage * scale * mod.damage_scale), RuleBonus.Stat.DAMAGE))
+		numbers.damage = roundi(numbers.apply(roundi((part.damage + part.bonus_damage) * scale * mod.damage_scale), RuleBonus.Stat.DAMAGE))
 		numbers.heat = roundi(numbers.apply(part.heat + mod.heat_add, RuleBonus.Stat.HEAT))
 		numbers.cooling = roundi(numbers.apply(roundi(part.cooling * scale), RuleBonus.Stat.COOLING))
 		numbers.shield = roundi(numbers.apply(roundi(part.shield * scale), RuleBonus.Stat.SHIELD))

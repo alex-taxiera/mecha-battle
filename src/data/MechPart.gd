@@ -28,6 +28,9 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 @export_storage var level := 1
 ## The run copy's weapon mod, if any: one per weapon. Like [member level], it belongs to the copy.
 @export_storage var mod: WeaponMod
+## Damage the run copy has earned, e.g. a Trophy Rack's from fights won. It adds to
+## [member damage] before the Mk and the mod scale it, and belongs to the copy like [member level].
+@export_storage var bonus_damage := 0
 ## Cells this part covers, relative to a (0, 0) origin (x right, y down).
 ## For example, a vertical 1x2 is [code][Vector2i(0, 0), Vector2i(0, 1)][/code].
 @export var grid_shape: Array[Vector2i]

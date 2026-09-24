@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlackBoxContract" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_1a7dt"]
+[ext_resource type="Script" path="res://src/data/relics/BlackBoxContract.gd" id="2_y6gru"]
+
+[resource]
+script = ExtResource("2_y6gru")
+id = "black_box_contract"
+relic_name = "Black Box Contract"
+description = "+40 EN every second, but fights drop no more gold."
+rarity = 3
+glyph = "B"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/striker.tres" id="1_e0361"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_vgqlp"]
+[ext_resource type="Resource" path="res://resources/parts/ion_cannon.tres" id="3_nyxeu"]
+[ext_resource type="Resource" path="res://resources/parts/shock_lance.tres" id="4_uxscc"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_b7ku8"]
+[ext_resource type="Resource" path="res://resources/parts/targeting_computer.tres" id="6_5xapv"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="7_ginvs"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="8_4k3j6"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="9_ch6l1"]
+
+[sub_resource type="Resource" id="Resource_b424f"]
+script = ExtResource("2_vgqlp")
+part = ExtResource("3_nyxeu")
+origin = Vector2i(0, -2)
+
+[sub_resource type="Resource" id="Resource_s0rpt"]
+script = ExtResource("2_vgqlp")
+part = ExtResource("4_uxscc")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_0r0jx"]
+script = ExtResource("2_vgqlp")
+part = ExtResource("5_b7ku8")
+
+[sub_resource type="Resource" id="Resource_0jd7l"]
+script = ExtResource("2_vgqlp")
+part = ExtResource("6_5xapv")
+origin = Vector2i(0, 1)
+
+[sub_resource type="Resource" id="Resource_eg1t5"]
+script = ExtResource("2_vgqlp")
+part = ExtResource("7_ginvs")
+origin = Vector2i(1, 2)
+
+[resource]
+script = ExtResource("9_ch6l1")
+id = "ion_lancer"
+enemy_name = "Ion Lancer"
+chassis = ExtResource("1_e0361")
+lineup = Array[ExtResource("2_vgqlp")]([SubResource("Resource_b424f"), SubResource("Resource_s0rpt"), SubResource("Resource_0r0jx"), SubResource("Resource_0jd7l"), SubResource("Resource_eg1t5")])

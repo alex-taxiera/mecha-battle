@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContainmentField" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_kcncd"]
+[ext_resource type="Script" path="res://src/data/relics/ContainmentField.gd" id="2_ffepm"]
+
+[resource]
+script = ExtResource("2_ffepm")
+id = "containment_field"
+relic_name = "Containment Field"
+description = "The Reactor's: each Meltdown shutdown lasts 1.5 s less."
+rarity = 1
+glyph = "Z"
+color = Color(0.95, 0.78, 0.3, 1)
+chassis_id = "reactor"

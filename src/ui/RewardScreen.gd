@@ -1,7 +1,7 @@
 class_name RewardScreen
 extends Control
-## What a won fight dropped: the gold (already collected), an elite's relic or a boss's choice of
-## three (or growing the frame instead), and a draft of parts, one of which the player can take
+## What a won fight dropped: the gold (already collected), an elite's relic (or a weapon mod
+## instead) or a boss's choice of three (or growing the frame instead), and a draft of parts, one of which the player can take
 ## into their stash. Anything left
 ## is skipped. The button at the bottom emits [signal finished].
 
@@ -14,6 +14,8 @@ const DIM_COLOR := Color(0.72, 0.74, 0.78)
 const GOLD_COLOR := Color(0.96, 0.83, 0.43)
 ## The Frame Expansion card's title.
 const CELLS_COLOR := Color("#7de8f0")
+## The weapon mod card's title.
+const MOD_COLOR := Color("#f0a35e")
 ## Each rarity's name color.
 const RARITY_COLORS := {
 	MechPart.Rarity.COMMON: Color(0.85, 0.87, 0.9),
@@ -106,6 +108,14 @@ func take_cells() -> bool:
 	return true
 
 
+## Fits the elite's weapon mod instead of a relic. Returns false if the group is closed.
+func take_mod() -> bool:
+	if not run.take_reward_mod(reward):
+		return false
+	_refresh()
+	return true
+
+
 ## Returns the relic offer's cards, left to right.
 func get_relic_cards() -> Array[PanelContainer]:
 	var found: Array[PanelContainer] = []
@@ -124,13 +134,18 @@ func _refresh() -> void:
 	for card in cards.get_children() + relic_cards.get_children():
 		card.get_parent().remove_child(card)
 		card.queue_free()
-	relic_label.visible = not reward.relics.is_empty() or reward.cells > 0
-	if reward.relic_taken == FightReward.CELLS_TAKEN:
+	relic_label.visible = not reward.relics.is_empty() or reward.cells > 0 or reward.mod != null
+	if reward.relic_taken == FightReward.MOD_TAKEN:
+		var weapon := WeaponModEffect.strongest_weapon(run)
+		relic_label.text = "Fitted: your %s." % weapon.get_display_name() if weapon else "Fitted."
+	elif reward.relic_taken == FightReward.CELLS_TAKEN:
 		relic_label.text = "Your frame can grow: open %d cells from the map's Loadout." % reward.cells
 	elif reward.relic_taken >= 0:
 		relic_label.text = "%s is yours." % reward.relics[reward.relic_taken].relic_name
 	elif reward.cells > 0:
 		relic_label.text = "Choose a relic, or grow your frame:"
+	elif reward.mod != null:
+		relic_label.text = "Choose a relic, or a weapon mod:"
 	elif reward.relics.size() > 1:
 		relic_label.text = "Choose a relic:"
 	else:
@@ -139,6 +154,8 @@ func _refresh() -> void:
 		relic_cards.add_child(_make_relic_card(i))
 	if reward.cells > 0:
 		relic_cards.add_child(_make_cells_card())
+	if reward.mod != null:
+		relic_cards.add_child(_make_mod_card())
 	if reward.parts.is_empty():
 		draft_label.text = "Nothing else worth salvaging."
 	elif reward.taken >= 0:
@@ -249,6 +266,34 @@ func _make_cells_card() -> PanelContainer:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.custom_minimum_size.x = 190
 	_finish_group_card(card, box, reward.relic_taken == FightReward.CELLS_TAKEN, take_cells)
+	return card
+
+
+# An elite's offer of a weapon mod, in the relic group.
+func _make_mod_card() -> PanelContainer:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(220, 0)
+	var margin := MarginContainer.new()
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 10)
+	card.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	margin.add_child(box)
+	var name_label := Label.new()
+	_add_label(box, name_label, 17, MOD_COLOR)
+	name_label.text = "%s mod" % reward.mod.prefix
+	var kind_label := Label.new()
+	_add_label(box, kind_label, 12, DIM_COLOR)
+	var weapon := WeaponModEffect.strongest_weapon(run)
+	kind_label.text = "For your %s" % weapon.get_display_name() if weapon else "No weapon to fit it to"
+	var description := Label.new()
+	_add_label(box, description, 12, DIM_COLOR)
+	description.text = reward.mod.description
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.custom_minimum_size.x = 190
+	card.tooltip_text = "Replaces any mod the weapon has."
+	_finish_group_card(card, box, reward.relic_taken == FightReward.MOD_TAKEN, take_mod)
 	return card
 
 

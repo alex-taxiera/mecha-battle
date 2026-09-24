@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_v6uve"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="2_oou1y"]
+
+[resource]
+script = ExtResource("2_oou1y")
+id = "stabilized"
+prefix = "Stabilized"
+description = "10 less heat a shot, 10% less damage."
+damage_scale = 0.9
+heat_add = -10

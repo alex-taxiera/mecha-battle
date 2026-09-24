@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_fctcl"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_rb3ku"]
+
+[resource]
+script = ExtResource("2_rb3ku")
+id = "targeting_computer"
+part_name = "Targeting Computer"
+type = 3
+cost = 4
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "Each weapon touching: ×1.1 dmg."
+tags = Array[String](["targeting"])

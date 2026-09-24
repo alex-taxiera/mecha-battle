@@ -20,6 +20,7 @@ func before_test() -> void:
 	_game.events = [Fixtures.gold_event("Windfall", 10)]
 	_game.affixes = [Fixtures.armored()]
 	_game.hangar_jobs = Fixtures.hangar_jobs()
+	_game.mods = [Fixtures.rapid_mod()]
 	_game.threat_levels = Fixtures.threat_levels()
 	_game.run_modifiers = [Fixtures.glass_cannon(), Fixtures.endless()]
 	# A profile in memory, and the Technician locked out of reach, so no real files are read and

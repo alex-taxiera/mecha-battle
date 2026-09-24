@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Burning" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_brtey"]
+[ext_resource type="Script" path="res://src/data/affixes/Burning.gd" id="2_oont2"]
+[ext_resource type="Resource" path="res://resources/statuses/jammed.tres" id="3_1skjr"]
+
+[resource]
+script = ExtResource("2_oont2")
+status = ExtResource("3_1skjr")
+id = "jamming"
+relic_name = "Jamming"
+description = "Its shots leave 1 Jammed."
+rarity = 6
+glyph = "J"
+color = Color(0.70980394, 0.54901963, 1, 1)

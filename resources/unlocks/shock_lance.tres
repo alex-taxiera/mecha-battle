@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_6as0p"]
+
+[resource]
+script = ExtResource("1_6as0p")
+id = "shock_lance"
+kind = 1
+target_id = "shock_lance"
+title = "Shock Lances in loot and shops"
+hint = "Win 8 fights in total"
+fights_won_total = 8

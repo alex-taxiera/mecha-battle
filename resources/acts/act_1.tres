@@ -7,9 +7,12 @@
 [ext_resource type="Resource" path="res://resources/enemies/scrapyard_brute.tres" id="5_sceld"]
 [ext_resource type="Resource" path="res://resources/enemies/junkyard_king.tres" id="6_hbkp8"]
 [ext_resource type="Script" path="res://src/data/ActData.gd" id="7_uan7h"]
+[ext_resource type="Resource" path="res://resources/enemies/rust_sparker.tres" id="7_w4ip5"]
+[ext_resource type="Resource" path="res://resources/enemies/junk_tyrant.tres" id="8_cj5lm"]
 
 [resource]
 script = ExtResource("7_uan7h")
 id = "act_1"
 sector_name = "The Scavenger Junkyards"
-enemies = Array[ExtResource("1_rh7rd")]([ExtResource("2_c7fvr"), ExtResource("3_w4ip5"), ExtResource("4_cj5lm"), ExtResource("5_sceld"), ExtResource("6_hbkp8")])
+shop_weight = 8
+enemies = Array[ExtResource("1_rh7rd")]([ExtResource("2_c7fvr"), ExtResource("3_w4ip5"), ExtResource("4_cj5lm"), ExtResource("5_sceld"), ExtResource("6_hbkp8"), ExtResource("7_w4ip5"), ExtResource("8_cj5lm")])

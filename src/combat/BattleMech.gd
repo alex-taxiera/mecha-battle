@@ -115,6 +115,8 @@ func _init(grid: MechGridData, rules: Array[SynergyRule] = [], hp_scale := 1.0, 
 		var b: ActivePart = by_placement[contact.b]
 		a.neighbors.append(b)
 		b.neighbors.append(a)
+	for acting in get_abilities():
+		_interceptors.append_array(acting.ability.make_interceptors(self, acting.active))
 
 
 ## Returns what a hit of [param amount] would take off, without taking it: the target's side of
@@ -182,6 +184,9 @@ func get_interceptors(side: HitInterceptor.Side) -> Array[HitInterceptor]:
 ## Adds [param amount] charges of [param status] (and [param secondary] secondary charges), onto
 ## the one the mech has or a new one. Returns it, or null if it has no charges left.
 func add_status(status: MechStatus, amount: int, secondary := 0) -> ActiveStatus:
+	for relic in relics:
+		if relic.blocks_status(self, status):
+			return null
 	var active := get_status(status.id)
 	if active == null:
 		active = ActiveStatus.new(status, self)
@@ -265,6 +270,21 @@ func _enter_phase(phase: BossPhase) -> void:
 			active.damage = roundi(active.damage * phase.damage_scale)
 	for relic in phase.relics:
 		add_relic(relic.duplicate())
+
+
+## Repairs up to [param amount] of the hull, never past [member max_hp], and only while the mech
+## stands. Returns what it repaired.
+func heal(amount: int) -> int:
+	if current_health <= 0 or amount <= 0:
+		return 0
+	var healed := mini(amount, max_hp - current_health)
+	current_health += healed
+	return healed
+
+
+## Takes [param status] off the mech at once, whatever its charges.
+func clear_status(status: ActiveStatus) -> void:
+	statuses.erase(status)
 
 
 func _prune_statuses() -> void:

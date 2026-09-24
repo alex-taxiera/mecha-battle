@@ -105,3 +105,39 @@ func _active_for(mech: BattleMech, part: MechPart) -> ActivePart:
 		if active.part == part:
 			return active
 	return null
+
+
+func test_ablative_ignores_the_first_hit_each_fight() -> void:
+	var affix := Fixtures.ablative_affix()
+	var mech := _mech([], [affix], 100)
+	mech.start_fight()
+	assert_int(mech.take_damage(20)).is_equal(0)
+	assert_int(mech.take_damage(20)).is_equal(20)
+
+
+func test_hardened_firmware_shrugs_off_the_first_debuff() -> void:
+	var mech := _mech([], [Fixtures.hardened_firmware()], 100)
+	mech.start_fight()
+	# Buffs aren't blocked and don't use it up.
+	mech.add_status(Fixtures.haste(), 2)
+	assert_int(mech.get_status_charges("haste")).is_equal(2)
+	assert_object(mech.add_status(Fixtures.burn(), 3)).is_null()
+	assert_int(mech.get_status_charges("burn")).is_equal(0)
+	mech.add_status(Fixtures.burn(), 3)
+	assert_int(mech.get_status_charges("burn")).is_equal(3)
+
+
+func test_vampiric_repairs_a_fifth_of_each_landed_shot() -> void:
+	var attacker := _mech([[_gun(10, 0.5), LEFT_ARM]], [Fixtures.vampiric()], 100)
+	attacker.current_health = 50
+	var target := _mech([], [], 200)
+	_run(attacker, target, 5)
+	assert_int(target.current_health).is_equal(190)
+	assert_int(attacker.current_health).is_equal(52)
+
+
+func test_jamming_shots_leave_jammed() -> void:
+	var attacker := _mech([[_gun(1, 0.5), LEFT_ARM]], [Fixtures.jamming()], 100)
+	var target := _mech([], [], 200)
+	_run(attacker, target, 5)
+	assert_int(target.get_status_charges("jammed")).is_equal(1)

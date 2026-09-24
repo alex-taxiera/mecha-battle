@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_fqncl"]
+
+[resource]
+script = ExtResource("1_fqncl")
+id = "damage_limiter"
+kind = 1
+target_id = "damage_limiter"
+title = "Damage Limiters in loot and shops"
+hint = "Win 3 runs"
+runs_won = 3

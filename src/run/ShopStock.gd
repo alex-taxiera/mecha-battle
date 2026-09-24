@@ -30,6 +30,17 @@ class Slot:
 		part = p_part
 
 
+## One weapon mod offer: bought, it's fitted to the mech's strongest weapon.
+class ModOffer:
+	var mod: WeaponMod
+	var price := 0
+	var sold := false
+
+	func _init(p_mod: WeaponMod, p_price: int) -> void:
+		mod = p_mod
+		price = p_price
+
+
 ## One relic offer.
 class RelicOffer:
 	var relic: Relic
@@ -42,7 +53,11 @@ class RelicOffer:
 
 
 var slots: Array[Slot] = []
+## How many part slots the shop stocks: [constant SIZE] unless a relic changes it (see
+## [method resize]).
+var size := SIZE
 var relic_offers: Array[RelicOffer] = []
+var mod_offers: Array[ModOffer] = []
 
 var _catalog: Array[MechPart] = []
 var _rng: RandomNumberGenerator
@@ -67,6 +82,12 @@ func get_open_slot(index: int) -> Slot:
 
 
 ## Returns the unsold relic offer at [param index], or [code]null[/code].
+func get_open_mod(index: int) -> ModOffer:
+	if index < 0 or index >= mod_offers.size() or mod_offers[index].sold:
+		return null
+	return mod_offers[index]
+
+
 func get_open_relic(index: int) -> RelicOffer:
 	if index < 0 or index >= relic_offers.size() or relic_offers[index].sold:
 		return null
@@ -83,10 +104,16 @@ func rotate_slot(index: int) -> bool:
 	return true
 
 
+## Stocks [param new_size] part slots from now on (at least 1), restocking them now.
+func resize(new_size: int) -> void:
+	size = maxi(1, new_size)
+	restock()
+
+
 ## Fills the part slots with different catalog parts, each slot's rarity rolled with the shop's
 ## odds. The relics stay.
 func restock() -> void:
 	slots.clear()
 	# A roller of its own: the shop's draws don't move the run's loot pity.
-	for part in RewardRoller.new().draft_parts(_rng, _catalog, RewardRoller.Table.SHOP, SIZE):
+	for part in RewardRoller.new().draft_parts(_rng, _catalog, RewardRoller.Table.SHOP, size):
 		slots.append(Slot.new(part))

@@ -178,6 +178,8 @@ func _refresh() -> void:
 	if run.shop:
 		for i in run.shop.relic_offers.size():
 			_relic_offers.add_child(_make_relic_offer(i))
+		for i in run.shop.mod_offers.size():
+			_relic_offers.add_child(_make_mod_offer(i))
 	_stats_panel.show_stats(_stats, null)
 
 
@@ -222,6 +224,54 @@ func _make_relic_offer(index: int) -> Control:
 		buy.pressed.connect(buy_relic.bind(index), CONNECT_DEFERRED)
 	row.add_child(buy)
 	return card
+
+
+# One weapon mod for sale: its name, what it does and which weapon it goes on, and a button.
+func _make_mod_offer(index: int) -> Control:
+	var offer: ShopStock.ModOffer = run.shop.mod_offers[index]
+	var weapon := WeaponModEffect.strongest_weapon(run)
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = SIZE_EXPAND_FILL
+	card.tooltip_text = "Fitted to your strongest weapon, replacing any mod it has."
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	card.add_child(row)
+	var text := VBoxContainer.new()
+	text.add_theme_constant_override("separation", 0)
+	text.size_flags_horizontal = SIZE_EXPAND_FILL
+	row.add_child(text)
+	var name_label := Label.new()
+	name_label.text = "%s mod" % offer.mod.prefix
+	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_color_override("font_color", RewardScreen.MOD_COLOR)
+	text.add_child(name_label)
+	var effect := Label.new()
+	effect.text = "%s For your %s." % [offer.mod.description, weapon.get_display_name()] if weapon else offer.mod.description
+	effect.add_theme_font_size_override("font_size", 11)
+	effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.add_child(effect)
+	var buy := Button.new()
+	buy.custom_minimum_size = Vector2(96, 32)
+	buy.size_flags_vertical = SIZE_SHRINK_CENTER
+	if offer.sold:
+		buy.text = "Fitted"
+		buy.disabled = true
+	else:
+		buy.text = "Fit · %dg" % offer.price
+		buy.disabled = offer.price > run.gold or weapon == null
+		buy.pressed.connect(buy_mod.bind(index), CONNECT_DEFERRED)
+	row.add_child(buy)
+	return card
+
+
+## Buys the shop's mod offer [param index], with a toast saying so.
+func buy_mod(index: int) -> bool:
+	var offer: ShopStock.ModOffer = run.shop.mod_offers[index] if run.shop and index < run.shop.mod_offers.size() else null
+	if offer == null or not run.buy_mod(index):
+		show_toast("Can't fit that mod", false)
+		return false
+	show_toast("Fitted %s · -%dg" % [offer.mod.prefix, offer.price], true)
+	return true
 
 
 ## Buys the shop's relic offer [param index], with a toast saying so.

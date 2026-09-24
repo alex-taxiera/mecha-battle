@@ -142,3 +142,26 @@ func test_a_boss_can_grow_the_frame_instead_of_a_relic() -> void:
 	assert_array(_texts_of(screen.get_relic_cards()[0])).contains(["Left behind"])
 	assert_bool(screen.take_relic(0)).is_false()
 	await await_idle_frame()
+
+
+func test_an_elite_can_offer_a_weapon_mod_instead_of_its_relic() -> void:
+	var chassis := Fixtures.armed_cross()
+	chassis.starter_lineup = [LoadoutPart.make(Fixtures.gatling(), Vector2i(-1, 1))]
+	_run = RunState.new(chassis, [], [], 30)
+	var reward := FightReward.new()
+	reward.tier = EnemyLoadout.Tier.ELITE
+	reward.relics = [Fixtures.relic("Lucky Bolt", Relic.Rarity.UNCOMMON)]
+	reward.mod = Fixtures.rapid_mod()
+	reward.mod.description = "Fires faster."
+	var screen: RewardScreen = auto_free(RewardScreen.new(_run, reward))
+	add_child(screen)
+	assert_str(screen.relic_label.text).is_equal("Choose a relic, or a weapon mod:")
+	var cards := screen.get_relic_cards()
+	assert_array(cards).has_size(2)
+	assert_array(_texts_of(cards[1])).contains(["Rapid mod", "For your Twin Gatling", "Fires faster.", "Take"])
+	assert_bool(screen.take_mod()).is_true()
+	assert_str(screen.relic_label.text).is_equal("Fitted: your Rapid Twin Gatling.")
+	assert_array(_texts_of(screen.get_relic_cards()[0])).contains(["Left behind"])
+	assert_bool(screen.take_relic(0)).is_false()
+	assert_bool(screen.take_mod()).is_false()
+	await await_idle_frame()

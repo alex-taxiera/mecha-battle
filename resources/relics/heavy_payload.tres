@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WeaponTuning" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_l7b3t"]
+[ext_resource type="Script" path="res://src/data/relics/WeaponTuning.gd" id="2_fs43a"]
+
+[resource]
+script = ExtResource("2_fs43a")
+damage_scale = 1.25
+cooldown_scale = 1.18
+id = "heavy_payload"
+relic_name = "Heavy Payload"
+description = "Your weapons deal 25% more damage but fire 15% slower."
+rarity = 3
+glyph = "H"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

@@ -21,6 +21,9 @@ enum Rarity { COMMON, UNCOMMON, RARE, BOSS, SHOP, EVENT, AFFIX }
 @export var color := Color(0.8, 0.8, 0.85)
 ## Jobs the relic adds to every Hangar (see [HangarJob]).
 @export var hangar_jobs: Array[HangarJob] = []
+## The id of the only chassis whose runs can find the relic, e.g. a Bastion-only relic; empty for
+## every chassis.
+@export var chassis_id := ""
 
 
 ## Once, when the run gets the relic.
@@ -84,6 +87,22 @@ func modify_part_price(_part: MechPart, price: int) -> int:
 ## Returns what the open shop's next reroll costs, given [param cost] so far.
 func modify_reroll_cost(_run: RunState, cost: int) -> int:
 	return cost
+
+
+## After the run pays for a reroll and the shop restocks.
+func on_reroll(_run: RunState) -> void:
+	pass
+
+
+## Returns what a shop pays for [param part], given [param value] so far.
+func modify_sell_value(_part: MechPart, value: int) -> int:
+	return value
+
+
+## Returns whether [param mech] shrugs off [param status] instead of taking it, e.g. immunity to
+## Drained.
+func blocks_status(_mech: BattleMech, _status: MechStatus) -> bool:
+	return false
 
 
 ## Returns the gold a fight drops, given [param amount] so far.

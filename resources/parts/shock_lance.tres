@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_h04v4"]
+[ext_resource type="Script" path="res://src/data/abilities/ApplyStatus.gd" id="2_8fa1i"]
+[ext_resource type="Resource" path="res://resources/statuses/jammed.tres" id="3_poys5"]
+[ext_resource type="Texture2D" path="res://assets/combat/shock_lance.png" id="4_ngd6g"]
+[ext_resource type="Texture2D" path="res://assets/combat/spark.png" id="5_bqcb2"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="6_qk316"]
+
+[sub_resource type="Resource" id="Resource_6a36m"]
+script = ExtResource("2_8fa1i")
+status = ExtResource("3_poys5")
+charges = 2
+
+[resource]
+script = ExtResource("6_qk316")
+id = "shock_lance"
+part_name = "Shock Lance"
+cost = 5
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+description = "Arm mount. Every second: 12 dmg for 20 EN and 10 heat, and 2 Jammed. Heatsink touching: ×1.5. Each generator touching: +5."
+abilities = Array[ExtResource("1_h04v4")]([SubResource("Resource_6a36m")])
+battle_sprite = ExtResource("4_ngd6g")
+projectile_sprite = ExtResource("5_bqcb2")
+energy_cost = 20
+damage = 12
+cooldown_max = 1.0
+heat = 10

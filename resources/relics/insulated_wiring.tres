@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusImmunity" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_2yjre"]
+[ext_resource type="Script" path="res://src/data/relics/StatusImmunity.gd" id="2_c0orc"]
+
+[resource]
+script = ExtResource("2_c0orc")
+status_id = "drained"
+id = "insulated_wiring"
+relic_name = "Insulated Wiring"
+description = "You can't be Drained."
+rarity = 2
+glyph = "I"
+color = Color(0.55, 0.5, 1, 1)

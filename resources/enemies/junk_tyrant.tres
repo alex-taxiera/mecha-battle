@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/striker.tres" id="1_ausbx"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_cr6xn"]
+[ext_resource type="Resource" path="res://resources/parts/scrap_repeater.tres" id="3_egoem"]
+[ext_resource type="Resource" path="res://resources/parts/shock_lance.tres" id="4_nf1ba"]
+[ext_resource type="Resource" path="res://resources/parts/rivet_mortar.tres" id="5_0mutx"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="6_1s06q"]
+[ext_resource type="Resource" path="res://resources/parts/ablative_plating.tres" id="7_41044"]
+[ext_resource type="Resource" path="res://resources/parts/capacitor_battery.tres" id="8_qityv"]
+[ext_resource type="Resource" path="res://resources/parts/laser.tres" id="9_6h37v"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="10_kpvr3"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="11_sgn01"]
+
+[sub_resource type="Resource" id="Resource_8jyaw"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("3_egoem")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_q6k63"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("4_nf1ba")
+origin = Vector2i(2, 1)
+
+[sub_resource type="Resource" id="Resource_aln0g"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("5_0mutx")
+origin = Vector2i(0, -2)
+
+[sub_resource type="Resource" id="Resource_t2pn7"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("6_1s06q")
+
+[sub_resource type="Resource" id="Resource_243nh"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("7_41044")
+origin = Vector2i(0, 1)
+
+[sub_resource type="Resource" id="Resource_nvkke"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("8_qityv")
+origin = Vector2i(1, 1)
+
+[sub_resource type="Resource" id="Resource_xhqmg"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("9_6h37v")
+origin = Vector2i(0, 4)
+
+[sub_resource type="Resource" id="Resource_ix85s"]
+script = ExtResource("2_cr6xn")
+part = ExtResource("9_6h37v")
+origin = Vector2i(1, 4)
+
+[resource]
+script = ExtResource("11_sgn01")
+id = "junk_tyrant"
+enemy_name = "Junk Tyrant"
+tier = 1
+chassis = ExtResource("1_ausbx")
+lineup = Array[ExtResource("2_cr6xn")]([SubResource("Resource_8jyaw"), SubResource("Resource_q6k63"), SubResource("Resource_aln0g"), SubResource("Resource_t2pn7"), SubResource("Resource_243nh"), SubResource("Resource_nvkke"), SubResource("Resource_xhqmg"), SubResource("Resource_ix85s")])

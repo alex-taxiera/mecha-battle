@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PartTypeBonus" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_6oxov"]
+[ext_resource type="Script" path="res://src/data/relics/PartTypeBonus.gd" id="2_62asq"]
+
+[resource]
+script = ExtResource("2_62asq")
+id = "reinforced_bulkheads"
+relic_name = "Reinforced Bulkheads"
+description = "The Bastion's: each defense part gives 15 more HP."
+rarity = 1
+glyph = "D"
+color = Color(0.65, 0.75, 0.9, 1)
+chassis_id = "bastion"

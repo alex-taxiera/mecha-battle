@@ -312,3 +312,30 @@ func test_a_long_blurb_is_cut_on_the_card_and_whole_in_its_tooltip() -> void:
 	assert_int(label.max_lines_visible).is_equal(ShopItem.MAX_DESCRIPTION_LINES)
 	assert_str(item.tooltip_text).contains(_laser.description)
 	await await_idle_frame() # free the cards the refresh replaced
+
+
+func test_a_mod_for_sale_fits_the_strongest_weapon() -> void:
+	var chassis := Fixtures.armed_cross()
+	chassis.starter_lineup = [LoadoutPart.make(Fixtures.gatling(), Vector2i(-1, 1))]
+	var run := RunState.new(chassis, [_laser], Fixtures.rules(), 100, RunRng.new(1))
+	var rapid := Fixtures.rapid_mod()
+	rapid.description = "Fires faster."
+	run.mod_pool.assign([rapid])
+	run.open_shop()
+	var screen: LoadoutScreen = auto_free(SCENE.instantiate())
+	screen.run = run
+	add_child(screen)
+	var offers := screen.get_relic_offers()
+	assert_array(offers).has_size(1)
+	var price := run.shop.mod_offers[0].price
+	var labels := offers[0].find_children("*", "Label", true, false).map(func(label: Label) -> String: return label.text)
+	assert_array(labels).contains(["Rapid mod", "Fires faster. For your Twin Gatling."])
+	var fit := offers[0].find_children("*", "Button", true, false)[0] as Button
+	assert_str(fit.text).is_equal("Fit · %dg" % price)
+	assert_bool(screen.buy_mod(0)).is_true()
+	assert_int(run.gold).is_equal(100 - price)
+	assert_str((screen.get_node("%Toast") as Label).text).is_equal("Fitted Rapid · -%dg" % price)
+	fit = screen.get_relic_offers()[0].find_children("*", "Button", true, false)[0] as Button
+	assert_str(fit.text).is_equal("Fitted")
+	assert_bool(screen.buy_mod(0)).is_false()
+	await await_idle_frame()

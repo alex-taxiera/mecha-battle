@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/reactor.tres" id="1_n2gos"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_tagn7"]
+[ext_resource type="Resource" path="res://resources/parts/flamer.tres" id="3_5cqgq"]
+[ext_resource type="Resource" path="res://resources/parts/leech_drill.tres" id="4_g2w03"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="5_7r60v"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="6_be56n"]
+[ext_resource type="Resource" path="res://resources/parts/thermoelectric.tres" id="7_s7lns"]
+[ext_resource type="Resource" path="res://resources/parts/nanite_bay.tres" id="8_ng4y4"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="9_hxj6k"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="10_clrx7"]
+
+[sub_resource type="Resource" id="Resource_55fqj"]
+script = ExtResource("2_tagn7")
+part = ExtResource("3_5cqgq")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_saq7u"]
+script = ExtResource("2_tagn7")
+part = ExtResource("4_g2w03")
+origin = Vector2i(5, 1)
+
+[sub_resource type="Resource" id="Resource_73frg"]
+script = ExtResource("2_tagn7")
+part = ExtResource("5_7r60v")
+origin = Vector2i(0, 2)
+
+[sub_resource type="Resource" id="Resource_tjvov"]
+script = ExtResource("2_tagn7")
+part = ExtResource("6_be56n")
+origin = Vector2i(3, 1)
+
+[sub_resource type="Resource" id="Resource_o4lqw"]
+script = ExtResource("2_tagn7")
+part = ExtResource("7_s7lns")
+origin = Vector2i(1, 1)
+
+[sub_resource type="Resource" id="Resource_5j1ha"]
+script = ExtResource("2_tagn7")
+part = ExtResource("8_ng4y4")
+origin = Vector2i(2, 2)
+
+[resource]
+script = ExtResource("10_clrx7")
+id = "slag_reaver"
+enemy_name = "Slag Reaver"
+tier = 1
+chassis = ExtResource("1_n2gos")
+lineup = Array[ExtResource("2_tagn7")]([SubResource("Resource_55fqj"), SubResource("Resource_saq7u"), SubResource("Resource_73frg"), SubResource("Resource_tjvov"), SubResource("Resource_o4lqw"), SubResource("Resource_5j1ha")])
+hp_scale = 0.9

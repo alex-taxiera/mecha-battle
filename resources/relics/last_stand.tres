@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="LastStand" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_dhf8d"]
+[ext_resource type="Script" path="res://src/data/relics/LastStand.gd" id="2_y52gv"]
+
+[resource]
+script = ExtResource("2_y52gv")
+id = "last_stand"
+relic_name = "Last Stand"
+description = "At 30% HP or less, your shots deal 30% more damage."
+rarity = 2
+glyph = "!"
+color = Color(0.94, 0.42, 0.42, 1)

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_mjtyk"]
+
+[resource]
+script = ExtResource("1_mjtyk")
+id = "thermoelectric"
+kind = 1
+target_id = "thermoelectric"
+title = "Thermoelectric Generators in loot and shops"
+hint = "Win 35 fights in total"
+fights_won_total = 35

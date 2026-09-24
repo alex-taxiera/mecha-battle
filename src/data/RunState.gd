@@ -18,6 +18,9 @@ const ACT_HEAL := 0.5
 const BOSS_RELIC_CHOICES := 3
 ## Relics a Scrap Shop puts up for sale.
 const SHOP_RELICS := 2
+## Weapon mods a Scrap Shop puts up for sale, and their price range before Threat.
+const SHOP_MODS := 1
+const MOD_PRICES := Vector2i(12, 18)
 ## Cells a boss offers to open, in place of a boss relic.
 const BOSS_CELLS := 2
 ## An endless run's enemies get this much more HP each loop.
@@ -91,6 +94,8 @@ var event_pool: EventPool
 var cells_to_open := 0
 ## The Hangar's own jobs; relics can add more (see [method get_hangar_jobs]).
 var hangar_jobs: Array[HangarJob] = []
+## The weapon mods shops, elites, and a Hangar's Refit can offer.
+var mod_pool: Array[WeaponMod] = []
 ## The run's modifiers: its Threat levels (1 up to the chosen one) and any custom modes (see
 ## [RunModifier]). Their numbers stack: scales multiply, the rest add.
 var run_modifiers: Array[RunModifier] = []
@@ -124,7 +129,11 @@ func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[Syne
 	rules.assign(p_rules)
 	gold = start_gold
 	rng = p_rng if p_rng else RunRng.new()
-	relic_pool = RelicPool.new(p_relics, rng.stream("relics"))
+	# Relics made for one chassis only turn up in its runs.
+	var relics_here: Array[Relic] = []
+	relics_here.assign(p_relics.filter(func(relic: Relic) -> bool:
+		return relic.chassis_id.is_empty() or relic.chassis_id == chassis.id))
+	relic_pool = RelicPool.new(relics_here, rng.stream("relics"))
 	event_pool = EventPool.new(p_events, rng.stream("events"))
 	affix_pool.assign(p_affixes)
 	run_modifiers.assign(p_modifiers)
@@ -346,6 +355,8 @@ func roll_reward(node: MapNode = null, relic_rarity := -1) -> FightReward:
 			var relic := relic_pool.roll(rng.stream("relics"), RelicPool.ELITE_WEIGHTS)
 			if relic:
 				reward.relics.append(relic)
+			# Or a mod for the strongest weapon instead.
+			reward.mod = roll_mod()
 		EnemyLoadout.Tier.BOSS:
 			reward.relics = relic_pool.take(BOSS_RELIC_CHOICES, [Relic.Rarity.BOSS])
 			# Or grow the frame instead, while it has room.
@@ -377,6 +388,38 @@ func take_reward_cells(reward: FightReward) -> bool:
 	reward.relic_taken = FightReward.CELLS_TAKEN
 	grant_cells(reward.cells)
 	return true
+
+
+## Fits the reward's weapon mod, instead of a relic. Returns false if the group is closed, there's
+## no mod, or no weapon to fit it to.
+func take_reward_mod(reward: FightReward) -> bool:
+	if not reward.is_relic_open() or reward.mod == null or fit_mod(reward.mod) == null:
+		return false
+	reward.relic_taken = FightReward.MOD_TAKEN
+	return true
+
+
+## Returns a weapon mod from [member mod_pool] for the strongest mounted weapon, one it doesn't
+## already have, rolled on the run's "mods" stream; null with no weapon or nothing to offer.
+func roll_mod() -> WeaponMod:
+	var weapon := WeaponModEffect.strongest_weapon(self)
+	if weapon == null:
+		return null
+	var choices := mod_pool.filter(func(mod: WeaponMod) -> bool: return mod.fits(weapon) and mod != weapon.mod)
+	if choices.is_empty():
+		return null
+	return choices[rng.stream("mods").randi_range(0, choices.size() - 1)]
+
+
+## Fits [param mod] to the strongest mounted weapon, replacing any mod it had. Returns the weapon,
+## or null (fitting nothing) if there's none it fits.
+func fit_mod(mod: WeaponMod) -> MechPart:
+	var weapon := WeaponModEffect.strongest_weapon(self)
+	if weapon == null or mod == null or not mod.fits(weapon):
+		return null
+	weapon.mod = mod
+	changed.emit()
+	return weapon
 
 
 func take_reward_relic(reward: FightReward, index: int) -> bool:
@@ -721,6 +764,11 @@ func open_shop() -> void:
 	shop = ShopStock.new(catalog, rng.stream("shop"), for_sale)
 	for offer in shop.relic_offers:
 		offer.price = scale_price(offer.price)
+	for i in SHOP_MODS:
+		var mod := roll_mod()
+		if mod and shop.mod_offers.all(func(offer: ShopStock.ModOffer) -> bool: return offer.mod != mod):
+			var price := rng.stream("shop").randi_range(MOD_PRICES.x, MOD_PRICES.y)
+			shop.mod_offers.append(ShopStock.ModOffer.new(mod, scale_price(price)))
 	for modifier in get_modifiers():
 		modifier.on_shop_opened(self, shop)
 	_fresh.clear()
@@ -784,6 +832,18 @@ func buy_relic(index: int) -> bool:
 	return true
 
 
+## Buys the shop's mod offer [param index] and fits it to the strongest weapon. Returns false
+## unless a shop is open, the offer is unsold and affordable, and there's a weapon it fits.
+func buy_mod(index: int) -> bool:
+	var offer := shop.get_open_mod(index) if shop else null
+	if offer == null or offer.price > gold or fit_mod(offer.mod) == null:
+		return false
+	offer.sold = true
+	gold -= offer.price
+	changed.emit()
+	return true
+
+
 ## Turns the offer in shop slot [param slot_index] a quarter-turn clockwise.
 func rotate_slot(slot_index: int) -> bool:
 	if shop == null or not shop.rotate_slot(slot_index):
@@ -809,6 +869,8 @@ func reroll() -> bool:
 		return false
 	gold -= cost
 	shop.restock()
+	for modifier in get_modifiers():
+		modifier.on_reroll(self)
 	changed.emit()
 	return true
 
@@ -933,11 +995,15 @@ func preview_move(coords: Vector2i, new_origin: Vector2i) -> Preview:
 func _value_of(part: MechPart) -> int:
 	if part == null:
 		return 0
+	var value := part.cost * part.level
 	# A part bought at this shop refunds what was paid for it, Threat's markup and all.
 	if part in _fresh:
-		return price_of(part) * part.level
-	var value := part.cost * part.level
-	return value if refunds_in_full() else floori(value / 2.0)
+		value = price_of(part) * part.level
+	elif not refunds_in_full():
+		value = floori(value / 2.0)
+	for modifier in get_modifiers():
+		value = modifier.modify_sell_value(part, value)
+	return maxi(0, value)
 
 
 func _preview_place(part: MechPart, origin: Vector2i, rotation: int) -> Preview:

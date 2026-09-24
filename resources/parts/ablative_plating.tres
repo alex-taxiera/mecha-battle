@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_rs403"]
+[ext_resource type="Script" path="res://src/data/abilities/Ablative.gd" id="2_7nlic"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_iny58"]
+
+[sub_resource type="Resource" id="Resource_w853e"]
+script = ExtResource("2_7nlic")
+
+[resource]
+script = ExtResource("3_iny58")
+id = "ablative_plating"
+part_name = "Ablative Plating"
+type = 2
+cost = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "+20 HP. The first 2 shots each fight deal nothing."
+abilities = Array[ExtResource("1_rs403")]([SubResource("Resource_w853e")])
+hp = 20

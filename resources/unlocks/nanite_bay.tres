@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_cwgp0"]
+
+[resource]
+script = ExtResource("1_cwgp0")
+id = "nanite_bay"
+kind = 1
+target_id = "nanite_bay"
+title = "Nanite Repair Bays in loot and shops"
+hint = "Finish 5 runs"
+runs_finished = 5

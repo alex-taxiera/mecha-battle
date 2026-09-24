@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_b22r1"]
+[ext_resource type="Script" path="res://src/data/abilities/EnergyOnNeighborFire.gd" id="2_tp3qh"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_nssdq"]
+
+[sub_resource type="Resource" id="Resource_mk08t"]
+script = ExtResource("2_tp3qh")
+energy = 40
+every = 4
+
+[resource]
+script = ExtResource("3_nssdq")
+id = "capacitor_battery"
+part_name = "Capacitor Battery"
+type = 1
+cost = 3
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "Every 4th shot from a weapon it touches releases 40 EN."
+abilities = Array[ExtResource("1_b22r1")]([SubResource("Resource_mk08t")])

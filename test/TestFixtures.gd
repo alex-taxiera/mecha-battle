@@ -632,6 +632,35 @@ static func unstable() -> Unstable:
 	return affix
 
 
+## The first shot each fight deals nothing.
+static func ablative_affix() -> AblativeCore:
+	var affix := _affix(AblativeCore.new(), "ablative", "Ablative")
+	affix.hits = 1
+	return affix
+
+
+## The first debuff each fight doesn't land.
+static func hardened_firmware() -> HardenedFirmware:
+	var affix := _affix(HardenedFirmware.new(), "hardened_firmware", "Hardened Firmware")
+	affix.blocks = 1
+	return affix
+
+
+## Each landed shot repairs a fifth of its damage.
+static func vampiric() -> Vampiric:
+	var affix := _affix(Vampiric.new(), "vampiric", "Vampiric")
+	affix.share = 0.2
+	return affix
+
+
+## Shots leave 1 Jammed.
+static func jamming() -> Burning:
+	var affix := _affix(Burning.new(), "jamming", "Jamming")
+	affix.status = jammed()
+	affix.charges = 1
+	return affix
+
+
 ## Shots leave 1 Burn.
 static func burning() -> Burning:
 	var affix := _affix(Burning.new(), "burning", "Burning")
@@ -734,3 +763,151 @@ static func endless() -> RunModifier:
 ## A 1x1 junk part that does nothing and can't be sold.
 static func glitch() -> MechPart:
 	return part("Glitch", MechPart.PartType.JUNK, [Vector2i(0, 0)], 0, {"sellable": false})
+
+
+# The design doc's second round of parts.
+
+## The first common arm weapon: 14 damage a second for 25 EN, 12 heat.
+static func scrap_repeater() -> MechPart:
+	return part("Scrap Repeater", MechPart.PartType.WEAPON, ARM_SHAPE, 3, {"damage": 14, "energy_cost": 25, "heat": 12,
+		"cooldown_max": 1.0})
+
+
+## The first common back weapon: 35 damage every 2.5 s for 40 EN, 20 heat.
+static func rivet_mortar() -> MechPart:
+	return part("Rivet Mortar", MechPart.PartType.WEAPON, BACK_SHAPE, 4, {"damage": 35, "energy_cost": 40, "heat": 20,
+		"cooldown_max": 2.5})
+
+
+## An arm weapon: 12 damage a second for 20 EN, 10 heat, and 2 Jammed a hit.
+static func shock_lance() -> MechPart:
+	return part("Shock Lance", MechPart.PartType.WEAPON, ARM_SHAPE, 5, {"damage": 12, "energy_cost": 20, "heat": 10,
+		"cooldown_max": 1.0, "abilities": [apply_status(jammed(), 2)] as Array[PartAbility]})
+
+
+## An arm weapon: 10 damage every half second for 15 EN, 8 heat, repairing a quarter of each hit.
+static func leech_drill() -> MechPart:
+	var leech := Leech.new()
+	leech.share = 0.25
+	return part("Leech Drill", MechPart.PartType.WEAPON, ARM_SHAPE, 5, {"damage": 10, "energy_cost": 15, "heat": 8,
+		"cooldown_max": 0.5, "abilities": [leech] as Array[PartAbility]})
+
+
+## A back weapon: 50 damage every 2.5 s for 90 EN, 50 heat; double against a target at 30% HP or less.
+static func guillotine_cannon() -> MechPart:
+	var execute := Execute.new()
+	execute.threshold = 0.3
+	execute.multiplier = 2.0
+	return part("Guillotine Cannon", MechPart.PartType.WEAPON, BACK_SHAPE, 7, {"damage": 50, "energy_cost": 90,
+		"heat": 50, "cooldown_max": 2.5, "abilities": [execute] as Array[PartAbility]})
+
+
+## A back weapon: 30 damage every 2 s for 60 EN, 30 heat; +2 damage for each fight won, up to +40.
+static func trophy_rack() -> MechPart:
+	var growth := TrophyGrowth.new()
+	growth.damage = 2
+	growth.max_bonus = 40
+	return part("Trophy Rack", MechPart.PartType.WEAPON, BACK_SHAPE, 6, {"damage": 30, "energy_cost": 60, "heat": 30,
+		"cooldown_max": 2.0, "abilities": [growth] as Array[PartAbility]})
+
+
+## A heavy back weapon: 120 damage every 4 s for 150 EN, 80 heat.
+static func siege_cannon() -> MechPart:
+	return part("Siege Cannon", MechPart.PartType.WEAPON, BACK_SHAPE, 8, {"damage": 120, "energy_cost": 150, "heat": 80,
+		"cooldown_max": 4.0})
+
+
+## A 2x1 generator: +0.8 EN a second for each point of heat.
+static func thermoelectric() -> MechPart:
+	var ability := HeatToEnergy.new()
+	ability.energy_per_heat = 0.8
+	return part("Thermoelectric Generator", MechPart.PartType.GENERATOR, [Vector2i(0, 0), Vector2i(1, 0)], 4,
+		{"abilities": [ability] as Array[PartAbility]})
+
+
+## A 1x1 generator: every 4th shot from a weapon it touches releases 40 EN.
+static func capacitor_battery() -> MechPart:
+	var ability := EnergyOnNeighborFire.new()
+	ability.energy = 40
+	ability.every = 4
+	return part("Capacitor Battery", MechPart.PartType.GENERATOR, [Vector2i(0, 0)], 3,
+		{"abilities": [ability] as Array[PartAbility]})
+
+
+## A 2x2 generator: +150 EN and +25 heat every second.
+static func fusion_cell() -> MechPart:
+	return part("Fusion Cell", MechPart.PartType.GENERATOR, BACK_SHAPE, 7, {"energy_gen": 150, "heat": 25,
+		"cooldown_max": 1.0})
+
+
+## A 1x2 defense part: +20 HP, and repairs 1% of max HP a second.
+static func nanite_bay() -> MechPart:
+	var ability := RepairOverTime.new()
+	ability.share = 0.01
+	return part("Nanite Repair Bay", MechPart.PartType.DEFENSE, [Vector2i(0, 0), Vector2i(0, 1)], 5,
+		{"hp": 20, "abilities": [ability] as Array[PartAbility]})
+
+
+## A 1x1 defense part: +20 HP, and the first 2 shots each fight deal nothing.
+static func ablative_plating() -> MechPart:
+	var ability := Ablative.new()
+	ability.hits = 2
+	return part("Ablative Plating", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 2,
+		{"hp": 20, "abilities": [ability] as Array[PartAbility]})
+
+
+## A 1x1 defense part: no single hit takes more than 60.
+static func damage_limiter() -> MechPart:
+	var ability := DamageCap.new()
+	ability.cap = 60
+	ability.stacks = false
+	return part("Damage Limiter", MechPart.PartType.DEFENSE, [Vector2i(0, 0)], 5,
+		{"abilities": [ability] as Array[PartAbility]})
+
+
+## A 1x1 utility part: every 5 s, clears the debuff with the most charges.
+static func status_scrubber() -> MechPart:
+	var ability := StatusScrubber.new()
+	ability.interval = 5.0
+	return part("Status Scrubber", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 4,
+		{"abilities": [ability] as Array[PartAbility]})
+
+
+## A 1x1 utility part tagged targeting: see [method targeted].
+static func targeting_computer() -> MechPart:
+	return part("Targeting Computer", MechPart.PartType.UTILITY, [Vector2i(0, 0)], 4,
+		{"tags": ["targeting"] as Array[String]})
+
+
+## Targeting + Weapon: each targeting part touching a weapon makes it hit 1.1 times as hard.
+static func targeted() -> SynergyRule:
+	var rule := _rule(MechPart.PartType.WEAPON, MechPart.PartType.UTILITY, SynergyRule.Target.FIRST, [
+		_bonus(RuleBonus.Stat.DAMAGE, RuleBonus.Op.MULTIPLY, 1.1),
+	], true)
+	rule.second_tag = "targeting"
+	return _named(rule, "targeted", "Targeting + Weapon", "weapon dmg ×1.1", Color(0.45, 0.85, 0.95))
+
+
+# The design doc's second round of weapon mods.
+
+## A quarter again as fast, for 15% less damage.
+static func rapid_mod() -> WeaponMod:
+	return weapon_mod("rapid", "Rapid", {"cooldown_scale": 0.8, "damage_scale": 0.85})
+
+
+## 10 less heat a shot, for 10% less damage.
+static func stabilized_mod() -> WeaponMod:
+	return weapon_mod("stabilized", "Stabilized", {"heat_add": -10, "damage_scale": 0.9})
+
+
+## Each hit repairs a tenth of its damage.
+static func siphon_mod() -> WeaponMod:
+	var leech := Leech.new()
+	leech.share = 0.1
+	return weapon_mod("siphon", "Siphon", {"abilities": [leech] as Array[PartAbility]})
+
+
+## +1 Corroded a hit, for 10% less damage.
+static func corrosive_mod() -> WeaponMod:
+	return weapon_mod("corrosive", "Corrosive", {"damage_scale": 0.9,
+		"abilities": [apply_status(corroded(), 1)] as Array[PartAbility]})

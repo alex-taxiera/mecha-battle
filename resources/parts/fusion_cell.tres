@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_kkhws"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_6q341"]
+
+[resource]
+script = ExtResource("2_6q341")
+id = "fusion_cell"
+part_name = "Fusion Cell"
+type = 1
+cost = 7
+rarity = 2
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)])
+description = "+150 EN every second, but +25 heat each time. Each weapon touching: +5 dmg."
+energy_gen = 150
+cooldown_max = 1.0
+heat = 25

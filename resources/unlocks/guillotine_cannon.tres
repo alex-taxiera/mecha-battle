@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_ok7a3"]
+
+[resource]
+script = ExtResource("1_ok7a3")
+id = "guillotine_cannon"
+kind = 1
+target_id = "guillotine_cannon"
+title = "Guillotine Cannons in loot and shops"
+hint = "Clear Sector 2 with the Bastion"
+sectors_cleared = 2
+with_chassis = "bastion"

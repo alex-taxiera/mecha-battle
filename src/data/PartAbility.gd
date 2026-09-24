@@ -10,6 +10,13 @@ extends Resource
 @export var stacks := true
 
 
+## Interceptors the part adds to [param mech]'s side of the [HitPipeline], made as the mech is
+## built for a fight, e.g. armor that shrugs off the first shots. Keep a fight's state on
+## [param active].
+func make_interceptors(_mech: BattleMech, _active: ActivePart) -> Array[HitInterceptor]:
+	return []
+
+
 ## At the start of each fight, for the part's [param active] on [param mech].
 func on_fight_start(_mech: BattleMech, _active: ActivePart) -> void:
 	pass

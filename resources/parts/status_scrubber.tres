@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_481f7"]
+[ext_resource type="Script" path="res://src/data/abilities/StatusScrubber.gd" id="2_2a788"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_fv0t6"]
+
+[sub_resource type="Resource" id="Resource_edtks"]
+script = ExtResource("2_2a788")
+
+[resource]
+script = ExtResource("3_fv0t6")
+id = "status_scrubber"
+part_name = "Status Scrubber"
+type = 3
+cost = 4
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0)])
+description = "Every 5 s, clears the debuff with the most charges."
+abilities = Array[ExtResource("1_481f7")]([SubResource("Resource_edtks")])

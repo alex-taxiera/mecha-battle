@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Afterburner" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_6qc7s"]
+[ext_resource type="Script" path="res://src/data/relics/Afterburner.gd" id="2_wrlp3"]
+
+[resource]
+script = ExtResource("2_wrlp3")
+id = "afterburner"
+relic_name = "Afterburner"
+description = "The Striker's: the first time you fall to half HP in a fight, Overclock is ready again."
+rarity = 1
+glyph = "O"
+color = Color(0.94, 0.42, 0.42, 1)
+chassis_id = "striker"

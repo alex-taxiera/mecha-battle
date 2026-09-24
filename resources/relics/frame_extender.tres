@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FrameExtender" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_s5alx"]
+[ext_resource type="Script" path="res://src/data/relics/FrameExtender.gd" id="2_30uq0"]
+
+[resource]
+script = ExtResource("2_30uq0")
+id = "frame_extender"
+relic_name = "Frame Extender"
+description = "Open 3 more cells on your frame (+40 max HP for each it has no room for)."
+rarity = 3
+glyph = "+"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

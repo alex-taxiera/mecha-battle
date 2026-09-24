@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_f173i"]
+[ext_resource type="Script" path="res://src/data/abilities/Leech.gd" id="2_427vy"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="3_waxml"]
+
+[sub_resource type="Resource" id="Resource_0xl76"]
+script = ExtResource("2_427vy")
+share = 0.1
+
+[resource]
+script = ExtResource("3_waxml")
+id = "siphon"
+prefix = "Siphon"
+description = "Each hit repairs a tenth of its damage."
+abilities = Array[ExtResource("1_f173i")]([SubResource("Resource_0xl76")])

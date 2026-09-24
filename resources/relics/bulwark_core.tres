@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Shielded" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_oljxy"]
+[ext_resource type="Script" path="res://src/data/affixes/Shielded.gd" id="2_d8w2b"]
+
+[resource]
+script = ExtResource("2_d8w2b")
+shield_share = 0.2
+id = "bulwark_core"
+relic_name = "Bulwark Core"
+description = "Start each fight with a shield of 20% of your max HP."
+rarity = 3
+glyph = "S"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

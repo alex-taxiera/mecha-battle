@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WeaponTuning" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_lbt00"]
+[ext_resource type="Script" path="res://src/data/relics/WeaponTuning.gd" id="2_lpa7v"]
+
+[resource]
+script = ExtResource("2_lpa7v")
+cooldown_scale = 0.85
+shop_slots = -1
+id = "auto_loader"
+relic_name = "Auto-Loader"
+description = "Your weapons fire 15% faster, but shops stock one part fewer."
+rarity = 3
+glyph = "L"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

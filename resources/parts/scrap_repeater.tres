@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_frtfi"]
+[ext_resource type="Texture2D" path="res://assets/combat/scrap_repeater.png" id="2_r4b7g"]
+[ext_resource type="Texture2D" path="res://assets/combat/bullet.png" id="3_mayyx"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="4_qmirx"]
+
+[resource]
+script = ExtResource("4_qmirx")
+id = "scrap_repeater"
+part_name = "Scrap Repeater"
+cost = 3
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 2)])
+description = "Arm mount. Every second: 14 dmg for 25 EN and 12 heat. Heatsink touching: ×1.5. Each generator touching: +5."
+battle_sprite = ExtResource("2_r4b7g")
+projectile_sprite = ExtResource("3_mayyx")
+energy_cost = 25
+damage = 14
+cooldown_max = 1.0
+heat = 12

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AblativeCore" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_gwhq2"]
+[ext_resource type="Script" path="res://src/data/relics/AblativeCore.gd" id="2_jqani"]
+
+[resource]
+script = ExtResource("2_jqani")
+id = "ablative"
+relic_name = "Ablative"
+description = "The first hit on it each fight deals nothing."
+rarity = 6
+glyph = "A"
+color = Color(0.65, 0.75, 0.9, 1)

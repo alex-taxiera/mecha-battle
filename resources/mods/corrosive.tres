@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponMod" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_a0syt"]
+[ext_resource type="Script" path="res://src/data/abilities/ApplyStatus.gd" id="2_omqvo"]
+[ext_resource type="Resource" path="res://resources/statuses/corroded.tres" id="3_7wfss"]
+[ext_resource type="Script" path="res://src/data/WeaponMod.gd" id="4_ehnqa"]
+
+[sub_resource type="Resource" id="Resource_wom6t"]
+script = ExtResource("2_omqvo")
+status = ExtResource("3_7wfss")
+
+[resource]
+script = ExtResource("4_ehnqa")
+id = "corrosive"
+prefix = "Corrosive"
+description = "+1 Corroded a hit, 10% less damage."
+damage_scale = 0.9
+abilities = Array[ExtResource("1_a0syt")]([SubResource("Resource_wom6t")])

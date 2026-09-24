@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StatusFeeder" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_eyy3e"]
+[ext_resource type="Script" path="res://src/data/relics/StatusFeeder.gd" id="2_3uys6"]
+[ext_resource type="Resource" path="res://resources/statuses/burn.tres" id="3_6pg36"]
+
+[resource]
+script = ExtResource("2_3uys6")
+status = ExtResource("3_6pg36")
+id = "pyromaniac"
+relic_name = "Pyromaniac"
+description = "Each of your shots that lands on a burning enemy adds 1 more Burn."
+rarity = 2
+glyph = "P"
+color = Color(1, 0.55, 0.25, 1)

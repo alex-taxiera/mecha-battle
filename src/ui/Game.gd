@@ -19,6 +19,7 @@ const HANGAR_JOBS_DIR := "res://resources/hangar_jobs"
 const EVENTS_DIR := "res://resources/events"
 const UNLOCKS_DIR := "res://resources/unlocks"
 const TECHNICIAN_DIR := "res://resources/technician"
+const MODS_DIR := "res://resources/mods"
 const THREAT_DIR := "res://resources/threat"
 const RUN_MODIFIERS_DIR := "res://resources/run_modifiers"
 ## The Mech Technician's id in the unlocks.
@@ -43,6 +44,9 @@ var relics: Array[Relic] = []
 var events: Array[GameEvent] = []
 ## The affixes elites can roll; loaded from [constant AFFIXES_DIR] unless set.
 var affixes: Array[Relic] = []
+## The weapon mods shops, elites, and the Hangar's Refit can offer; loaded from
+## [constant MODS_DIR] unless set.
+var mods: Array[WeaponMod] = []
 ## The Hangar's jobs, in their order; loaded from [constant HANGAR_JOBS_DIR] unless set.
 var hangar_jobs: Array[HangarJob] = []
 ## The Threat ladder, level 1 first; loaded from [constant THREAT_DIR] unless set.
@@ -92,6 +96,8 @@ func _ready() -> void:
 		events.assign(LoadoutScreen.load_dir(EVENTS_DIR).filter(func(resource: Resource) -> bool: return resource is GameEvent))
 	if affixes.is_empty():
 		affixes.assign(LoadoutScreen.load_dir(AFFIXES_DIR).filter(func(resource: Resource) -> bool: return resource is Relic))
+	if mods.is_empty():
+		mods.assign(LoadoutScreen.load_dir(MODS_DIR).filter(func(resource: Resource) -> bool: return resource is WeaponMod))
 	if hangar_jobs.is_empty():
 		var jobs := LoadoutScreen.load_dir(HANGAR_JOBS_DIR).filter(func(resource: Resource) -> bool: return resource is HangarJob)
 		jobs.sort_custom(func(a: HangarJob, b: HangarJob) -> bool: return a.order < b.order or (a.order == b.order and a.id < b.id))
@@ -135,6 +141,7 @@ func _start_run(chassis: MechChassis) -> void:
 	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts,
 		run_relics, events, affixes, modifiers)
 	run.hangar_jobs.assign(hangar_jobs)
+	run.mod_pool.assign(mods)
 	if profile.is_available(Unlock.Kind.NPC, TECHNICIAN, unlocks):
 		_meet_technician()
 	else:

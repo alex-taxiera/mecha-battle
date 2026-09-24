@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StatusOnHitTaken" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_m3ax3"]
+[ext_resource type="Script" path="res://src/data/relics/StatusOnHitTaken.gd" id="2_t1lgs"]
+[ext_resource type="Resource" path="res://resources/statuses/fortified.tres" id="3_fx1b3"]
+
+[resource]
+script = ExtResource("2_t1lgs")
+status = ExtResource("3_fx1b3")
+id = "adaptive_armor"
+relic_name = "Adaptive Armor"
+description = "Every hit you take gives you 1 Fortified (hits 2 smaller per charge)."
+rarity = 3
+glyph = "F"
+color = Color(0.7058824, 0.4627451, 0.9411765, 1)

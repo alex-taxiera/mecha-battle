@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MechPart" format=3]
+
+[ext_resource type="Script" path="res://src/data/PartAbility.gd" id="1_om5kd"]
+[ext_resource type="Script" path="res://src/data/abilities/RepairOverTime.gd" id="2_yndyf"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="3_ib2ww"]
+
+[sub_resource type="Resource" id="Resource_dtwp5"]
+script = ExtResource("2_yndyf")
+
+[resource]
+script = ExtResource("3_ib2ww")
+id = "nanite_bay"
+part_name = "Nanite Repair Bay"
+type = 2
+cost = 5
+rarity = 1
+grid_shape = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1)])
+description = "+20 HP. Repairs 1% of max HP every second of a fight."
+abilities = Array[ExtResource("1_om5kd")]([SubResource("Resource_dtwp5")])
+hp = 20

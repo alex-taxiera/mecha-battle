@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="KineticBattery" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_6y8cs"]
+[ext_resource type="Script" path="res://src/data/relics/KineticBattery.gd" id="2_x68yl"]
+
+[resource]
+script = ExtResource("2_x68yl")
+id = "kinetic_battery"
+relic_name = "Kinetic Battery"
+description = "Energy left when a fight ends carries into the next, up to 100."
+rarity = 2
+glyph = "K"
+color = Color(0.95, 0.78, 0.3, 1)
