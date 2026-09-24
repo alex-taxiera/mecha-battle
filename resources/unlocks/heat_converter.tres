@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_hqftv"]
+
+[resource]
+script = ExtResource("1_hqftv")
+id = "heat_converter"
+kind = 2
+target_id = "heat_converter"
+title = "The Heat Converter relic"
+hint = "Win 15 fights"
+fights_won_total = 15

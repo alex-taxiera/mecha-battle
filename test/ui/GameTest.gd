@@ -18,6 +18,9 @@ func before_test() -> void:
 	_game.acts = [Fixtures.act(), Fixtures.act()]
 	_game.relics = Fixtures.relics()
 	_game.events = [Fixtures.gold_event("Windfall", 10)]
+	# A profile in memory, and one unlock nothing in these tests uses, so no real files are read.
+	_game.profile = Profile.new()
+	_game.unlocks = [Fixtures.unlock("nobody", Unlock.Kind.NPC, "nobody", {"runs_finished": 99})]
 	_game.run_seed = 1
 	add_child(_game)
 
@@ -273,6 +276,43 @@ func test_an_event_can_start_a_fight_with_its_loot() -> void:
 	assert_object(run.map.current).is_same(node)
 	assert_array(_map_screen().get_view().reachable).contains_same_exactly(node.next)
 	await await_idle_frame()
+
+
+func test_a_runs_end_is_recorded_and_earns_unlocks() -> void:
+	_game.unlocks = [Fixtures.unlock("veteran", Unlock.Kind.NPC, "technician", {"runs_finished": 1}),
+		Fixtures.unlock("champion", Unlock.Kind.NPC, "someone", {"runs_won": 1})]
+	await _choose(Fixtures.cross_chassis())
+	await _go(_game.run.get_reachable()[0])
+	await _finish_fight() # a draw: the run ends
+	assert_int(_game.profile.runs).is_equal(1)
+	assert_array(_game.profile.unlocked).contains_exactly(["veteran"])
+	assert_str(_message().body_label.text).is_equal("The Skirmisher\nFell in Sector 1 · Floor 1\nFights won: 0\nUnlocked: Veteran")
+	await await_idle_frame()
+
+
+func test_locked_parts_and_relics_stay_out_of_the_run() -> void:
+	var locked_gun := _gun()
+	_game.catalog.append(locked_gun)
+	var locked_relic := Fixtures.relic("Hidden", Relic.Rarity.COMMON)
+	_game.relics.append(locked_relic)
+	_game.unlocks = [Fixtures.unlock("gun", Unlock.Kind.PART, locked_gun.id, {"runs_won": 1}),
+		Fixtures.unlock("hidden", Unlock.Kind.RELIC, "hidden", {"runs_won": 1})]
+	# Both locked parts share the gun's id, so every gun leaves the catalog.
+	await _choose(_armed())
+	assert_bool(_game.run.catalog.any(func(part: MechPart) -> bool: return part.id == locked_gun.id)).is_false()
+	assert_bool(_game.run.relic_pool.has(locked_relic)).is_false()
+	# The starter kit still has its gun.
+	assert_int(_game.run.grid.get_mounted_count()).is_equal(1)
+	await await_idle_frame()
+
+
+func test_resetting_progress_clears_the_profile() -> void:
+	_game.profile.runs = 4
+	_game.profile.unlocked.append("nobody")
+	_game.chassis_select.reset_progress()
+	assert_int(_game.profile.runs).is_equal(0)
+	assert_array(_game.profile.unlocked).is_empty()
+	await await_idle_frame() # free the cards the reset rebuilt
 
 
 # The armed cross with a gun in its left arm to start with: it beats the bare fixture enemies.

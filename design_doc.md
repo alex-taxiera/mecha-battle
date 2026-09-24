@@ -55,6 +55,16 @@ A run crosses three **sectors** (acts), each a branching map climbed one node at
   | The Unstable Radiation Zone | Push through: for 2 fights, start at +30 heat and earn +50% gold. Take the long way: fight a patrol (a normal battle; standing in for adding a node to the map). |
   | The Tinkerer's Bench (needs a part to upgrade; put back at random if not) | Let them tinker: a random part goes up a Mk. Point at your best part: 25 gold, your strongest part goes up a Mk. Leave. |
   | Abandoned Cache (the fallback) | +15 gold. |
+- **Progress between runs:** a profile, saved at `user://profile.json`, counts runs, wins, fights won, and bosses beaten, each frame's record, and the unlocks earned. When a run ends, each unlock whose milestone is now met is earned and listed on the end screen ("Unlocked: The Striker"). Locked frames are greyed out on the frame select with how to earn them; locked parts and relics stay out of loot and shops (a starter kit keeps its parts). Content without an unlock is always available. The frame select also shows the totals and a Reset progress button (with a confirm). The placeholder track (`res://resources/unlocks/`):
+
+  | Unlock | Kind | Milestone |
+  |---|---|---|
+  | The Mech Technician | NPC | Finish a run |
+  | The Striker | Chassis | Clear Sector 1 |
+  | The Reactor | Chassis | Clear Sector 2 |
+  | Missile Pods in loot and shops | Part | Win 5 fights in total |
+  | The Heat Converter relic | Relic | Win 15 fights in total |
+  | The Titan Plating relic | Relic | Clear Sector 1 with the Bastion |
 - Content still to come: more parts, enemies, relics, and events, and balance.
 
 ## 2. Data Architecture (The "Model")
@@ -98,6 +108,9 @@ Hidden relics: `HullUpgrade` (`hp`; a Reinforce or an event's max HP) and `Timed
 - **`EventOutcome.gd`:** `weight`, `text`, and `effects`.
 - **`EventEffect.gd`** subclasses, each `apply(run, result)` adding a line to the `EventResult`: `GoldEffect`, `HullEffect`, `MaxHpEffect`, `UpgradePartEffect` (a random or the strongest upgradable part), `PartEffect` (a given part, or one of a rarity from the catalog, weapons only if asked), `LosePartsEffect`, `RelicEffect`, `WeaponModEffect` (the strongest mounted weapon), `StatusEffect`, and `FightEffect` (sets the result's `fight_tier`).
 - **`EventRequirement.gd`** subclasses, each `check(run)` and `describe()`: `GoldRequirement`, `WeaponRequirement`, `PartsRequirement`, `UpgradableRequirement`.
+
+### `Unlock.gd` (Extends Resource)
+Something a profile earns: `id`, `kind` (CHASSIS, PART, RELIC, NPC), `target_id` (the chassis, part, relic, or NPC id), `title` ("The Striker"), `hint` ("Clear Sector 1"), and a milestone whose set fields must all be met: `sectors_cleared` in one run (optionally `with_chassis`), `runs_finished`, `fights_won_total`, and `runs_won` in total. `is_met(profile, sectors, chassis_id)`.
 
 ### `LoadoutPart.gd` (Extends Resource)
 One part of a ready-made build: `part`, `origin`, `rotation`. `LoadoutPart.place_all(grid, lineup)` places a copy of each, so builds never share part instances, and reports (push_error) the first that doesn't fit.
@@ -150,6 +163,7 @@ One run: `RunState.new(chassis, catalog, rules, start_gold, rng, acts)`. It inst
 - **`FightReward.gd`:** a won fight's `tier`, `gold`, draft `parts` and `taken` (-1 until one is), and `relics` on offer and `relic_taken`; `is_draft_open()`, `is_relic_open()`.
 - **`RelicPool.gd`:** every relic, shuffled once with the run's "relics" stream. `take(count, rarities, from_back)` (no repeats; shops will pull from the back), `roll(rng, weights)` (a rarity from `CHEST_WEIGHTS` or `ELITE_WEIGHTS`, falling back to the other standard rarities), `remove(relic)`, `has`, `size`. Adapted from Slay-The-Robot's artifact pool.
 - **`ShopStock.gd`:** one Scrap Shop visit's `slots` (`SIZE` 4; each a part, its rotation, and whether it's sold), drafted from the catalog with the SHOP odds by a roller of its own (so the loot pity doesn't move), and `relic_offers` (each a relic, its `price` rolled from `RELIC_PRICES`, and whether it's sold). `get_open_slot`, `get_open_relic`, `rotate_slot`, `restock` (parts only), `REROLL_COST`.
+- **`Profile.gd`:** `path` (empty never writes), `runs`, `wins`, `fights_won`, `bosses_beaten`, `chassis_records` (id -> runs, wins, best_sector), and `unlocked`. `load_from(path)` (fresh if missing or unreadable), `save()`, `reset()`, `is_unlocked(id)`, `is_available(kind, target_id, unlocks)` and `get_lock(...)`, `sectors_cleared(run)` (all on a win, else the sectors before the one it ended in), and `record_run(run, unlocks)`, which counts the run and returns the unlocks it earned. Its shape follows Slay-The-Robot's `ProfileData`.
 - **`EventPool.gd`:** `next(run)` as in section 1b, with the `fallback` kept aside; `get_queue()`. Adapted from Slay-The-Robot's event pools, whose failure strategies never ran (it didn't record failed events).
 - **`EventResult.gd`:** a choice's `text`, `lines`, and `fight_tier` (-1 for none).
 
@@ -208,7 +222,7 @@ Drawn in code after the mockup, from `CombatColors` (its palette) and `CombatDra
 - `StormTimer`: whole seconds until the storm, pulsing red in the last 5 while the fight runs, then STORM. `RoundBadge`, `PlaybackControls` (with `PixelIconButton`), and `ResultPanel` are above.
 
 ### `ChassisSelectScreen.tscn` (Extends Control)
-Where a run starts: one card per frame in `options` (every chassis in `res://resources/chassis/` when unset, in section 1's order) with its name, playstyle, a `ChassisPreview` of its slot layout and bays, "HP · EN a turn · slots · hardpoints", and its passive. A card's button calls `choose(chassis)`, which emits `chassis_chosen`.
+Where a run starts: one card per frame in `options` (every chassis in `res://resources/chassis/` when unset, in section 1's order) with its name, playstyle, a `ChassisPreview` of its slot layout and bays, "HP · EN a turn · slots · hardpoints", and its passive. A card's button calls `choose(chassis)`, which emits `chassis_chosen`. `set_locks(profile, unlocks)` locks frames the profile hasn't earned: "Locked · Clear Sector 1", a dimmed preview, and an off button (`choose` ignores them). With a profile, a footer shows its totals and **Reset progress**, which confirms and then emits `reset_requested`.
 
 ### `MapScreen.tscn` (Extends Control)
 The sector map between stops, for the `run` it's given: the `RunHud` on top, a bar with a hint ("Pick where to start. Each step climbs one floor toward the boss." at a sector's start, then "Pick your next stop.") and the **Loadout** button ("Loadout · 2 in stash"; emits `loadout_requested`), the `MapView` in a vertical scroll, scrolled so the reachable nodes are in the middle, and a legend of node kinds (glyph and name in each kind's color, its blurb as a tooltip). `choose(node)` travels there and emits `node_chosen(node)`; an unreachable node is refused. After a choice the map takes no more clicks.
@@ -232,13 +246,13 @@ A Hangar stop: HANGAR / REFIT BAY, **Repair** ("Repair 9 hull (30% of max)."; of
 An Event stop: the event's title and text and a button per choice (label over hint; off with "(Needs 30 gold)" when its requirement fails). `choose(index)` shows the outcome and its lines, then the button: **Continue**, or **Fight!** when the `result` starts a fight.
 
 ### `Game.tscn` (Extends Node) — the main scene
-Plays runs, one screen at a time (`screen`). It loads the parts, rules, sectors (in id order), relics, and events from `res://resources/` unless set (tests set them, and `run_seed`). It opens on the `ChassisSelectScreen`; a chosen frame starts a `RunState` (`start_gold` 20) and shows the `MapScreen`. A chosen node opens what's there:
+Plays runs, one screen at a time (`screen`). It loads the parts, rules, sectors (in id order), relics, events, and unlocks from `res://resources/`, and the `profile` from `user://profile.json`, unless set (tests set them, and `run_seed`). It opens on the `ChassisSelectScreen`; a chosen frame starts a `RunState` (`start_gold` 20) and shows the `MapScreen`. A chosen node opens what's there:
 - **Battle, Elite, Boss:** a `CombatScreen` with the player's mech from the run (`make_player_mech`, at the hull's current HP) on the left and the node's enemy (`make_enemy_mech`) on the right. When it's `finished`, the fight is recorded (`record_fight`). A loss or draw ends the run. A win rolls its loot (`roll_reward`) onto a `RewardScreen`; after it, a boss win shows SECTOR CLEARED ("The Junkyard King is down...", half the hull's damage repaired) and then the next sector's map, or, after the last sector, the run's end; any other win goes back to the map.
 - **Scrap Shop:** the run's shop opens (`open_shop`) on a `LoadoutScreen` for the run; Leave shop closes it and goes back to the map.
 - **Loadout** (from the map's button): a `LoadoutScreen` for the run with no shop; Back to map returns to the same map.
 - **Hangar:** a `RestScreen`; its button goes back to the map.
 - **Event:** an `EventScreen` for the node's event. After the choice, the button goes back to the map, or, if the outcome starts a fight, to a fight against one of the sector's enemies of that tier (a stand-in node on the event's floor), with that tier's loot, then back to the map.
-- **The run's end:** MECH DESTROYED or RUN COMPLETE over `end_lines(run)` (the frame; "Fell in Sector 2 · Floor 7" or "Cleared all 3 sectors"; "Fights won: 9"), and New run, which goes back to a fresh frame select.
+- **The run's end:** the run is recorded in the profile (and saved), then MECH DESTROYED or RUN COMPLETE over `end_lines(run)` (the frame; "Fell in Sector 2 · Floor 7" or "Cleared all 3 sectors"; "Fights won: 9") and an "Unlocked: ..." line per unlock earned, and New run, which goes back to a fresh frame select.
 Every swap is deferred, so a screen never leaves the tree while it's still emitting.
 
 ## 4. Signal Flow & Dependency Direction

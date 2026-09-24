@@ -27,7 +27,7 @@ func test_a_cards_button_chooses_its_frame() -> void:
 	var screen := _screen([Fixtures.bastion(), striker])
 	var chosen := []
 	screen.chassis_chosen.connect(func(chassis: MechChassis) -> void: chosen.append(chassis))
-	var buttons := screen.find_children("*", "Button", true, false)
+	var buttons := screen.get_node("%Cards").find_children("*", "Button", true, false)
 	assert_array(buttons).has_size(2)
 	buttons[1].pressed.emit()
 	assert_array(chosen).has_size(1)
@@ -39,6 +39,57 @@ func test_loads_the_frames_in_design_order_by_default() -> void:
 	add_child(screen)
 	assert_array(screen.options.map(func(chassis: MechChassis) -> String: return chassis.id)) \
 		.contains_exactly(["bastion", "striker", "reactor"])
+
+
+func test_without_a_profile_nothing_is_locked_and_there_is_no_footer() -> void:
+	var screen := _screen([Fixtures.bastion()])
+	assert_object(screen.get_lock(screen.options[0])).is_null()
+	var reset := screen.find_children("*", "Button", true, false).filter(func(b: Button) -> bool: return b.text == "Reset progress")
+	assert_bool((reset[0] as Button).visible).is_false()
+
+
+func test_a_locked_frame_is_greyed_out_and_cannot_be_chosen() -> void:
+	var bastion := Fixtures.bastion()
+	bastion.id = "bastion"
+	var striker := Fixtures.striker()
+	striker.id = "striker"
+	var screen := _screen([bastion, striker])
+	var locks: Array[Unlock] = [Fixtures.unlock("striker", Unlock.Kind.CHASSIS, "striker", {"sectors_cleared": 1})]
+	var profile := Profile.new()
+	profile.runs = 2
+	screen.set_locks(profile, locks)
+	var cards := screen.get_card_texts()
+	assert_array(cards[1]).contains(["Locked · Do the thing", "Locked"])
+	assert_array(cards[0]).contains(["Choose The Bastion"])
+	var chosen := []
+	screen.chassis_chosen.connect(func(chassis: MechChassis) -> void: chosen.append(chassis))
+	screen.choose(striker)
+	assert_array(chosen).is_empty()
+	# Positive control: the open frame can be chosen, and once earned, so can the other.
+	screen.choose(bastion)
+	assert_array(chosen).contains_same_exactly([bastion])
+	profile.unlocked.append("striker")
+	screen.set_locks(profile, locks)
+	screen.choose(striker)
+	assert_array(chosen).has_size(2)
+	await await_idle_frame() # free the rebuilt cards
+
+
+func test_the_footer_shows_totals_and_asks_to_reset() -> void:
+	var screen := _screen([Fixtures.bastion()])
+	var profile := Profile.new()
+	profile.runs = 3
+	profile.wins = 1
+	profile.fights_won = 17
+	profile.bosses_beaten = 4
+	screen.set_locks(profile, [])
+	var labels := screen.find_children("*", "Label", true, false).map(func(label: Label) -> String: return label.text)
+	assert_array(labels).contains(["Runs 3 · Wins 1 · Fights won 17 · Bosses beaten 4"])
+	var asked := [0]
+	screen.reset_requested.connect(func() -> void: asked[0] += 1)
+	screen.reset_progress()
+	assert_int(asked[0]).is_equal(1)
+	await await_idle_frame()
 
 
 func _screen(options: Array) -> ChassisSelectScreen:

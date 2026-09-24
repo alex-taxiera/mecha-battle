@@ -3,8 +3,10 @@ extends Node
 ## Plays runs. The player picks a frame, then climbs each sector's map to its boss one stop at a
 ## time: fights play on the combat screen and drop loot, Scrap Shops open the shop, Hangars
 ## repair or reinforce the hull, and Events tell a story with choices, some leading to a fight.
-## From the map, the Loadout rearranges the mech and its stash. The mech's damage carries from fight to fight; when it goes down, or the last sector's
-## boss does, the run's end shows, and after it a new run starts.
+## From the map, the Loadout rearranges the mech and its stash. The mech's damage carries from
+## fight to fight; when it goes down, or the last sector's boss does, the run's end shows, with any
+## unlocks it earned, and after it a new run starts. The profile, saved between sessions, decides
+## which frames, parts, and relics are unlocked.
 
 const CHASSIS_SELECT_SCENE := preload("res://src/ui/ChassisSelectScreen.tscn")
 const MAP_SCENE := preload("res://src/ui/MapScreen.tscn")
@@ -13,6 +15,7 @@ const COMBAT_SCENE := preload("res://src/ui/CombatScreen.tscn")
 const ACTS_DIR := "res://resources/acts"
 const RELICS_DIR := "res://resources/relics"
 const EVENTS_DIR := "res://resources/events"
+const UNLOCKS_DIR := "res://resources/unlocks"
 # A fight's map node kind for each enemy tier, for fights events start.
 const _TIER_NODES := {
 	EnemyLoadout.Tier.NORMAL: MapNode.Type.BATTLE,
@@ -31,6 +34,11 @@ var rules: Array[SynergyRule] = []
 var acts: Array[ActData] = []
 var relics: Array[Relic] = []
 var events: Array[GameEvent] = []
+## Everything the profile can unlock. Left empty, it's loaded from its folder.
+var unlocks: Array[Unlock] = []
+## The player's progress. Left unset, it's loaded from [constant Profile.DEFAULT_PATH] (tests set
+## an in-memory one).
+var profile: Profile
 ## The seed for new runs; below 0, each run gets a random one.
 var run_seed := -1
 
@@ -62,10 +70,13 @@ func _ready() -> void:
 		relics.assign(LoadoutScreen.load_dir(RELICS_DIR).filter(func(resource: Resource) -> bool: return resource is Relic))
 	if events.is_empty():
 		events.assign(LoadoutScreen.load_dir(EVENTS_DIR).filter(func(resource: Resource) -> bool: return resource is GameEvent))
+	if unlocks.is_empty():
+		unlocks.assign(LoadoutScreen.load_dir(UNLOCKS_DIR).filter(func(resource: Resource) -> bool: return resource is Unlock))
+	if profile == null:
+		profile = Profile.load_from(Profile.DEFAULT_PATH)
 	chassis_select = %ChassisSelectScreen
 	screen = chassis_select
-	# Every swap is deferred, so a screen isn't taken out of the tree while it's still emitting.
-	chassis_select.chassis_chosen.connect(_start_run, CONNECT_DEFERRED)
+	_watch_chassis_select()
 
 
 ## Shows the current sector's map.
@@ -79,7 +90,13 @@ func show_map() -> void:
 
 func _start_run(chassis: MechChassis) -> void:
 	chassis_select = null
-	run = RunState.new(chassis, catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts, relics, events)
+	# Locked parts and relics stay out of loot and shops (a starter kit still has its parts).
+	var run_catalog: Array[MechPart] = []
+	run_catalog.assign(catalog.filter(func(part: MechPart) -> bool: return profile.is_available(Unlock.Kind.PART, part.id, unlocks)))
+	var run_relics: Array[Relic] = []
+	run_relics.assign(relics.filter(func(relic: Relic) -> bool: return profile.is_available(Unlock.Kind.RELIC, relic.id, unlocks)))
+	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts,
+		run_relics, events)
 	show_map()
 
 
@@ -195,8 +212,12 @@ func _after_event(event_screen: EventScreen) -> void:
 
 func _show_end() -> void:
 	var won := run.outcome == RunState.Outcome.VICTORY
+	var lines := end_lines(run)
+	for unlock in profile.record_run(run, unlocks):
+		lines.append("Unlocked: %s" % unlock.title)
+	profile.save()
 	var message := MessageScreen.new("RUN COMPLETE" if won else "MECH DESTROYED", CLEAR_COLOR if won else LOSS_COLOR,
-		end_lines(run), "New run")
+		lines, "New run")
 	message.confirmed.connect(_new_run, CONNECT_DEFERRED)
 	_show(message)
 
@@ -216,8 +237,22 @@ static func end_lines(p_run: RunState) -> PackedStringArray:
 func _new_run() -> void:
 	run = null
 	chassis_select = CHASSIS_SELECT_SCENE.instantiate()
-	chassis_select.chassis_chosen.connect(_start_run, CONNECT_DEFERRED)
 	_show(chassis_select)
+	_watch_chassis_select()
+
+
+# Hooks up the frame select showing now: its locks, and what it asks for. Every swap is deferred,
+# so a screen isn't taken out of the tree while it's still emitting.
+func _watch_chassis_select() -> void:
+	chassis_select.set_locks(profile, unlocks)
+	chassis_select.chassis_chosen.connect(_start_run, CONNECT_DEFERRED)
+	chassis_select.reset_requested.connect(_reset_progress)
+
+
+func _reset_progress() -> void:
+	profile.reset()
+	profile.save()
+	chassis_select.set_locks(profile, unlocks)
 
 
 # Replaces the screen showing with [param next].

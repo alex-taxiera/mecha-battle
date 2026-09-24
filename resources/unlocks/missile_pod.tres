@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_7khcp"]
+
+[resource]
+script = ExtResource("1_7khcp")
+id = "missile_pod"
+kind = 1
+target_id = "missile_pod"
+title = "Missile Pods in loot and shops"
+hint = "Win 5 fights"
+fights_won_total = 5

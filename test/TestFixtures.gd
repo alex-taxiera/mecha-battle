@@ -211,6 +211,23 @@ static func relic(relic_name: String, rarity: Relic.Rarity) -> Relic:
 	return result
 
 
+# Unlocks for profile tests.
+
+## An unlock of [param kind] for [param target_id], earned by the [param milestone] fields (e.g.
+## {"sectors_cleared": 1}).
+static func unlock(id: String, kind: Unlock.Kind, target_id: String, milestone := {}) -> Unlock:
+	var result := Unlock.new()
+	result.id = id
+	result.kind = kind
+	result.target_id = target_id
+	result.title = id.capitalize()
+	result.hint = "Do the thing"
+	for field in milestone:
+		assert(field in result, "Unlock has no field '%s'" % field)
+		result.set(field, milestone[field])
+	return result
+
+
 # Events for run tests.
 
 ## An event with [param choices], which comes up when [param requirement] passes (always, if null).

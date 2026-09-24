@@ -1,10 +1,13 @@
 class_name ChassisSelectScreen
 extends Control
 ## Where a run starts: one card per chassis with its playstyle, slot layout, stats, and passive.
-## Choosing one emits [signal chassis_chosen].
+## Choosing one emits [signal chassis_chosen]. With a profile, frames it hasn't unlocked are
+## greyed out with how to earn them, and a footer shows its totals and a Reset progress button.
 
 ## Emitted when the player picks the frame to start the run with.
 signal chassis_chosen(chassis: MechChassis)
+## Emitted when the player confirms resetting their progress.
+signal reset_requested
 
 const CHASSIS_DIR := "res://resources/chassis"
 ## Frames in the order the design lists them, by id. Any others follow, by id.
@@ -12,9 +15,18 @@ const ORDER := ["bastion", "striker", "reactor"]
 const TEXT_COLOR := Color(0.93, 0.94, 0.96)
 const DIM_COLOR := Color(0.72, 0.74, 0.78)
 const PASSIVE_COLOR := Color(0.96, 0.83, 0.43)
+const LOCKED_COLOR := Color(0.94, 0.42, 0.42)
 
 ## The frames to choose from. Left empty, every MechChassis in [constant CHASSIS_DIR].
 @export var options: Array[MechChassis] = []
+## The player's progress and the game's unlocks, for locking frames. Without a profile nothing
+## is locked. Set them with [method set_locks] once the screen is up.
+var profile: Profile
+var unlocks: Array[Unlock] = []
+
+var _stats_label := Label.new()
+var _reset_button := Button.new()
+var _reset_dialog := ConfirmationDialog.new()
 
 @onready var _cards: Container = %Cards
 
@@ -24,6 +36,37 @@ func _ready() -> void:
 		var loaded := LoadoutScreen.load_dir(CHASSIS_DIR).filter(func(resource: Resource) -> bool: return resource is MechChassis)
 		loaded.sort_custom(_listed_before)
 		options.assign(loaded)
+	_add_footer()
+	_build_cards()
+
+
+## Sets the progress that decides which frames are locked, and redraws the cards.
+func set_locks(p_profile: Profile, p_unlocks: Array[Unlock]) -> void:
+	profile = p_profile
+	unlocks.assign(p_unlocks)
+	if is_node_ready():
+		_build_cards()
+
+
+## Returns the unlock [param chassis] is waiting on, or null if it can be chosen.
+func get_lock(chassis: MechChassis) -> Unlock:
+	return profile.get_lock(Unlock.Kind.CHASSIS, chassis.id, unlocks) if profile else null
+
+
+## Asks to wipe the profile's progress (the game does it); the button confirms first.
+func reset_progress() -> void:
+	reset_requested.emit()
+
+
+func _build_cards() -> void:
+	for card in _cards.get_children():
+		_cards.remove_child(card)
+		card.queue_free()
+	_stats_label.visible = profile != null
+	_reset_button.visible = profile != null
+	if profile:
+		_stats_label.text = "Runs %d · Wins %d · Fights won %d · Bosses beaten %d" % [profile.runs, profile.wins,
+			profile.fights_won, profile.bosses_beaten]
 	# Every preview gets the tallest layout's height, so the text under them lines up.
 	var previews: Array[ChassisPreview] = []
 	var preview_height := 0.0
@@ -36,9 +79,10 @@ func _ready() -> void:
 		_cards.add_child(_make_card(options[i], previews[i], preview_height))
 
 
-## Starts the run with [param chassis].
+## Starts the run with [param chassis], unless it's locked.
 func choose(chassis: MechChassis) -> void:
-	chassis_chosen.emit(chassis)
+	if get_lock(chassis) == null:
+		chassis_chosen.emit(chassis)
 
 
 ## Returns each card's text, top to bottom, one card per entry.
@@ -86,8 +130,32 @@ func _make_card(chassis: MechChassis, preview: ChassisPreview, preview_height: f
 	button.text = "Choose %s" % chassis.chassis_name
 	button.custom_minimum_size.y = 40
 	button.pressed.connect(choose.bind(chassis))
+	var lock := get_lock(chassis)
+	if lock:
+		box.add_child(_label("Locked · %s" % lock.hint, 14, LOCKED_COLOR))
+		button.text = "Locked"
+		button.disabled = true
+		preview.modulate = Color(1, 1, 1, 0.35)
 	box.add_child(button)
 	return card
+
+
+# Totals and the Reset progress button, under the cards.
+func _add_footer() -> void:
+	var footer := HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 16)
+	_stats_label.add_theme_font_size_override("font_size", 13)
+	_stats_label.add_theme_color_override("font_color", DIM_COLOR)
+	_stats_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	footer.add_child(_stats_label)
+	_reset_button.text = "Reset progress"
+	_reset_button.pressed.connect(_reset_dialog.popup_centered)
+	footer.add_child(_reset_button)
+	_reset_dialog.title = "Reset progress?"
+	_reset_dialog.dialog_text = "This forgets every unlock and total. It can't be undone."
+	_reset_dialog.confirmed.connect(reset_progress)
+	footer.add_child(_reset_dialog)
+	_cards.get_parent().add_child(footer)
 
 
 func _label(text: String, font_size: int, color: Color) -> Label:

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_3gpk4"]
+
+[resource]
+script = ExtResource("1_3gpk4")
+id = "reactor"
+target_id = "reactor"
+title = "The Reactor"
+hint = "Clear Sector 2"
+sectors_cleared = 2
