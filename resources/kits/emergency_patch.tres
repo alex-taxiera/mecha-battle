@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RepairKit" format=3]
+
+[ext_resource type="Script" path="res://src/data/kits/RepairKit.gd" id="1_8whvr"]
+
+[resource]
+script = ExtResource("1_8whvr")
+id = "emergency_patch"
+kit_name = "Emergency Patch"
+description = "Repairs 25% of max HP the moment the mech falls to 25%."
+trigger = 1
+color = Color(0.37, 0.83, 0.54, 1)
+hp_below = 0.25

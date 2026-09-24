@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuffKit" format=3]
+
+[ext_resource type="Script" path="res://src/data/kits/BuffKit.gd" id="1_ny6kd"]
+[ext_resource type="Resource" path="res://resources/statuses/haste.tres" id="2_v7acd"]
+
+[resource]
+script = ExtResource("1_ny6kd")
+status = ExtResource("2_v7acd")
+id = "overdrive_injector"
+kit_name = "Overdrive Injector"
+description = "Use it: 5 Haste (weapons up to half again as fast, fading a charge a second)."
+glyph = ">"
+color = Color(0.5, 1, 0.6, 1)

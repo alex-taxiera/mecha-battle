@@ -70,6 +70,9 @@ var damage_dealt := 0
 var active_parts: Array[ActivePart] = []
 ## The statuses on the mech, one of each at most, each with charges.
 var statuses: Array[ActiveStatus] = []
+## The run's field kits this fight (see [FieldKit]), and the indices of those already used.
+var kits: Array[FieldKit] = []
+var kits_used: Array[int] = []
 ## A boss's phases (see [BossPhase]) and the ones it has entered this fight.
 var phases: Array[BossPhase] = []
 var phases_done: Array[BossPhase] = []
@@ -270,6 +273,11 @@ func _enter_phase(phase: BossPhase) -> void:
 			active.damage = roundi(active.damage * phase.damage_scale)
 	for relic in phase.relics:
 		add_relic(relic.duplicate())
+
+
+## Returns whether kit [param index] is there and not yet used this fight.
+func can_use_kit(index: int) -> bool:
+	return index >= 0 and index < kits.size() and index not in kits_used
 
 
 ## Repairs up to [param amount] of the hull, never past [member max_hp], and only while the mech

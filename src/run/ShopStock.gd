@@ -30,6 +30,17 @@ class Slot:
 		part = p_part
 
 
+## One field kit offer: bought, it goes in a free kit slot.
+class KitOffer:
+	var kit: FieldKit
+	var price := 0
+	var sold := false
+
+	func _init(p_kit: FieldKit, p_price: int) -> void:
+		kit = p_kit
+		price = p_price
+
+
 ## One weapon mod offer: bought, it's fitted to the mech's strongest weapon.
 class ModOffer:
 	var mod: WeaponMod
@@ -58,6 +69,7 @@ var slots: Array[Slot] = []
 var size := SIZE
 var relic_offers: Array[RelicOffer] = []
 var mod_offers: Array[ModOffer] = []
+var kit_offers: Array[KitOffer] = []
 
 var _catalog: Array[MechPart] = []
 var _rng: RandomNumberGenerator
@@ -82,6 +94,12 @@ func get_open_slot(index: int) -> Slot:
 
 
 ## Returns the unsold relic offer at [param index], or [code]null[/code].
+func get_open_kit(index: int) -> KitOffer:
+	if index < 0 or index >= kit_offers.size() or kit_offers[index].sold:
+		return null
+	return kit_offers[index]
+
+
 func get_open_mod(index: int) -> ModOffer:
 	if index < 0 or index >= mod_offers.size() or mod_offers[index].sold:
 		return null

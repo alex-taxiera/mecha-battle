@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StrikeKit" format=3]
+
+[ext_resource type="Script" path="res://src/data/kits/StrikeKit.gd" id="1_pevnq"]
+
+[resource]
+script = ExtResource("1_pevnq")
+id = "micro_missile"
+kit_name = "Micro-missile"
+description = "Fire it: 60 damage to the enemy (20 EN)."
+glyph = "M"
+color = Color(1, 0.45, 0.4, 1)
+price = 8
+energy_cost = 20

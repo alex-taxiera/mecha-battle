@@ -25,7 +25,8 @@ var items := HFlowContainer.new()
 
 
 func _init() -> void:
-	custom_minimum_size.y = 120
+	# Its least height; it grows into whatever the shop above leaves free.
+	custom_minimum_size.y = 80
 	var margin := MarginContainer.new()
 	for side in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 14)

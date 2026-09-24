@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ReviveKit" format=3]
+
+[ext_resource type="Script" path="res://src/data/kits/ReviveKit.gd" id="1_4fgc0"]
+
+[resource]
+script = ExtResource("1_4fgc0")
+id = "reboot_protocol"
+kit_name = "Reboot Protocol"
+description = "The first time the mech would go down in a fight, it reboots at 20% HP."
+trigger = 1
+glyph = "R"
+color = Color(0.96, 0.83, 0.43, 1)
+price = 20
+on_defeat = true

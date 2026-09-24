@@ -165,3 +165,32 @@ func test_an_elite_can_offer_a_weapon_mod_instead_of_its_relic() -> void:
 	assert_bool(screen.take_relic(0)).is_false()
 	assert_bool(screen.take_mod()).is_false()
 	await await_idle_frame()
+
+
+func test_a_fight_can_drop_a_kit_taken_on_its_own() -> void:
+	var reward := FightReward.new()
+	reward.kit = Fixtures.shield_cell()
+	var screen: RewardScreen = auto_free(RewardScreen.new(_run, reward))
+	add_child(screen)
+	assert_str(screen.relic_label.text).is_equal("Recovered a field kit:")
+	var cards := screen.get_relic_cards()
+	assert_array(cards).has_size(1)
+	assert_array(_texts_of(cards[0])).contains(["Shield Cell", "Field kit · Use in a fight · 10 EN", "Take"])
+	assert_str(screen.done_button.text).is_equal("Skip the rest")
+	assert_bool(screen.take_kit()).is_true()
+	assert_array(_run.kits).has_size(1)
+	assert_array(_texts_of(screen.get_relic_cards()[0])).contains(["Taken"])
+	assert_str(screen.done_button.text).is_equal("Continue")
+	await await_idle_frame()
+
+
+func test_a_kit_waits_for_room() -> void:
+	for i in RunState.KIT_SLOTS:
+		_run.add_kit(Fixtures.foam_armor())
+	var reward := FightReward.new()
+	reward.kit = Fixtures.shield_cell()
+	var screen: RewardScreen = auto_free(RewardScreen.new(_run, reward))
+	add_child(screen)
+	assert_array(_texts_of(screen.get_relic_cards()[0])).contains(["Kit slots full"])
+	assert_bool(screen.take_kit()).is_false()
+	await await_idle_frame()

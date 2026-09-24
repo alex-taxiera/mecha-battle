@@ -18,6 +18,7 @@ const TOAST_SECONDS := 1.9
 const GOOD_COLOR := Color(0.49, 0.88, 0.63)
 const BAD_COLOR := Color(0.94, 0.42, 0.42)
 
+
 @export var chassis: MechChassis
 ## Gold for the run this screen starts when it isn't given one.
 @export var starting_gold := 10
@@ -33,6 +34,10 @@ var run: RunState
 # The run's current stats, refreshed on every change.
 var _stats: MechStats
 var _toast_timer: Timer
+# The run's field kits under the chassis, and the shop's kit offers under its relics, built on
+# the first refresh.
+var _kits_box: VBoxContainer
+var _kit_offers: HBoxContainer
 
 @onready var _round_label: Label = %RoundLabel
 @onready var _screen_title: Label = %ScreenTitle
@@ -180,6 +185,8 @@ func _refresh() -> void:
 			_relic_offers.add_child(_make_relic_offer(i))
 		for i in run.shop.mod_offers.size():
 			_relic_offers.add_child(_make_mod_offer(i))
+	_show_kit_offers()
+	_show_kits()
 	_stats_panel.show_stats(_stats, null)
 
 
@@ -224,6 +231,117 @@ func _make_relic_offer(index: int) -> Control:
 		buy.pressed.connect(buy_relic.bind(index), CONNECT_DEFERRED)
 	row.add_child(buy)
 	return card
+
+
+# The run's field kits under the chassis, each with a button to throw it away and free its slot.
+func _show_kits() -> void:
+	if _kits_box == null:
+		_kits_box = VBoxContainer.new()
+		_kits_box.add_theme_constant_override("separation", 4)
+		_passive_label.get_parent().add_child(_kits_box)
+	for child in _kits_box.get_children():
+		_kits_box.remove_child(child)
+		child.queue_free()
+	var title := Label.new()
+	title.text = "Field kits · %d / %d" % [run.kits.size(), RunState.KIT_SLOTS]
+	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_color_override("font_color", Color(0.72, 0.74, 0.78))
+	_kits_box.add_child(title)
+	for i in run.kits.size():
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		row.add_child(KitIcon.new(run.kits[i], 24.0))
+		var label := Label.new()
+		label.text = run.kits[i].kit_name
+		label.size_flags_horizontal = SIZE_EXPAND_FILL
+		label.add_theme_font_size_override("font_size", 13)
+		row.add_child(label)
+		var discard := Button.new()
+		discard.text = "Discard"
+		discard.pressed.connect(discard_kit.bind(i), CONNECT_DEFERRED)
+		row.add_child(discard)
+		_kits_box.add_child(row)
+
+
+## Throws away kit [param index], with a toast saying so.
+func discard_kit(index: int) -> bool:
+	var kit: FieldKit = run.kits[index] if index >= 0 and index < run.kits.size() else null
+	if kit == null or not run.discard_kit(index):
+		return false
+	show_toast("Discarded %s" % kit.kit_name, true)
+	return true
+
+
+# The shop's kits, in a slim row of their own under the relics.
+func _show_kit_offers() -> void:
+	if _kit_offers == null:
+		_kit_offers = HBoxContainer.new()
+		_kit_offers.add_theme_constant_override("separation", 10)
+		_relic_offers.get_parent().add_child(_kit_offers)
+		_relic_offers.get_parent().move_child(_kit_offers, _relic_offers.get_index() + 1)
+	for offer in _kit_offers.get_children():
+		_kit_offers.remove_child(offer)
+		offer.queue_free()
+	var count := run.shop.kit_offers.size() if run.shop else 0
+	_kit_offers.visible = count > 0
+	for i in count:
+		_kit_offers.add_child(_make_kit_offer(i))
+
+
+## Returns the shop's kit offers, left to right.
+func get_kit_offers() -> Array[Node]:
+	return _kit_offers.get_children() if _kit_offers else []
+
+
+# One field kit for sale on a single line: its icon, name, and when it acts, and a button. What it
+# does is in the tooltip.
+func _make_kit_offer(index: int) -> Control:
+	var offer: ShopStock.KitOffer = run.shop.kit_offers[index]
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = SIZE_EXPAND_FILL
+	card.tooltip_text = KitIcon.describe(offer.kit)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	card.add_child(row)
+	var icon := KitIcon.new(offer.kit, 22.0)
+	icon.size_flags_vertical = SIZE_SHRINK_CENTER
+	row.add_child(icon)
+	var name_label := Label.new()
+	name_label.text = offer.kit.kit_name
+	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_color_override("font_color", offer.kit.color)
+	row.add_child(name_label)
+	var when := Label.new()
+	when.text = offer.kit.describe_trigger()
+	when.add_theme_font_size_override("font_size", 11)
+	when.add_theme_color_override("font_color", Color(0.72, 0.74, 0.78))
+	when.size_flags_horizontal = SIZE_EXPAND_FILL
+	when.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	row.add_child(when)
+	var buy := Button.new()
+	buy.custom_minimum_size = Vector2(90, 28)
+	buy.size_flags_vertical = SIZE_SHRINK_CENTER
+	if offer.sold:
+		buy.text = "Sold"
+		buy.disabled = true
+	else:
+		buy.text = "Buy · %dg" % offer.price
+		buy.disabled = offer.price > run.gold or not run.has_kit_room()
+		if not run.has_kit_room():
+			buy.tooltip_text = "Every kit slot is full: discard one first."
+		buy.pressed.connect(buy_kit.bind(index), CONNECT_DEFERRED)
+	row.add_child(buy)
+	return card
+
+
+## Buys the shop's kit offer [param index], with a toast saying so.
+func buy_kit(index: int) -> bool:
+	var offer: ShopStock.KitOffer = run.shop.kit_offers[index] if run.shop and index < run.shop.kit_offers.size() else null
+	if offer == null or not run.buy_kit(index):
+		show_toast("Can't buy that kit", false)
+		return false
+	show_toast("Bought %s · -%dg" % [offer.kit.kit_name, offer.price], true)
+	return true
 
 
 # One weapon mod for sale: its name, what it does and which weapon it goes on, and a button.

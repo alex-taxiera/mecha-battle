@@ -465,3 +465,29 @@ func test_a_boss_phase_pops_its_title() -> void:
 	_tick(screen, 20)
 	assert_array(_popup_texts(screen)).contains(["SCRAP ARMOR"])
 	assert_int(boss.shield).is_equal(9)
+
+
+func test_the_players_kits_are_buttons_along_the_bottom() -> void:
+	var player := _gunner()
+	player.kits.assign([Fixtures.micro_missile(), Fixtures.emergency_patch()])
+	var foe := _bare()
+	var screen := _screen(player, foe)
+	assert_object(screen.kit_bar).is_not_null()
+	var buttons := screen.kit_bar.get_children()
+	assert_array(buttons).has_size(2)
+	assert_str((buttons[0] as Button).text).is_equal("Micro-missile · 20 EN")
+	assert_str((buttons[1] as Button).text).is_equal("Emergency Patch · auto")
+	# Not enough energy yet, and an auto kit is never pressed.
+	assert_bool((buttons[0] as Button).disabled).is_true()
+	assert_bool((buttons[1] as Button).disabled).is_true()
+	player.current_energy = 20
+	screen.kit_bar.refresh()
+	assert_bool((buttons[0] as Button).disabled).is_false()
+	(buttons[0] as Button).pressed.emit()
+	assert_int(foe.current_health).is_equal(0)
+	assert_str((buttons[0] as Button).text).is_equal("Micro-missile · used")
+	assert_bool((buttons[0] as Button).disabled).is_true()
+	assert_array(_popup_texts(screen)).contains(["MICRO-MISSILE"])
+	# Positive control: no kits, no bar.
+	assert_object(_screen(_gunner(), _bare()).kit_bar).is_null()
+	await await_idle_frame()

@@ -20,6 +20,7 @@ const EVENTS_DIR := "res://resources/events"
 const UNLOCKS_DIR := "res://resources/unlocks"
 const TECHNICIAN_DIR := "res://resources/technician"
 const MODS_DIR := "res://resources/mods"
+const KITS_DIR := "res://resources/kits"
 const THREAT_DIR := "res://resources/threat"
 const RUN_MODIFIERS_DIR := "res://resources/run_modifiers"
 ## The Mech Technician's id in the unlocks.
@@ -47,6 +48,8 @@ var affixes: Array[Relic] = []
 ## The weapon mods shops, elites, and the Hangar's Refit can offer; loaded from
 ## [constant MODS_DIR] unless set.
 var mods: Array[WeaponMod] = []
+## The field kits shops, fights, and events can offer; loaded from [constant KITS_DIR] unless set.
+var kits: Array[FieldKit] = []
 ## The Hangar's jobs, in their order; loaded from [constant HANGAR_JOBS_DIR] unless set.
 var hangar_jobs: Array[HangarJob] = []
 ## The Threat ladder, level 1 first; loaded from [constant THREAT_DIR] unless set.
@@ -98,6 +101,8 @@ func _ready() -> void:
 		affixes.assign(LoadoutScreen.load_dir(AFFIXES_DIR).filter(func(resource: Resource) -> bool: return resource is Relic))
 	if mods.is_empty():
 		mods.assign(LoadoutScreen.load_dir(MODS_DIR).filter(func(resource: Resource) -> bool: return resource is WeaponMod))
+	if kits.is_empty():
+		kits.assign(LoadoutScreen.load_dir(KITS_DIR).filter(func(resource: Resource) -> bool: return resource is FieldKit))
 	if hangar_jobs.is_empty():
 		var jobs := LoadoutScreen.load_dir(HANGAR_JOBS_DIR).filter(func(resource: Resource) -> bool: return resource is HangarJob)
 		jobs.sort_custom(func(a: HangarJob, b: HangarJob) -> bool: return a.order < b.order or (a.order == b.order and a.id < b.id))
@@ -142,6 +147,7 @@ func _start_run(chassis: MechChassis) -> void:
 		run_relics, events, affixes, modifiers)
 	run.hangar_jobs.assign(hangar_jobs)
 	run.mod_pool.assign(mods)
+	run.kit_pool.assign(kits)
 	if profile.is_available(Unlock.Kind.NPC, TECHNICIAN, unlocks):
 		_meet_technician()
 	else:

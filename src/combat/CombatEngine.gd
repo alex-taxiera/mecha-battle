@@ -18,6 +18,8 @@ enum State { PRE_GAME, RUNNING, FINISHED }
 signal weapon_fired(attacker: BattleMech, weapon: ActivePart, target: BattleMech, damage: int)
 ## Emitted when a MELTDOWN mech hits full heat and deals [param damage] to [param target].
 signal meltdown(mech: BattleMech, target: BattleMech, damage: int)
+## Emitted when [param mech] uses [param kit], by hand or on its own.
+signal kit_used(mech: BattleMech, kit: FieldKit)
 ## Emitted each time the electrical storm hits both mechs for [param damage], before plating.
 signal storm_struck(damage: int)
 ## Emitted when [param source]'s armor deals [param damage] back to [param target], after its
@@ -82,6 +84,10 @@ func start() -> void:
 		state = State.RUNNING
 		left.start_fight()
 		right.start_fight()
+		for mech: BattleMech in [left, right]:
+			for i in mech.kits.size():
+				if mech.kits[i].trigger == FieldKit.Trigger.FIGHT_START:
+					_apply_kit(mech, i)
 
 
 ## Advances a running fight by [param delta] seconds. Shutdowns count down first, then statuses
@@ -120,6 +126,8 @@ func process_tick(delta: float) -> void:
 	for mech: BattleMech in [left, right]:
 		_check_meltdown(mech)
 	_tick_storm()
+	for mech: BattleMech in [left, right]:
+		_trigger_kits(mech)
 	for mech: BattleMech in [left, right]:
 		for phase in mech.check_phases():
 			phase_changed.emit(mech, phase)
@@ -268,6 +276,37 @@ func _shoot(attacker: BattleMech, target: BattleMech, active: ActivePart) -> voi
 		target.damage_dealt += returned
 		target.announce(armor.active)
 		reflected.emit(target, attacker, returned)
+
+
+## Uses [param mech]'s MANUAL kit [param index], paying its energy. Returns false, using
+## nothing, unless the fight is running, the kit is unused and manual, the mech isn't shut down,
+## and it has the energy. A kit that finishes the enemy ends the fight at once.
+func use_kit(mech: BattleMech, index: int) -> bool:
+	if state != State.RUNNING or not mech.can_use_kit(index) or mech.is_shut_down():
+		return false
+	var kit := mech.kits[index]
+	if kit.trigger != FieldKit.Trigger.MANUAL or mech.current_energy < kit.energy_cost:
+		return false
+	mech.current_energy -= kit.energy_cost
+	_apply_kit(mech, index)
+	_check_for_end()
+	return true
+
+
+# Fires each of [param mech]'s unused AUTO kits whose condition is met. Runs before boss phases
+# and the end check, so a revive can catch a mech that just went down.
+func _trigger_kits(mech: BattleMech) -> void:
+	for i in mech.kits.size():
+		var kit := mech.kits[i]
+		if kit.trigger == FieldKit.Trigger.AUTO and mech.can_use_kit(i) and kit.is_due(mech):
+			_apply_kit(mech, i)
+
+
+func _apply_kit(mech: BattleMech, index: int) -> void:
+	var kit := mech.kits[index]
+	mech.kits_used.append(index)
+	kit.apply(mech, _enemy_of(mech))
+	kit_used.emit(mech, kit)
 
 
 # A mech with a [MeltdownPassive] at full heat hits its enemy, cools to 0, and shuts down.

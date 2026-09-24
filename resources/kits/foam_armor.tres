@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BuffKit" format=3]
+
+[ext_resource type="Script" path="res://src/data/kits/BuffKit.gd" id="1_ps7ne"]
+[ext_resource type="Resource" path="res://resources/statuses/fortified.tres" id="2_6vug1"]
+
+[resource]
+script = ExtResource("1_ps7ne")
+status = ExtResource("2_6vug1")
+charges = 6
+id = "foam_armor"
+kit_name = "Foam Armor"
+description = "The next fight starts with 6 Fortified (hits 2 smaller per charge, fading)."
+trigger = 2
+glyph = "A"
+color = Color(0.55, 0.8, 1, 1)
+price = 8

@@ -19,6 +19,7 @@ Parts of the run and combat code are adapted from [Slay-The-Robot](https://githu
 - `src/data/WeaponMod.gd`: `data/readonly/CardDecoratorData.gd` (value changes and added behavior on one item, with one slot)
 - `src/data/HangarJob.gd`: `data/readonly/RestActionData.gd` (jobs as data with requirements and cost types; relics adding jobs, after `ActionUpdateRestActions`)
 - `src/run/FightReward.gd`: the reward groups of `scripts/ui/RewardOverlay.gd` (taking one reward in a group closes the others)
+- `src/data/FieldKit.gd` and the kit slots in `src/data/RunState.gd`: `data/readonly/ConsumableData.gd`, `data/prototype/PlayerData.gd` (consumable slots), and `scripts/ui/Consumables.gd` (auto-used consumables and use costs)
 - `src/data/RunModifier.gd`: `data/readonly/RunModifierData.gd` and `scripts/run_modifiers/BaseRunModifier.gd` (difficulty levels and custom modes as one kind of data, stacking levels, exclusive pairs)
 - `src/ui/ChassisSelectScreen.gd` (the Threat picker and custom-mode checkboxes): `scripts/ui/menus/NewRunMenu.gd`
 - `src/data/EnemyLoadout.gd` (`threat_overrides`): `data/prototype/EnemyData.gd` (`enemy_difficulty_to_enemy_modfiers`, per-difficulty property overrides)

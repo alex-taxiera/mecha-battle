@@ -943,3 +943,67 @@ static func juggernaut_frame() -> MechChassis:
 	chassis.passive_name = "Momentum"
 	chassis.passive_text = "Weapons fire 2% faster for every second of the fight, up to 30%."
 	return chassis
+
+
+# The design doc's field kits.
+
+static func _kit(kit: FieldKit, id: String, kit_name: String, trigger: FieldKit.Trigger) -> FieldKit:
+	kit.id = id
+	kit.kit_name = kit_name
+	kit.trigger = trigger
+	kit.description = kit_name
+	return kit
+
+
+## AUTO at 25% HP: repairs 25% of max HP.
+static func emergency_patch() -> RepairKit:
+	var kit: RepairKit = _kit(RepairKit.new(), "emergency_patch", "Emergency Patch", FieldKit.Trigger.AUTO)
+	kit.share = 0.25
+	kit.hp_below = 0.25
+	kit.price = 10
+	return kit
+
+
+## AUTO at 90 heat: vents 70.
+static func coolant_flush() -> VentKit:
+	var kit: VentKit = _kit(VentKit.new(), "coolant_flush", "Coolant Flush", FieldKit.Trigger.AUTO)
+	kit.heat = 70
+	kit.heat_above = 90
+	kit.price = 8
+	return kit
+
+
+## AUTO on defeat: back up at 20% HP.
+static func reboot_protocol() -> ReviveKit:
+	var kit: ReviveKit = _kit(ReviveKit.new(), "reboot_protocol", "Reboot Protocol", FieldKit.Trigger.AUTO)
+	kit.share = 0.2
+	kit.on_defeat = true
+	kit.price = 20
+	return kit
+
+
+## MANUAL, 20 EN: 60 damage to the enemy.
+static func micro_missile() -> StrikeKit:
+	var kit: StrikeKit = _kit(StrikeKit.new(), "micro_missile", "Micro-missile", FieldKit.Trigger.MANUAL)
+	kit.damage = 60
+	kit.energy_cost = 20
+	kit.price = 8
+	return kit
+
+
+## MANUAL, 10 EN: +100 shield.
+static func shield_cell() -> ShieldKit:
+	var kit: ShieldKit = _kit(ShieldKit.new(), "shield_cell", "Shield Cell", FieldKit.Trigger.MANUAL)
+	kit.shield = 100
+	kit.energy_cost = 10
+	kit.price = 10
+	return kit
+
+
+## FIGHT_START: 6 Fortified.
+static func foam_armor() -> BuffKit:
+	var kit: BuffKit = _kit(BuffKit.new(), "foam_armor", "Foam Armor", FieldKit.Trigger.FIGHT_START)
+	kit.status = fortified()
+	kit.charges = 6
+	kit.price = 8
+	return kit

@@ -18,6 +18,16 @@ const ACT_HEAL := 0.5
 const BOSS_RELIC_CHOICES := 3
 ## Relics a Scrap Shop puts up for sale.
 const SHOP_RELICS := 2
+## Field kits the run can carry at once.
+const KIT_SLOTS := 3
+## Kits a Scrap Shop puts up for sale.
+const SHOP_KITS := 2
+## The chance a won fight drops a field kit, by tier.
+const KIT_DROP_CHANCES := {
+	EnemyLoadout.Tier.NORMAL: 0.15,
+	EnemyLoadout.Tier.ELITE: 0.35,
+	EnemyLoadout.Tier.BOSS: 0.0,
+}
 ## Weapon mods a Scrap Shop puts up for sale, and their price range before Threat.
 const SHOP_MODS := 1
 const MOD_PRICES := Vector2i(12, 18)
@@ -96,6 +106,9 @@ var cells_to_open := 0
 var hangar_jobs: Array[HangarJob] = []
 ## The weapon mods shops, elites, and a Hangar's Refit can offer.
 var mod_pool: Array[WeaponMod] = []
+## The field kits the run carries, up to [constant KIT_SLOTS], and those it can find or buy.
+var kits: Array[FieldKit] = []
+var kit_pool: Array[FieldKit] = []
 ## The run's modifiers: its Threat levels (1 up to the chosen one) and any custom modes (see
 ## [RunModifier]). Their numbers stack: scales multiply, the rest add.
 var run_modifiers: Array[RunModifier] = []
@@ -279,7 +292,9 @@ func damage_hull(amount: int) -> void:
 ## Returns the player's mech for a fight: the build as it is, with the run's relics, starting at
 ## its current HP.
 func make_player_mech() -> BattleMech:
-	return BattleMech.new(grid, rules, 1.0, get_current_hp(), get_modifiers())
+	var mech := BattleMech.new(grid, rules, 1.0, get_current_hp(), get_modifiers())
+	mech.kits.assign(kits)
+	return mech
 
 
 ## Returns the enemy fought at [param node] (by default the current node): the node's own if it
@@ -322,6 +337,13 @@ func make_enemy_mech(node: MapNode = null) -> BattleMech:
 ## ends the run.
 func record_fight(result: FightResult, mech: BattleMech) -> void:
 	hull_damage = maxi(0, mech.max_hp - mech.current_health)
+	# The kits it used are spent.
+	var used := mech.kits_used.duplicate()
+	used.sort()
+	used.reverse()
+	for index: int in used:
+		if index < kits.size():
+			kits.remove_at(index)
 	if result == FightResult.WIN:
 		fights_won += 1
 		for modifier in get_modifiers():
@@ -361,6 +383,8 @@ func roll_reward(node: MapNode = null, relic_rarity := -1) -> FightReward:
 			reward.relics = relic_pool.take(BOSS_RELIC_CHOICES, [Relic.Rarity.BOSS])
 			# Or grow the frame instead, while it has room.
 			reward.cells = mini(BOSS_CELLS, get_expandable_cells())
+	if rng.stream("kits").randf() < KIT_DROP_CHANCES.get(reward.tier, 0.0):
+		reward.kit = roll_kit()
 	if relic_rarity >= 0:
 		var rarities: Array[Relic.Rarity] = [relic_rarity as Relic.Rarity]
 		reward.relics.append_array(relic_pool.take(1, rarities))
@@ -388,6 +412,45 @@ func take_reward_cells(reward: FightReward) -> bool:
 	reward.relic_taken = FightReward.CELLS_TAKEN
 	grant_cells(reward.cells)
 	return true
+
+
+## Takes the reward's field kit into a free slot. Returns false if there's none, it's taken, or
+## every slot is full.
+func take_reward_kit(reward: FightReward) -> bool:
+	if reward.kit == null or reward.kit_taken or not add_kit(reward.kit):
+		return false
+	reward.kit_taken = true
+	return true
+
+
+## Puts [param kit] in a free kit slot. Returns false if they're all full.
+func add_kit(kit: FieldKit) -> bool:
+	if kit == null or not has_kit_room():
+		return false
+	kits.append(kit)
+	changed.emit()
+	return true
+
+
+## Whether a kit slot is free.
+func has_kit_room() -> bool:
+	return kits.size() < KIT_SLOTS
+
+
+## Throws away kit [param index] to free its slot.
+func discard_kit(index: int) -> bool:
+	if index < 0 or index >= kits.size():
+		return false
+	kits.remove_at(index)
+	changed.emit()
+	return true
+
+
+## Returns a kit from [member kit_pool], rolled on the run's "kits" stream, or null.
+func roll_kit() -> FieldKit:
+	if kit_pool.is_empty():
+		return null
+	return kit_pool[rng.stream("kits").randi_range(0, kit_pool.size() - 1)]
 
 
 ## Fits the reward's weapon mod, instead of a relic. Returns false if the group is closed, there's
@@ -764,6 +827,9 @@ func open_shop() -> void:
 	shop = ShopStock.new(catalog, rng.stream("shop"), for_sale)
 	for offer in shop.relic_offers:
 		offer.price = scale_price(offer.price)
+	var kits_for_sale := RunRng.shuffle(rng.stream("shop"), kit_pool.duplicate())
+	for kit: FieldKit in kits_for_sale.slice(0, SHOP_KITS):
+		shop.kit_offers.append(ShopStock.KitOffer.new(kit, scale_price(kit.price)))
 	for i in SHOP_MODS:
 		var mod := roll_mod()
 		if mod and shop.mod_offers.all(func(offer: ShopStock.ModOffer) -> bool: return offer.mod != mod):
@@ -829,6 +895,18 @@ func buy_relic(index: int) -> bool:
 	offer.sold = true
 	gold -= offer.price
 	add_relic(offer.relic)
+	return true
+
+
+## Buys the shop's kit offer [param index] into a free kit slot. Returns false unless a shop is
+## open, the offer is unsold and affordable, and a slot is free.
+func buy_kit(index: int) -> bool:
+	var offer := shop.get_open_kit(index) if shop else null
+	if offer == null or offer.price > gold or not add_kit(offer.kit):
+		return false
+	offer.sold = true
+	gold -= offer.price
+	changed.emit()
 	return true
 
 

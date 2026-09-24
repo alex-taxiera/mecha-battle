@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuffKit" format=3]
+
+[ext_resource type="Script" path="res://src/data/kits/BuffKit.gd" id="1_11127"]
+[ext_resource type="Resource" path="res://resources/statuses/overcharged.tres" id="2_uidaa"]
+
+[resource]
+script = ExtResource("1_11127")
+status = ExtResource("2_uidaa")
+id = "overcharge_capsule"
+kit_name = "Overcharge Capsule"
+description = "The next fight starts with 5 Overcharged (shots 10% harder per charge, fading)."
+trigger = 2
+glyph = "O"
+color = Color(1, 0.72, 0.28, 1)
+price = 8

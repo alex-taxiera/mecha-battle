@@ -339,3 +339,28 @@ func test_a_mod_for_sale_fits_the_strongest_weapon() -> void:
 	assert_str(fit.text).is_equal("Fitted")
 	assert_bool(screen.buy_mod(0)).is_false()
 	await await_idle_frame()
+
+
+func test_kits_for_sale_and_the_runs_kits() -> void:
+	var run := RunState.new(Fixtures.armed_cross(), [_laser], Fixtures.rules(), 100, RunRng.new(1))
+	run.kit_pool.assign([Fixtures.shield_cell()])
+	run.open_shop()
+	var screen: LoadoutScreen = auto_free(SCENE.instantiate())
+	screen.run = run
+	add_child(screen)
+	assert_array(screen.get_relic_offers()).is_empty()
+	var offers := screen.get_kit_offers()
+	assert_array(offers).has_size(1)
+	var price := run.shop.kit_offers[0].price
+	var buy := offers[0].find_children("*", "Button", true, false)[0] as Button
+	assert_str(buy.text).is_equal("Buy · %dg" % price)
+	assert_bool(screen.buy_kit(0)).is_true()
+	assert_int(run.gold).is_equal(100 - price)
+	assert_str((screen.get_node("%Toast") as Label).text).is_equal("Bought Shield Cell · -%dg" % price)
+	# The run's kits list under the chassis, each with a Discard.
+	var labels := screen.find_children("*", "Label", true, false).map(func(label: Label) -> String: return label.text)
+	assert_array(labels).contains(["Field kits · 1 / 3", "Shield Cell"])
+	assert_bool(screen.discard_kit(0)).is_true()
+	assert_array(run.kits).is_empty()
+	assert_bool(screen.discard_kit(0)).is_false()
+	await await_idle_frame()

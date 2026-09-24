@@ -80,6 +80,8 @@ var _small_shake: PhantomCameraNoiseEmitter2D
 var _big_shake: PhantomCameraNoiseEmitter2D
 # The opponent's affix badges, built on first use.
 var _affix_row: HBoxContainer
+## The player's field kits along the bottom, or null when they carry none.
+var kit_bar: KitBar
 
 @onready var result_panel: ResultPanel = %ResultPanel
 @onready var _tick_timer: Timer = %TickTimer
@@ -118,6 +120,7 @@ func _ready() -> void:
 	engine.reflected.connect(_on_reflected)
 	engine.shield_collapsed.connect(_on_shield_collapsed)
 	engine.phase_changed.connect(_on_phase_changed)
+	engine.kit_used.connect(_on_kit_used)
 	engine.battle_ended.connect(_on_battle_ended)
 	for mech: BattleMech in [engine.left, engine.right]:
 		mech.relic_triggered.connect(_on_relic_triggered.bind(mech))
@@ -129,6 +132,7 @@ func _ready() -> void:
 	resized.connect(_center_camera)
 	_center_camera()
 	_bind()
+	_add_kit_bar()
 	engine.start()
 	_tick_timer.start()
 
@@ -341,6 +345,8 @@ func _refresh() -> void:
 		(side[4] as HpBar).set_health(mech.current_health, mech.max_hp)
 		(side[4] as HpBar).set_shield(mech.shield, mech.max_shield)
 	_storm_timer.set_countdown(engine.get_storm_countdown())
+	if kit_bar:
+		kit_bar.refresh()
 
 
 # Bars glide to each tick's values over [param seconds], the time until the next tick, so they
@@ -502,6 +508,25 @@ func _show_affixes() -> void:
 	for relic in engine.right.relics:
 		if relic.rarity == Relic.Rarity.AFFIX:
 			_affix_row.add_child(RelicIcon.new(relic))
+
+
+# The player's kit buttons, centered along the bottom of the stage.
+func _add_kit_bar() -> void:
+	if engine.left.kits.is_empty():
+		return
+	kit_bar = KitBar.new(engine, engine.left)
+	add_child(kit_bar)
+	kit_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 16)
+	kit_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	kit_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+
+
+func _on_kit_used(mech: BattleMech, kit: FieldKit) -> void:
+	if kit_bar:
+		kit_bar.refresh()
+	if not _animate:
+		return
+	_effects.popup(kit.kit_name.to_upper(), _popup_spot(_fighter_of(mech)), kit.color, _popup_time())
 
 
 func _on_meltdown(_mech: BattleMech, target: BattleMech, damage: int) -> void:

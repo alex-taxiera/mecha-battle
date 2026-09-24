@@ -25,7 +25,7 @@ var floor_label := Label.new()
 var hp_bar := ProgressBar.new()
 var hp_label := Label.new()
 var gold_label := Label.new()
-## The run's relics, then its statuses, one icon each.
+## The run's relics, then its statuses, one icon each, then its field kits (square).
 var relic_bar := HBoxContainer.new()
 
 
@@ -94,6 +94,8 @@ func refresh() -> void:
 		relic_bar.add_child(RelicIcon.new(relic))
 	for status in run.statuses:
 		relic_bar.add_child(RelicIcon.new(status))
+	for kit in run.kits:
+		relic_bar.add_child(KitIcon.new(kit))
 
 
 func _style(label: Label, font_size: int, color: Color) -> void:

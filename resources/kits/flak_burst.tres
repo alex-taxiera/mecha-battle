@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StrikeKit" format=3]
+
+[ext_resource type="Script" path="res://src/data/kits/StrikeKit.gd" id="1_yiiqw"]
+[ext_resource type="Resource" path="res://resources/statuses/jammed.tres" id="2_kr5h8"]
+
+[resource]
+script = ExtResource("1_yiiqw")
+damage = 30
+status = ExtResource("2_kr5h8")
+charges = 3
+id = "flak_burst"
+kit_name = "Flak Burst"
+description = "Fire it: 30 damage and 3 Jammed to the enemy (30 EN)."
+glyph = "F"
+color = Color(0.71, 0.55, 1, 1)
+energy_cost = 30

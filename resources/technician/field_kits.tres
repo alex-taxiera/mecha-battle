@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RunStartOption" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="1_dm1pu"]
+[ext_resource type="Script" path="res://src/data/events/KitEffect.gd" id="2_gsdok"]
+[ext_resource type="Script" path="res://src/data/RunStartOption.gd" id="3_ib8cd"]
+
+[sub_resource type="Resource" id="Resource_3soac"]
+script = ExtResource("2_gsdok")
+
+[sub_resource type="Resource" id="Resource_83cvx"]
+script = ExtResource("2_gsdok")
+
+[resource]
+script = ExtResource("3_ib8cd")
+id = "field_kits"
+text = "gain two random field kits"
+effects = Array[ExtResource("1_dm1pu")]([SubResource("Resource_3soac"), SubResource("Resource_83cvx")])

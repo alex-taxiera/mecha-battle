@@ -24,6 +24,9 @@ var cells := 0
 ## A weapon mod for the mech's strongest weapon, offered in the same group as [member relics]
 ## (an elite's), or null.
 var mod: WeaponMod
+## A field kit the fight dropped, taken on its own (not in the relic group), or null.
+var kit: FieldKit
+var kit_taken := false
 ## Which of [member relics] was taken, [constant CELLS_TAKEN] for the cells, or -1.
 var relic_taken := -1
 

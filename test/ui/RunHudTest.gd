@@ -68,3 +68,13 @@ func test_a_run_without_sectors_shows_its_frame() -> void:
 	hud.run = RunState.new(Fixtures.bastion(), [], [])
 	assert_str(hud.floor_label.text).is_equal("Run")
 	assert_str(hud.sector_label.text).is_equal("The Bastion")
+
+
+func test_kits_show_after_the_relics() -> void:
+	_run.add_relic(Fixtures.relic("Lucky Bolt", Relic.Rarity.RARE))
+	_run.add_kit(Fixtures.shield_cell())
+	var icons := _hud.relic_bar.get_children()
+	assert_array(icons).has_size(2)
+	var icon: KitIcon = icons[1]
+	assert_str(icon.tooltip_text).is_equal("Shield Cell (field kit)\nUse in a fight · 10 EN\nShield Cell")
+	await await_idle_frame()

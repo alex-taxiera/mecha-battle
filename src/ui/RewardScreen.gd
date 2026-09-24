@@ -116,6 +116,14 @@ func take_mod() -> bool:
 	return true
 
 
+## Takes the fight's field kit into a free slot. Returns false if there's none or no room.
+func take_kit() -> bool:
+	if not run.take_reward_kit(reward):
+		return false
+	_refresh()
+	return true
+
+
 ## Returns the relic offer's cards, left to right.
 func get_relic_cards() -> Array[PanelContainer]:
 	var found: Array[PanelContainer] = []
@@ -156,6 +164,12 @@ func _refresh() -> void:
 		relic_cards.add_child(_make_cells_card())
 	if reward.mod != null:
 		relic_cards.add_child(_make_mod_card())
+	# A kit is taken on its own, not instead of the relic.
+	if reward.kit != null:
+		relic_cards.add_child(_make_kit_card())
+	relic_label.visible = relic_label.visible or reward.kit != null
+	if reward.kit != null and reward.relics.is_empty() and reward.cells == 0 and reward.mod == null:
+		relic_label.text = "Recovered a field kit:"
 	if reward.parts.is_empty():
 		draft_label.text = "Nothing else worth salvaging."
 	elif reward.taken >= 0:
@@ -164,7 +178,8 @@ func _refresh() -> void:
 		draft_label.text = "Salvage one part for your stash:"
 	for i in reward.parts.size():
 		cards.add_child(_make_card(i))
-	done_button.text = "Skip the rest" if reward.is_draft_open() or reward.is_relic_open() else "Continue"
+	var kit_open := reward.kit != null and not reward.kit_taken and run.has_kit_room()
+	done_button.text = "Skip the rest" if reward.is_draft_open() or reward.is_relic_open() or kit_open else "Continue"
 
 
 func _make_card(index: int) -> PanelContainer:
@@ -266,6 +281,47 @@ func _make_cells_card() -> PanelContainer:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.custom_minimum_size.x = 190
 	_finish_group_card(card, box, reward.relic_taken == FightReward.CELLS_TAKEN, take_cells)
+	return card
+
+
+# The fight's field kit: taken on its own, into a free slot.
+func _make_kit_card() -> PanelContainer:
+	var kit := reward.kit
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(220, 0)
+	var margin := MarginContainer.new()
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 10)
+	card.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	margin.add_child(box)
+	var icon_frame := CenterContainer.new()
+	icon_frame.add_child(KitIcon.new(kit, 36.0))
+	box.add_child(icon_frame)
+	var name_label := Label.new()
+	_add_label(box, name_label, 17, kit.color)
+	name_label.text = kit.kit_name
+	var kind_label := Label.new()
+	_add_label(box, kind_label, 12, DIM_COLOR)
+	kind_label.text = "Field kit · %s" % kit.describe_trigger()
+	var description := Label.new()
+	_add_label(box, description, 12, DIM_COLOR)
+	description.text = kit.description
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.custom_minimum_size.x = 190
+	var button := Button.new()
+	button.custom_minimum_size.y = 36
+	if reward.kit_taken:
+		button.text = "Taken"
+		button.disabled = true
+	elif not run.has_kit_room():
+		button.text = "Kit slots full"
+		button.disabled = true
+	else:
+		button.text = "Take"
+		button.pressed.connect(take_kit, CONNECT_DEFERRED)
+	box.add_child(button)
 	return card
 
 
