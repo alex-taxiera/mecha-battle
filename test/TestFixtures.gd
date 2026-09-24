@@ -129,6 +129,7 @@ static func heatsink() -> MechPart:
 
 static func part(part_name: String, type: MechPart.PartType, shape: Array[Vector2i], cost := 0, stats := {}) -> MechPart:
 	var result := MechPart.new()
+	result.id = part_name.to_snake_case()
 	result.part_name = part_name
 	result.type = type
 	result.grid_shape = shape.duplicate()

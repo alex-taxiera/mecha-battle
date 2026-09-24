@@ -39,6 +39,8 @@ class StashEntry:
 class Preview:
 	var fit: MechGridData.Fit
 	var affordable := true
+	## Whether the drop merges into the part already there instead of placing.
+	var merge := false
 	## The cells the part would cover.
 	var cells: Array[Vector2i] = []
 	## Empty cells next to those cells, where later parts could link. Empty unless it fits.
@@ -423,6 +425,118 @@ func preview_install(index: int, origin: Vector2i) -> Preview:
 	return _preview_place(entry.part, origin, entry.rotation)
 
 #endregion
+#region Upgrades
+
+## Merges stashed part [param index] into the installed part covering [param coords], which goes
+## up a Mk. Returns false, changing nothing, unless they can merge (see
+## [method MechPart.can_merge_with]).
+func merge_from_stash(index: int, coords: Vector2i) -> bool:
+	var target := grid.get_part_at(coords)
+	if index < 0 or index >= stash.size() or not stash[index].part.can_merge_with(target):
+		return false
+	var source := stash[index].part
+	stash.remove_at(index)
+	_level_up(target, source)
+	return true
+
+
+## Merges stashed part [param from] into stashed part [param into].
+func merge_stash(from: int, into: int) -> bool:
+	if from < 0 or into < 0 or from >= stash.size() or into >= stash.size():
+		return false
+	var source := stash[from].part
+	var target := stash[into].part
+	if not source.can_merge_with(target):
+		return false
+	stash.remove_at(from)
+	_level_up(target, source)
+	return true
+
+
+## Merges the installed part covering [param from_coords] into the one covering
+## [param into_coords], freeing the first one's cells.
+func merge_on_grid(from_coords: Vector2i, into_coords: Vector2i) -> bool:
+	var source := grid.get_part_at(from_coords)
+	var target := grid.get_part_at(into_coords)
+	if source == null or not source.can_merge_with(target):
+		return false
+	grid.remove_part(from_coords)
+	_level_up(target, source)
+	return true
+
+
+## Merges the installed part covering [param coords] into the stash's part [param into].
+func merge_into_stash(coords: Vector2i, into: int) -> bool:
+	var source := grid.get_part_at(coords)
+	if source == null or into < 0 or into >= stash.size() or not source.can_merge_with(stash[into].part):
+		return false
+	grid.remove_part(coords)
+	_level_up(stash[into].part, source)
+	return true
+
+
+## Buys shop slot [param slot_index] and merges it straight into the installed part covering
+## [param coords]. Changes nothing unless it's affordable and they can merge.
+func buy_and_merge(slot_index: int, coords: Vector2i) -> bool:
+	var slot := shop.get_open_slot(slot_index) if shop else null
+	if slot == null or not slot.part.can_merge_with(grid.get_part_at(coords)) or not can_afford(slot.part):
+		return false
+	return buy_to_stash(slot_index) and merge_from_stash(stash.size() - 1, coords)
+
+
+## Returns what merging [param part] into the installed part covering [param into_coords] would
+## do, or [code]null[/code] if they can't merge. Pass [param from_coords] when [param part] is
+## installed too, so its cells are freed in the stats.
+func preview_merge(part: MechPart, into_coords: Vector2i, from_coords: Variant = null) -> Preview:
+	var placement := grid.get_placement_at(into_coords)
+	if placement == null or not part.can_merge_with(placement.part):
+		return null
+	var preview := Preview.new()
+	preview.fit = MechGridData.Fit.OK
+	preview.merge = true
+	preview.cells = placement.cells.duplicate()
+	var hypothetical := grid.copy()
+	if from_coords != null:
+		hypothetical.remove_part(from_coords)
+	# The copy shares part instances: raise the Mk just for the numbers.
+	placement.part.level += 1
+	preview.stats = MechStats.calculate(hypothetical, rules, get_modifiers())
+	placement.part.level -= 1
+	preview.open_edges = hypothetical.get_open_edges(preview.cells)
+	return preview
+
+
+## Raises [param part] a Mk, e.g. at a Hangar. Returns false if it's at the top already.
+func upgrade_part(part: MechPart) -> bool:
+	if part == null or part.level >= MechPart.MAX_LEVEL:
+		return false
+	part.level += 1
+	changed.emit()
+	return true
+
+
+## Returns every part the player owns that can still go up a Mk, installed ones first. Junk
+## isn't worth upgrading and isn't listed.
+func get_upgradable_parts() -> Array[MechPart]:
+	var parts: Array[MechPart] = []
+	for placement in grid.get_placements():
+		parts.append(placement.part)
+	for entry in stash:
+		parts.append(entry.part)
+	return parts.filter(func(part: MechPart) -> bool:
+		return part.level < MechPart.MAX_LEVEL and part.type != MechPart.PartType.JUNK)
+
+
+# [param target] absorbs [param source] and goes up a Mk. The merged part sells back in full
+# only if both halves were bought at this shop.
+func _level_up(target: MechPart, source: MechPart) -> void:
+	target.level += 1
+	if not (source in _fresh and target in _fresh):
+		_fresh.erase(target)
+	_fresh.erase(source)
+	changed.emit()
+
+#endregion
 #region Shop
 
 ## Opens a Scrap Shop, stocked from the catalog, with [constant SHOP_RELICS] relics from the
@@ -520,8 +634,8 @@ func can_sell_part(part: MechPart) -> bool:
 	return can_sell() and part != null and part.sellable
 
 
-## Returns what the part covering [param coords] sells for: its full cost if it was bought at
-## this shop, otherwise half, rounded down. 0 if the cell is empty.
+## Returns what the part covering [param coords] sells for: its cost times its Mk, in full if it
+## was bought at this shop, otherwise half, rounded down. 0 if the cell is empty.
 func sell_value(coords: Vector2i) -> int:
 	return _value_of(grid.get_part_at(coords))
 
@@ -619,7 +733,8 @@ func preview_move(coords: Vector2i, new_origin: Vector2i) -> Preview:
 func _value_of(part: MechPart) -> int:
 	if part == null:
 		return 0
-	return part.cost if part in _fresh else floori(part.cost / 2.0)
+	var value := part.cost * part.level
+	return value if part in _fresh else floori(value / 2.0)
 
 
 func _preview_place(part: MechPart, origin: Vector2i, rotation: int) -> Preview:

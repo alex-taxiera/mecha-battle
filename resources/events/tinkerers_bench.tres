@@ -1,0 +1,69 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_hjk5g"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_gpv6c"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_jn5ex"]
+[ext_resource type="Script" path="res://src/data/events/UpgradePartEffect.gd" id="4_lx0ug"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="5_b4a4g"]
+[ext_resource type="Script" path="res://src/data/events/GoldRequirement.gd" id="6_f4eib"]
+[ext_resource type="Script" path="res://src/data/events/UpgradableRequirement.gd" id="7_33a6c"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="8_rr3yl"]
+
+[sub_resource type="Resource" id="Resource_abmi0"]
+script = ExtResource("4_lx0ug")
+
+[sub_resource type="Resource" id="Resource_skyt8"]
+script = ExtResource("2_gpv6c")
+text = "They pick one and get to work."
+effects = Array[ExtResource("3_jn5ex")]([SubResource("Resource_abmi0")])
+
+[sub_resource type="Resource" id="Resource_fi27q"]
+script = ExtResource("1_hjk5g")
+label = "Let them tinker"
+hint = "A random part goes up a Mk."
+outcomes = Array[ExtResource("2_gpv6c")]([SubResource("Resource_skyt8")])
+
+[sub_resource type="Resource" id="Resource_x1pit"]
+script = ExtResource("5_b4a4g")
+amount = -25
+
+[sub_resource type="Resource" id="Resource_pw6gh"]
+script = ExtResource("4_lx0ug")
+pick = 1
+
+[sub_resource type="Resource" id="Resource_qduf3"]
+script = ExtResource("2_gpv6c")
+text = "\"Good eye.\" The work is careful and quick."
+effects = Array[ExtResource("3_jn5ex")]([SubResource("Resource_x1pit"), SubResource("Resource_pw6gh")])
+
+[sub_resource type="Resource" id="Resource_xd8f5"]
+script = ExtResource("6_f4eib")
+gold = 25
+
+[sub_resource type="Resource" id="Resource_0yhrf"]
+script = ExtResource("1_hjk5g")
+label = "Point at your best part"
+hint = "Pay 25 gold: your strongest part goes up a Mk."
+requirement = SubResource("Resource_xd8f5")
+outcomes = Array[ExtResource("2_gpv6c")]([SubResource("Resource_qduf3")])
+
+[sub_resource type="Resource" id="Resource_ulk2r"]
+script = ExtResource("2_gpv6c")
+text = "You thank them and move on."
+
+[sub_resource type="Resource" id="Resource_sxb3k"]
+script = ExtResource("1_hjk5g")
+label = "Leave"
+outcomes = Array[ExtResource("2_gpv6c")]([SubResource("Resource_ulk2r")])
+
+[sub_resource type="Resource" id="Resource_qjig2"]
+script = ExtResource("7_33a6c")
+
+[resource]
+script = ExtResource("8_rr3yl")
+id = "tinkerers_bench"
+title = "The Tinkerer's Bench"
+text = "An old mechanic waves you into a cluttered workshop. \"I can make something of those parts. For free, if you don't mind which one.\""
+requirement = SubResource("Resource_qjig2")
+failed_strategy = 3
+choices = Array[ExtResource("1_hjk5g")]([SubResource("Resource_fi27q"), SubResource("Resource_0yhrf"), SubResource("Resource_sxb3k")])

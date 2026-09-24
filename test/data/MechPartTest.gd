@@ -9,6 +9,42 @@ const VERTICAL_1X3: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 1), Vector2i(
 const L_SHAPE: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, 1), Vector2i(1, 1)]
 
 
+func test_a_mk_scales_the_part_and_names_it() -> void:
+	var part := _make_part(VERTICAL_1X3)
+	part.part_name = "Gun"
+	assert_float(part.get_level_scale()).is_equal(1.0)
+	assert_str(part.get_display_name()).is_equal("Gun")
+	part.level = 2
+	assert_float(part.get_level_scale()).is_equal(1.5)
+	assert_str(part.get_display_name()).is_equal("Gun Mk II")
+	part.level = 3
+	assert_float(part.get_level_scale()).is_equal(2.0)
+	assert_str(part.get_display_name()).is_equal("Gun Mk III")
+	# The bonus is the part's own.
+	part.upgrade_bonus = 0.25
+	assert_float(part.get_level_scale()).is_equal(1.5)
+	# A copy keeps its Mk.
+	assert_int(part.duplicate().level).is_equal(3)
+
+
+func test_only_copies_at_the_same_mk_merge() -> void:
+	var a := _named("gun", "Gun")
+	var b := _named("gun", "Gun")
+	assert_bool(a.can_merge_with(b)).is_true()
+	assert_bool(a.can_merge_with(a)).is_false()      # not with itself
+	assert_bool(a.can_merge_with(null)).is_false()
+	assert_bool(a.can_merge_with(_named("laser", "Laser"))).is_false()
+	# A reworked part keeps its id but not its name: it only merges with its own kind.
+	assert_bool(a.can_merge_with(_named("gun", "Overclocked Gun"))).is_false()
+	b.level = 2
+	assert_bool(a.can_merge_with(b)).is_false()      # not across Mks
+	a.level = 2
+	assert_bool(a.can_merge_with(b)).is_true()
+	a.level = 3
+	b.level = 3
+	assert_bool(a.can_merge_with(b)).is_false()      # nothing above Mk III
+
+
 func test_get_shape_turns_clockwise() -> void:
 	# A vertical bar lies down after one turn and stands back up after two.
 	var vertical := _make_part(VERTICAL_1X3)
@@ -64,4 +100,11 @@ func _make_part(shape: Array[Vector2i]) -> MechPart:
 	var part := MechPart.new()
 	part.type = MechPart.PartType.UTILITY
 	part.grid_shape = shape
+	return part
+
+
+func _named(id: String, part_name: String) -> MechPart:
+	var part := _make_part(VERTICAL_1X3)
+	part.id = id
+	part.part_name = part_name
 	return part

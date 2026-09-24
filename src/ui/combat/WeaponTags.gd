@@ -33,7 +33,7 @@ func bind(p_mech: BattleMech, accent: Color, align_right: bool) -> void:
 			continue
 		var tag := WeaponTag.new()
 		tag.slot_name = active.hardpoint.hardpoint_name if active.hardpoint else ""
-		tag.weapon_name = active.part.part_name
+		tag.weapon_name = active.part.get_display_name()
 		tag.accent = accent
 		tag.align_right = align_right
 		tag.smoothing = smoothing

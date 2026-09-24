@@ -65,6 +65,31 @@ func test_dropping_an_installed_part_here_stores_it() -> void:
 	await await_idle_frame()
 
 
+func test_dropping_a_copy_on_a_stash_item_merges_them() -> void:
+	_run.stash_part(Fixtures.heatsink())
+	_run.stash_part(Fixtures.heatsink())
+	var items := _panel.get_items()
+	var drag := items[1]._get_drag_data(Vector2.ZERO) as PartDragData
+	assert_bool(items[0]._can_drop_data(Vector2.ZERO, drag)).is_true()
+	items[0]._drop_data(Vector2.ZERO, drag)
+	assert_array(_run.stash).has_size(1)
+	assert_int(_run.stash[0].part.level).is_equal(2)
+	await await_idle_frame()
+
+
+func test_an_item_passes_other_drops_to_the_stash() -> void:
+	_run.stash_part(Fixtures.heatsink())
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	var item := _panel.get_items()[0]
+	var from_grid := PartDragData.from_grid(Vector2i(1, 1), _run.grid.get_part_at(Vector2i(1, 1)), 0)
+	# Not a copy of the heatsink, so it's stored, as if dropped on the stash itself.
+	assert_bool(item._can_drop_data(Vector2.ZERO, from_grid)).is_true()
+	item._drop_data(Vector2.ZERO, from_grid)
+	assert_array(_run.stash).has_size(2)
+	assert_int(_run.stash[0].part.level).is_equal(1)
+	await await_idle_frame()
+
+
 func test_at_a_shop_dropping_an_offer_here_buys_it_into_the_stash() -> void:
 	var laser := Fixtures.laser() # 2 gold
 	var run := RunState.new(Fixtures.armed_cross(), [laser], [], 10)

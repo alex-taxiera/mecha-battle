@@ -1,16 +1,22 @@
 class_name StashItem
 extends PanelContainer
 ## One part in the stash: its shape, name, and size, and a rotate button when it can turn.
-## Dragging it onto the mech installs it.
+## Dragging it onto the mech installs it; dropping a copy of it here, from the stash or the mech,
+## merges the two a Mk up.
 
 ## Emitted when the player asks to turn the part a quarter-turn.
 signal rotate_requested
+## Emitted when a copy of this part is dropped on it, to merge.
+signal merge_requested(drag: PartDragData)
 
 const NAME_COLOR := Color(0.93, 0.94, 0.96)
 const DIM_COLOR := Color(0.6, 0.63, 0.66)
 
 var stash_index := -1
 var part: MechPart
+## The stash the item sits in. Drops that aren't merges go to it, so storing and buying still work
+## over an item.
+var panel: StashPanel
 ## Quarter-turns clockwise the part is stashed at.
 var turns := 0
 
@@ -52,12 +58,31 @@ func _init(p_stash_index := -1, p_part: MechPart = null, p_turns := 0) -> void:
 	rotate_button.pressed.connect(rotate_requested.emit)
 	body.add_child(rotate_button)
 	if part:
-		name_label.text = part.part_name
+		name_label.text = part.get_display_name()
 		shape_view.part = part
 		shape_view.turns = turns
 		info_label.text = PartInfo.summary(part, turns)
 		rotate_button.visible = part.can_rotate()
 		tooltip_text = part.description
+
+
+## Returns whether [param data] can drop here: a copy of this part, from the stash or the mech,
+## to merge, or whatever the stash itself takes.
+func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
+	if _merges(data):
+		return true
+	return panel != null and panel._can_drop_data(at_position, data)
+
+
+func _drop_data(at_position: Vector2, data: Variant) -> void:
+	if _merges(data):
+		merge_requested.emit(data)
+	elif panel:
+		panel._drop_data(at_position, data)
+
+
+func _merges(data: Variant) -> bool:
+	return data is PartDragData and not data.is_from_shop() and part != null and data.part.can_merge_with(part)
 
 
 func _get_drag_data(at_position: Vector2) -> Variant:

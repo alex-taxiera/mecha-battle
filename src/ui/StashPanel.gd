@@ -67,7 +67,9 @@ func refresh() -> void:
 	for i in run.stash.size():
 		var entry := run.stash[i]
 		var item := StashItem.new(i, entry.part, entry.rotation)
+		item.panel = self
 		item.rotate_requested.connect(run.rotate_stashed.bind(i))
+		item.merge_requested.connect(_merge_into.bind(i))
 		items.add_child(item)
 
 
@@ -76,6 +78,14 @@ func get_items() -> Array[StashItem]:
 	var found: Array[StashItem] = []
 	found.assign(items.get_children())
 	return found
+
+
+# Merges the part dragged onto stash item [param into] into it, from the stash or the mech.
+func _merge_into(drag: PartDragData, into: int) -> void:
+	var target := run.stash[into].part
+	var done := run.merge_stash(drag.stash_index, into) if drag.is_from_stash() else run.merge_into_stash(drag.from_cell, into)
+	if done:
+		message.emit("Merged into %s" % target.get_display_name(), true)
 
 
 ## Returns whether [param data] can be dropped here: an installed part to store, or a shop part
@@ -92,6 +102,6 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	var drag: PartDragData = data
 	if drag.is_from_shop():
 		if run.buy_to_stash(drag.slot_index):
-			message.emit("Bought %s · -%dg" % [drag.part.part_name, drag.part.cost], true)
+			message.emit("Bought %s · -%dg" % [drag.part.get_display_name(), drag.part.cost], true)
 	elif run.unequip(drag.from_cell):
-		message.emit("Stored %s in the stash" % drag.part.part_name, true)
+		message.emit("Stored %s in the stash" % drag.part.get_display_name(), true)

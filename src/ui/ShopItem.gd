@@ -31,7 +31,7 @@ func _ready() -> void:
 	_sold_label.visible = sold
 	if sold:
 		return
-	_name_label.text = part.part_name
+	_name_label.text = part.get_display_name()
 	_cost_label.text = "%dg" % part.cost
 	_cost_label.add_theme_color_override("font_color", COST_COLOR if affordable else TOO_EXPENSIVE_COLOR)
 	_shape_view.part = part

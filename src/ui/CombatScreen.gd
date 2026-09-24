@@ -248,7 +248,7 @@ func result_rows() -> Array:
 	return [
 		["Battle duration", "%.1fs" % engine.elapsed],
 		["Total damage dealt", "%d DMG" % player.damage_dealt],
-		["MVP weapon", "%s · %d DMG" % [top.part.part_name, top.damage_dealt] if top else "—"],
+		["MVP weapon", "%s · %d DMG" % [top.part.get_display_name(), top.damage_dealt] if top else "—"],
 	]
 
 

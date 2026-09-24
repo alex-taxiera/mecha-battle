@@ -141,6 +141,30 @@ func test_weapon_mods_rework_the_strongest_mounted_weapon() -> void:
 	assert_array(result.lines).contains_exactly(["Missile Pod is now the Overclocked Missile Pod"])
 
 
+func test_upgrade_effects_raise_a_part() -> void:
+	var weak := Fixtures.laser()
+	var strong := Fixtures.gatling()
+	assert_bool(_run.grid.place_part(weak, Vector2i(1, 1))).is_true()
+	assert_bool(_run.grid.place_part(strong, LEFT_ARM)).is_true()
+	var best := UpgradePartEffect.new()
+	best.pick = UpgradePartEffect.Pick.STRONGEST
+	var result := EventResult.new()
+	best.apply(_run, result)
+	assert_int(strong.level).is_equal(2)
+	assert_array(result.lines).contains_exactly(["Twin Gatling is now Twin Gatling Mk II"])
+	# A random pick raises one of the upgradable parts.
+	UpgradePartEffect.new().apply(_run, result)
+	assert_int(weak.level + strong.level).is_equal(4)
+	# With nothing upgradable, nothing happens.
+	var needs := UpgradableRequirement.new()
+	assert_bool(needs.check(_run)).is_true()
+	var empty := RunState.new(Fixtures.armed_cross(), [], [])
+	assert_bool(needs.check(empty)).is_false()
+	assert_str(needs.describe()).is_equal("Needs a part to upgrade")
+	UpgradePartEffect.new().apply(empty, result)
+	assert_array(result.lines).has_size(2)
+
+
 func test_weapon_requirement() -> void:
 	var needs_weapon := WeaponRequirement.new()
 	assert_bool(needs_weapon.check(_run)).is_false()

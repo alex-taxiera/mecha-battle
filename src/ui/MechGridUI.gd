@@ -1,9 +1,9 @@
 class_name MechGridUI
 extends Control
 ## Draws a run's mech grid, with its hardpoint bays around it, and takes parts dragged onto it:
-## bought from the shop, installed from the stash, or moved around. It never decides what fits
-## or what anything is worth: it asks the [RunState] and draws the answer. Parts carry no text;
-## hovering one pops up its
+## bought from the shop, installed from the stash, or moved around. Dropped onto a copy of itself,
+## a part merges into it, a Mk up. It never decides what fits or what anything is worth: it asks
+## the [RunState] and draws the answer. Parts carry no text but their Mk; hovering one pops up its
 ## [PartInfo]. A weapon dragged over any cell of a bay snaps into that bay.
 
 ## Emitted when a drag's hover changes: the stats the drop would give, or null when nothing
@@ -60,6 +60,11 @@ var _open_bays: Array[Hardpoint] = []
 var _drag: PartDragData
 var _drag_origin: Vector2i
 var _preview: RunState.Preview
+# While a drag hovers a copy of itself: the cell it would merge into (see [member _merging]).
+var _merge_cell: Vector2i
+var _merging: bool:
+	get:
+		return _preview != null and _preview.merge
 # The installed part being dragged away, drawn faded.
 var _moving: MechGridData.Placement
 # The installed part under the mouse, whose open edges are shown.
@@ -115,6 +120,15 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 			_preview = run.preview_install(drag.stash_index, origin)
 		else:
 			_preview = run.preview_move(drag.from_cell, origin)
+		# Over a copy of itself, the drop merges instead. An installed part frees its own cells.
+		var from_cells: Variant = null
+		if drag.is_from_grid():
+			from_cells = drag.from_cell
+		var merge := run.preview_merge(drag.part, cell_at(at_position), from_cells)
+		if merge and _preview.fit != MechGridData.Fit.OK:
+			merge.affordable = not drag.is_from_shop() or run.can_afford(drag.part)
+			_preview = merge
+			_merge_cell = cell_at(at_position)
 		preview_changed.emit(_preview.stats if _accepts(_preview) else null)
 		queue_redraw()
 	return _accepts(_preview)
@@ -123,15 +137,32 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	var drag: PartDragData = data
 	var origin := _drop_origin(at_position, drag)
+	var merge_cell := _merge_cell
+	var merged := run.grid.get_part_at(merge_cell) if _merging else null
 	_clear_preview()
 	var first_cell := origin + drag.part.get_shape(drag.rotation)[0]
+	if merged:
+		var level := merged.level
+		var done := false
+		if drag.is_from_shop():
+			done = run.buy_and_merge(drag.slot_index, merge_cell)
+		elif drag.is_from_stash():
+			done = run.merge_from_stash(drag.stash_index, merge_cell)
+		else:
+			done = run.merge_on_grid(drag.from_cell, merge_cell)
+		if done:
+			message.emit("Merged into %s" % merged.get_display_name(), true)
+			_flash(merge_cell)
+		elif level == merged.level:
+			message.emit("Can't merge those", false)
+		return
 	if drag.is_from_shop():
 		if run.buy(drag.slot_index, origin):
-			message.emit("Installed %s · -%dg" % [drag.part.part_name, drag.part.cost], true)
+			message.emit("Installed %s · -%dg" % [drag.part.get_display_name(), drag.part.cost], true)
 			_flash(first_cell)
 	elif drag.is_from_stash():
 		if run.install(drag.stash_index, origin):
-			message.emit("Installed %s from the stash" % drag.part.part_name, true)
+			message.emit("Installed %s from the stash" % drag.part.get_display_name(), true)
 			_flash(first_cell)
 	elif run.move(drag.from_cell, origin):
 		_flash(first_cell)
@@ -202,6 +233,8 @@ func _draw() -> void:
 		for cell in placement.cells:
 			cells.append(cell - _layout.position)
 		PartShapeView.draw_cells(self, cells, CELL_SIZE, CELL_GAP, color)
+		if placement.part.level > 1:
+			PartShapeView.draw_level(self, placement.part, _cell_rect(placement.cells[0]).position, 13)
 	if _preview:
 		var fill := FITS_COLOR if _accepts(_preview) else BLOCKED_COLOR
 		for cell in _preview.cells:
@@ -221,6 +254,9 @@ func get_preview_text() -> String:
 		return _FIT_REASONS[_preview.fit]
 	if not _preview.affordable:
 		return "Not enough gold (need %dg)" % _drag.part.cost
+	if _preview.merge:
+		var next := "Merge → Mk %s" % MechPart.NUMERALS[_drag.part.level]
+		return "%s · -%dg" % [next, _drag.part.cost] if _drag.is_from_shop() else next
 	if _drag.is_from_shop():
 		return "Install · -%dg" % _drag.part.cost
 	return "Install" if _drag.is_from_stash() else "Move here"
@@ -287,6 +323,7 @@ func _clear_preview() -> void:
 		return
 	_drag = null
 	_preview = null
+	_merge_cell = Vector2i.ZERO
 	preview_changed.emit(null)
 	queue_redraw()
 

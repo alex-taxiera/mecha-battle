@@ -61,6 +61,25 @@ func test_the_buttons_do_their_jobs_and_leave() -> void:
 	assert_int(done[0]).is_equal(1)
 
 
+func test_upgrading_lists_the_parts_then_raises_one() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	var screen := _screen()
+	assert_bool(screen.upgrade_button.disabled).is_false()
+	screen.show_upgrades()
+	var labels := screen.options.get_children().map(func(option: Button) -> String: return option.text)
+	assert_array(labels).contains_exactly(["Point-Defense Laser → Mk II", "Back"])
+	var laser := _run.grid.get_part_at(Vector2i(1, 1))
+	assert_bool(screen.upgrade(laser)).is_true()
+	assert_int(laser.level).is_equal(2)
+	assert_str(screen.body_label.text).is_equal("Upgraded to Point-Defense Laser Mk II.")
+	assert_bool(screen.repair()).is_false() # one job
+	await await_idle_frame()
+
+
+func test_upgrade_is_off_with_nothing_to_upgrade() -> void:
+	assert_bool(_screen().upgrade_button.disabled).is_true() # the bare cross owns no parts
+
+
 func _screen() -> RestScreen:
 	var screen: RestScreen = auto_free(RestScreen.new(_run))
 	add_child(screen)

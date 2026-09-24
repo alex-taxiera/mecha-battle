@@ -85,7 +85,7 @@ static func bonus_line(numbers: MechStats.PartStats) -> String:
 # Each row as [text, color]: name, summary, numbers, bonuses (if any), blurb (if any).
 static func _rows(part: MechPart, turns: int, numbers: MechStats.PartStats) -> Array:
 	var rows := [
-		[part.part_name, TEXT_COLOR],
+		[part.get_display_name(), TEXT_COLOR],
 		[summary(part, turns), PartShapeView.color_for(part.type)],
 		[stat_line(numbers), TEXT_COLOR],
 	]

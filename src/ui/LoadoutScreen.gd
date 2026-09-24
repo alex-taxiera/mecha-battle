@@ -127,7 +127,7 @@ func sell(_at_position: Vector2, data: Variant) -> void:
 	var drag: PartDragData = data
 	var gained := run.sell_stashed(drag.stash_index) if drag.is_from_stash() else run.sell(drag.from_cell)
 	_sell_zone.hide()
-	show_toast("Sold %s · +%dg" % [drag.part.part_name, gained], true)
+	show_toast("Sold %s · +%dg" % [drag.part.get_display_name(), gained], true)
 
 
 func _refresh() -> void:

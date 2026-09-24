@@ -105,12 +105,14 @@ static func calculate(grid: MechGridData, rules: Array[SynergyRule], relics: Arr
 	for placement: MechGridData.Placement in stats.part_stats:
 		var part := placement.part
 		var numbers: PartStats = stats.part_stats[placement]
-		numbers.hp = _with_bonuses(part.hp, numbers, SynergyRule.Stat.HP)
-		numbers.energy = _with_bonuses(part.energy_gen, numbers, SynergyRule.Stat.ENERGY)
+		# A part's Mk scales its own numbers before links and relics add to them.
+		var scale := part.get_level_scale()
+		numbers.hp = _with_bonuses(roundi(part.hp * scale), numbers, SynergyRule.Stat.HP)
+		numbers.energy = _with_bonuses(roundi(part.energy_gen * scale), numbers, SynergyRule.Stat.ENERGY)
 		numbers.energy_draw = part.energy_cost
-		numbers.damage = _with_bonuses(part.damage, numbers, SynergyRule.Stat.DAMAGE)
+		numbers.damage = _with_bonuses(roundi(part.damage * scale), numbers, SynergyRule.Stat.DAMAGE)
 		numbers.heat = part.heat
-		numbers.cooling = part.cooling
+		numbers.cooling = roundi(part.cooling * scale)
 		for relic in relics:
 			relic.modify_part_stats(part, numbers)
 		stats.hp += numbers.hp

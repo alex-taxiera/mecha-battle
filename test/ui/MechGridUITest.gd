@@ -156,6 +156,47 @@ func test_dragging_a_stashed_weapon_lights_the_bays_it_fits() -> void:
 		.contains_exactly_in_any_order(["left_arm", "right_arm"])
 
 
+func test_dropping_a_copy_onto_a_part_merges_them() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	_run.stash_part(Fixtures.laser())
+	var drag := PartDragData.from_stash(0, _run.stash[0].part, 0)
+	assert_bool(_grid_ui._can_drop_data(_cell_center(Vector2i(1, 1)), drag)).is_true()
+	assert_str(_grid_ui.get_preview_text()).is_equal("Merge → Mk II")
+	_grid_ui._drop_data(_cell_center(Vector2i(1, 1)), drag)
+	assert_int(_run.grid.get_part_at(Vector2i(1, 1)).level).is_equal(2)
+	assert_array(_run.stash).is_empty()
+	assert_array(_messages).contains_exactly([["Merged into Point-Defense Laser Mk II", true]])
+	await await_idle_frame()
+
+
+func test_a_part_that_cannot_merge_is_still_blocked() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	_run.stash_part(Fixtures.reactor())
+	var drag := PartDragData.from_stash(0, _run.stash[0].part, 0)
+	assert_bool(_grid_ui._can_drop_data(_cell_center(Vector2i(1, 1)), drag)).is_false()
+	assert_str(_grid_ui.get_preview_text()).is_equal("Those slots are occupied")
+
+
+func test_merging_installed_and_shop_parts() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(2, 2))).is_true()
+	var from_grid := _grid_ui._get_drag_data(_cell_center(Vector2i(2, 2))) as PartDragData
+	assert_bool(_grid_ui._can_drop_data(_cell_center(Vector2i(1, 1)), from_grid)).is_true()
+	_grid_ui._drop_data(_cell_center(Vector2i(1, 1)), from_grid)
+	assert_object(_run.grid.get_part_at(Vector2i(2, 2))).is_null()
+	var target := _run.grid.get_part_at(Vector2i(1, 1))
+	assert_int(target.level).is_equal(2)
+	# A shop laser onto a Mk I laser buys and merges.
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(2, 2))).is_true()
+	var shop_drag := _shop_drag(_laser)
+	assert_bool(_grid_ui._can_drop_data(_cell_center(Vector2i(2, 2)), shop_drag)).is_true()
+	assert_str(_grid_ui.get_preview_text()).is_equal("Merge → Mk II · -2g")
+	_grid_ui._drop_data(_cell_center(Vector2i(2, 2)), shop_drag)
+	assert_int(_run.grid.get_part_at(Vector2i(2, 2)).level).is_equal(2)
+	assert_int(_run.gold).is_equal(8)
+	await await_idle_frame()
+
+
 func test_dragging_an_installed_part_moves_it() -> void:
 	assert_bool(_run.buy(_slot_of(_heatsink), Vector2i(1, 0))).is_true() # (1, 0), (1, 1), (2, 1); 10 -> 6
 	# Grabbed by its foot, the drag remembers the cell and the grab.

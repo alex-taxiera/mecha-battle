@@ -125,7 +125,7 @@ func _refresh() -> void:
 	if reward.parts.is_empty():
 		draft_label.text = "Nothing else worth salvaging."
 	elif reward.taken >= 0:
-		draft_label.text = "%s is in your stash. Install it from the map's Loadout." % reward.parts[reward.taken].part_name
+		draft_label.text = "%s is in your stash. Install it from the map's Loadout." % reward.parts[reward.taken].get_display_name()
 	else:
 		draft_label.text = "Salvage one part for your stash:"
 	for i in reward.parts.size():
@@ -146,7 +146,7 @@ func _make_card(index: int) -> PanelContainer:
 	margin.add_child(box)
 	var name_label := Label.new()
 	_add_label(box, name_label, 17, RARITY_COLORS[part.rarity])
-	name_label.text = part.part_name
+	name_label.text = part.get_display_name()
 	var rarity_label := Label.new()
 	_add_label(box, rarity_label, 12, DIM_COLOR)
 	rarity_label.text = "%s · %s" % [MechPart.Rarity.find_key(part.rarity).capitalize(), PartInfo.summary(part, 0)]

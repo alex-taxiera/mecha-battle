@@ -49,10 +49,20 @@ func _draw() -> void:
 	var color := color_for(part.type)
 	if not ghost:
 		draw_cells(self, shape, cell_size, gap, color)
+		if part.level > 1:
+			draw_level(self, part, Vector2(shape[0]) * (cell_size + gap), 11)
 		return
 	draw_cells(self, shape, cell_size, gap, Color(color, 0.18))
 	for cell in shape:
 		draw_rect(Rect2(Vector2(cell) * (cell_size + gap), Vector2(cell_size, cell_size)), color, false, 2.0)
+
+
+## Draws [param p_part]'s Mk as a small numeral ("II", "III") at [param at], the top-left of a
+## cell, so a part without text still shows it's been upgraded.
+static func draw_level(canvas: CanvasItem, p_part: MechPart, at: Vector2, font_size: int) -> void:
+	var numeral: String = MechPart.NUMERALS[clampi(p_part.level, 1, MechPart.MAX_LEVEL) - 1]
+	CombatDraw.text_at(canvas, CombatDraw.BODY_FONT, at + Vector2(4, font_size + 2), numeral, font_size,
+		CombatColors.INK, 2)
 
 
 static func color_for(type: MechPart.PartType) -> Color:

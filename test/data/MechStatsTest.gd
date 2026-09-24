@@ -52,6 +52,33 @@ func test_parts_add_their_base_stats() -> void:
 	assert_int(stats.damage).is_equal(8)
 
 
+func test_a_parts_mk_scales_its_own_numbers() -> void:
+	var reactor := Fixtures.reactor() # 4 energy, 5 HP
+	reactor.level = 2
+	_place(reactor, Vector2i(2, 0))
+	var gun := Fixtures.gatling()     # 8 damage, 3 energy a shot
+	gun.level = 3
+	gun.heat = 10
+	_place(gun, LEFT_ARM)
+	var heatsink := Fixtures.heatsink()
+	heatsink.cooling = 15
+	heatsink.level = 2
+	_place(heatsink, Vector2i(4, 1))
+	var stats := MechStats.calculate(_grid, [])
+	var reactor_numbers := stats.part_stats[_grid.get_placement_at(Vector2i(2, 0))]
+	assert_int(reactor_numbers.energy).is_equal(6)  # 4 × 1.5
+	assert_int(reactor_numbers.hp).is_equal(8)      # 7.5, rounded
+	var gun_numbers := stats.part_stats[_grid.get_placement_at(LEFT_ARM)]
+	assert_int(gun_numbers.damage).is_equal(16)    # 8 × 2
+	# Energy cost and heat don't scale.
+	assert_int(gun_numbers.energy_draw).is_equal(3)
+	assert_int(gun_numbers.heat).is_equal(10)
+	assert_int(stats.heat_vented).is_equal(23)     # 15 × 1.5, rounded
+	# Links add on top of the scaled number: an overcharging reactor touching the gun.
+	var linked := MechStats.calculate(_grid, [_overcharge])
+	assert_int(linked.part_stats[_grid.get_placement_at(LEFT_ARM)].damage).is_greater_equal(16)
+
+
 func test_weapons_link_through_their_bay() -> void:
 	#    -1 0 1 2
 	#  0  G  . H .    G: gatling in the left arm

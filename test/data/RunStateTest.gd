@@ -588,6 +588,101 @@ func test_unsellable_parts_stay() -> void:
 	assert_int(_run.sell_stashed(0)).is_equal(1)
 
 
+func test_merging_from_the_stash_raises_the_installed_part() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	_run.stash_part(Fixtures.laser())
+	var target := _run.grid.get_part_at(Vector2i(1, 1))
+	assert_bool(_run.merge_from_stash(0, Vector2i(1, 1))).is_true()
+	assert_int(target.level).is_equal(2)
+	assert_array(_run.stash).is_empty()
+	assert_int(_run.get_max_hp()).is_equal(48) # 30 + 12 × 1.5
+	# A different part, an empty cell, or no such stash entry: nothing.
+	_run.stash_part(Fixtures.reactor())
+	assert_bool(_run.merge_from_stash(0, Vector2i(1, 1))).is_false()
+	assert_bool(_run.merge_from_stash(0, Vector2i(2, 2))).is_false()
+	assert_bool(_run.merge_from_stash(4, Vector2i(1, 1))).is_false()
+	assert_array(_run.stash).has_size(1)
+
+
+func test_merging_on_the_grid_frees_the_source() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(2, 2))).is_true()
+	assert_bool(_run.merge_on_grid(Vector2i(2, 2), Vector2i(1, 1))).is_true()
+	assert_object(_run.grid.get_part_at(Vector2i(2, 2))).is_null()
+	assert_int(_run.grid.get_part_at(Vector2i(1, 1)).level).is_equal(2)
+	# A Mk II doesn't take a Mk I.
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(2, 2))).is_true()
+	assert_bool(_run.merge_on_grid(Vector2i(2, 2), Vector2i(1, 1))).is_false()
+	assert_bool(_run.merge_on_grid(Vector2i(1, 1), Vector2i(1, 1))).is_false() # not into itself
+
+
+func test_merging_within_and_into_the_stash() -> void:
+	_run.stash_part(Fixtures.heatsink())
+	_run.stash_part(Fixtures.heatsink())
+	assert_bool(_run.merge_stash(1, 0)).is_true()
+	assert_array(_run.stash).has_size(1)
+	assert_int(_run.stash[0].part.level).is_equal(2)
+	assert_bool(_run.merge_stash(0, 0)).is_false()
+	# An installed Mk II merges into a stashed Mk II, leaving the grid.
+	var installed := Fixtures.heatsink()
+	installed.level = 2
+	assert_bool(_run.grid.place_part(installed, Vector2i(1, 1))).is_true()
+	assert_bool(_run.merge_into_stash(Vector2i(1, 1), 0)).is_true()
+	assert_int(_run.stash[0].part.level).is_equal(3)
+	assert_int(_run.grid.get_used_cell_count()).is_equal(0)
+
+
+func test_buying_straight_into_a_merge() -> void:
+	var laser_slot := _slot_of(_laser)
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	assert_bool(_run.buy_and_merge(laser_slot, Vector2i(1, 1))).is_true()
+	assert_int(_run.gold).is_equal(8)
+	assert_int(_run.grid.get_part_at(Vector2i(1, 1)).level).is_equal(2)
+	assert_array(_run.stash).is_empty()
+	assert_bool(_run.shop.slots[laser_slot].sold).is_true()
+	# A part it can't merge with costs nothing.
+	assert_bool(_run.buy_and_merge(_slot_of(_reactor), Vector2i(1, 1))).is_false()
+	assert_int(_run.gold).is_equal(8)
+
+
+func test_preview_merge_shows_the_stats_without_merging() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	var preview := _run.preview_merge(Fixtures.laser(), Vector2i(1, 1))
+	assert_bool(preview.merge).is_true()
+	assert_int(preview.fit).is_equal(MechGridData.Fit.OK)
+	assert_int(preview.stats.hp).is_equal(48)
+	assert_int(_run.grid.get_part_at(Vector2i(1, 1)).level).is_equal(1) # nothing changed
+	assert_object(_run.preview_merge(Fixtures.reactor(), Vector2i(1, 1))).is_null()
+
+
+func test_upgrades_and_what_can_take_one() -> void:
+	assert_bool(_run.grid.place_part(Fixtures.laser(), Vector2i(1, 1))).is_true()
+	_run.stash_part(Fixtures.heatsink())
+	var junk := Fixtures.part("Glitch", MechPart.PartType.JUNK, [Vector2i(0, 0)])
+	_run.stash_part(junk)
+	var upgradable := _run.get_upgradable_parts()
+	assert_array(upgradable.map(func(part: MechPart) -> String: return part.part_name)) \
+		.contains_exactly(["Point-Defense Laser", "L-Shaped Heatsink"]) # installed first, no junk
+	var laser := upgradable[0]
+	assert_bool(_run.upgrade_part(laser)).is_true()
+	assert_bool(_run.upgrade_part(laser)).is_true()
+	assert_bool(_run.upgrade_part(laser)).is_false() # Mk III is the top
+	assert_array(_run.get_upgradable_parts()).has_size(1)
+
+
+func test_a_higher_mk_sells_for_more() -> void:
+	var laser := Fixtures.laser() # 2 gold
+	laser.level = 3
+	_run.stash_part(laser)
+	assert_int(_run.stash_sell_value(0)).is_equal(3) # 2 × 3, halved
+	# Bought here and merged with a part bought here: a full refund on both halves.
+	var slot := _slot_of(_laser)
+	assert_bool(_run.buy(slot, Vector2i(1, 1))).is_true()
+	_run.shop.slots[slot].sold = false
+	assert_bool(_run.buy_and_merge(slot, Vector2i(1, 1))).is_true()
+	assert_int(_run.sell_value(Vector2i(1, 1))).is_equal(4)
+
+
 func test_stashed_parts_sell_at_a_shop() -> void:
 	_run.stash_part(_heatsink) # 4 gold, not bought here: half
 	assert_int(_run.stash_sell_value(0)).is_equal(2)
