@@ -1,7 +1,7 @@
 class_name RunHud
 extends HBoxContainer
-## The run at a glance, along the top of the screens between fights: the sector and floor, the
-## relics found, the hull's HP, and gold. Follows its [RunState] as it changes.
+## The run at a glance, along the top of the screens between fights: the Threat, loop, sector
+## and floor, the relics found, the hull's HP, and gold. Follows its [RunState] as it changes.
 
 const TEXT_COLOR := Color(0.93, 0.94, 0.96)
 const DIM_COLOR := Color(0.72, 0.74, 0.78)
@@ -66,7 +66,17 @@ func refresh() -> void:
 		return
 	var act := run.get_act()
 	var sector := "Sector %d of %d" % [run.act_index + 1, run.acts.size()] if act else "Run"
+	if run.loops > 0:
+		sector = "Loop %d · %s" % [run.loops + 1, sector]
+	if run.get_threat() > 0:
+		sector = "Threat %d · %s" % [run.get_threat(), sector]
 	floor_label.text = sector if run.get_floor_number() == 0 else "%s · Floor %d" % [sector, run.get_floor_number()]
+	# Hovering the line lists the run's modifiers.
+	var modifiers := PackedStringArray()
+	for modifier in run.run_modifiers:
+		modifiers.append("%s: %s" % [modifier.modifier_name, modifier.description])
+	floor_label.tooltip_text = "\n".join(modifiers)
+	floor_label.mouse_filter = MOUSE_FILTER_PASS if not modifiers.is_empty() else MOUSE_FILTER_IGNORE
 	sector_label.text = act.sector_name if act else run.grid.chassis.chassis_name
 	var max_hp := run.get_max_hp()
 	var hp := run.get_current_hp()

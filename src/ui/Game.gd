@@ -6,7 +6,7 @@ extends Node
 ## From the map, the Loadout rearranges the mech and its stash. The mech's damage carries from
 ## fight to fight; when it goes down, or the last sector's boss does, the run's end shows, with any
 ## unlocks it earned, and after it a new run starts. The profile, saved between sessions, decides
-## which frames, parts, and relics are unlocked.
+## which frames, parts, and relics are unlocked, and the highest Threat each frame can play at.
 
 const CHASSIS_SELECT_SCENE := preload("res://src/ui/ChassisSelectScreen.tscn")
 const MAP_SCENE := preload("res://src/ui/MapScreen.tscn")
@@ -19,6 +19,8 @@ const HANGAR_JOBS_DIR := "res://resources/hangar_jobs"
 const EVENTS_DIR := "res://resources/events"
 const UNLOCKS_DIR := "res://resources/unlocks"
 const TECHNICIAN_DIR := "res://resources/technician"
+const THREAT_DIR := "res://resources/threat"
+const RUN_MODIFIERS_DIR := "res://resources/run_modifiers"
 ## The Mech Technician's id in the unlocks.
 const TECHNICIAN := "technician"
 # A fight's map node kind for each enemy tier, for fights events start.
@@ -43,6 +45,11 @@ var events: Array[GameEvent] = []
 var affixes: Array[Relic] = []
 ## The Hangar's jobs, in their order; loaded from [constant HANGAR_JOBS_DIR] unless set.
 var hangar_jobs: Array[HangarJob] = []
+## The Threat ladder, level 1 first; loaded from [constant THREAT_DIR] unless set.
+var threat_levels: Array[RunModifier] = []
+## The custom modes frame select offers and the modifiers every run gets; loaded from
+## [constant RUN_MODIFIERS_DIR] unless set.
+var run_modifiers: Array[RunModifier] = []
 ## Everything the profile can unlock. Left empty, it's loaded from its folder.
 var unlocks: Array[Unlock] = []
 ## What the Mech Technician can offer. Left empty, it's loaded from its folder.
@@ -87,6 +94,12 @@ func _ready() -> void:
 		var jobs := LoadoutScreen.load_dir(HANGAR_JOBS_DIR).filter(func(resource: Resource) -> bool: return resource is HangarJob)
 		jobs.sort_custom(func(a: HangarJob, b: HangarJob) -> bool: return a.order < b.order or (a.order == b.order and a.id < b.id))
 		hangar_jobs.assign(jobs)
+	if threat_levels.is_empty():
+		var levels := LoadoutScreen.load_dir(THREAT_DIR).filter(func(resource: Resource) -> bool: return resource is RunModifier)
+		levels.sort_custom(func(a: RunModifier, b: RunModifier) -> bool: return a.threat_level < b.threat_level)
+		threat_levels.assign(levels)
+	if run_modifiers.is_empty():
+		run_modifiers.assign(LoadoutScreen.load_dir(RUN_MODIFIERS_DIR).filter(func(resource: Resource) -> bool: return resource is RunModifier))
 	if unlocks.is_empty():
 		unlocks.assign(LoadoutScreen.load_dir(UNLOCKS_DIR).filter(func(resource: Resource) -> bool: return resource is Unlock))
 	if technician_options.is_empty():
@@ -108,6 +121,9 @@ func show_map() -> void:
 
 
 func _start_run(chassis: MechChassis) -> void:
+	# The Threat levels and custom modes picked, then the ones every run gets.
+	var modifiers := chassis_select.get_run_modifiers(chassis)
+	modifiers.append_array(run_modifiers.filter(func(modifier: RunModifier) -> bool: return modifier.is_automatic))
 	chassis_select = null
 	# Locked parts and relics stay out of loot and shops (a starter kit still has its parts).
 	var run_catalog: Array[MechPart] = []
@@ -115,7 +131,7 @@ func _start_run(chassis: MechChassis) -> void:
 	var run_relics: Array[Relic] = []
 	run_relics.assign(relics.filter(func(relic: Relic) -> bool: return profile.is_available(Unlock.Kind.RELIC, relic.id, unlocks)))
 	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts,
-		run_relics, events, affixes)
+		run_relics, events, affixes, modifiers)
 	run.hangar_jobs.assign(hangar_jobs)
 	if profile.is_available(Unlock.Kind.NPC, TECHNICIAN, unlocks):
 		_meet_technician()
@@ -247,8 +263,13 @@ func _after_event(event_screen: EventScreen) -> void:
 func _show_end() -> void:
 	var won := run.outcome == RunState.Outcome.VICTORY
 	var lines := end_lines(run)
+	var chassis := run.grid.chassis
+	var threat_before := profile.get_threat_unlocked(chassis.id)
 	for unlock in profile.record_run(run, unlocks):
 		lines.append("Unlocked: %s" % unlock.title)
+	var threat_after := mini(profile.get_threat_unlocked(chassis.id), threat_levels.size())
+	if threat_after > threat_before:
+		lines.append("Unlocked: Threat %d for %s" % [threat_after, chassis.chassis_name])
 	profile.save()
 	var message := MessageScreen.new("RUN COMPLETE" if won else "MECH DESTROYED", CLEAR_COLOR if won else LOSS_COLOR,
 		lines, "New run")
@@ -256,12 +277,17 @@ func _show_end() -> void:
 	_show(message)
 
 
-## Returns the run's summary for its end screen, e.g. "The Bastion", "Fell in Sector 2 ·
-## Floor 7", "Fights won: 9".
+## Returns the run's summary for its end screen, e.g. "The Bastion · Threat 3", "Fell in
+## Sector 2 · Floor 7", "Fights won: 9".
 static func end_lines(p_run: RunState) -> PackedStringArray:
-	var lines := PackedStringArray([p_run.grid.chassis.chassis_name])
+	var title := p_run.grid.chassis.chassis_name
+	if p_run.get_threat() > 0:
+		title += " · Threat %d" % p_run.get_threat()
+	var lines := PackedStringArray([title])
 	if p_run.outcome == RunState.Outcome.VICTORY:
 		lines.append("Cleared all %d sectors" % p_run.acts.size())
+	elif p_run.loops > 0:
+		lines.append("Fell in Loop %d · Sector %d · Floor %d" % [p_run.loops + 1, p_run.act_index + 1, p_run.get_floor_number()])
 	else:
 		lines.append("Fell in Sector %d · Floor %d" % [p_run.act_index + 1, p_run.get_floor_number()])
 	lines.append("Fights won: %d" % p_run.fights_won)
@@ -279,6 +305,7 @@ func _new_run() -> void:
 # so a screen isn't taken out of the tree while it's still emitting.
 func _watch_chassis_select() -> void:
 	chassis_select.set_locks(profile, unlocks)
+	chassis_select.set_modifiers(threat_levels, run_modifiers.filter(func(modifier: RunModifier) -> bool: return modifier.is_custom))
 	chassis_select.chassis_chosen.connect(_start_run, CONNECT_DEFERRED)
 	chassis_select.reset_requested.connect(_reset_progress)
 

@@ -24,7 +24,7 @@ func test_it_saves_and_loads_back() -> void:
 	profile.wins = 1
 	profile.fights_won = 40
 	profile.bosses_beaten = 7
-	profile.chassis_records = {"bastion": {"runs": 5, "wins": 1, "best_sector": 3}}
+	profile.chassis_records = {"bastion": {"runs": 5, "wins": 1, "best_sector": 3, "threat": 2}}
 	profile.unlocked.append("striker")
 	assert_int(profile.save()).is_equal(OK)
 	var loaded := Profile.load_from(SCRATCH)
@@ -33,6 +33,7 @@ func test_it_saves_and_loads_back() -> void:
 	assert_int(loaded.fights_won).is_equal(40)
 	assert_int(loaded.bosses_beaten).is_equal(7)
 	assert_int(int(loaded.chassis_records["bastion"]["best_sector"])).is_equal(3)
+	assert_int(loaded.get_threat_unlocked("bastion")).is_equal(2)
 	assert_array(loaded.unlocked).contains_exactly(["striker"])
 
 
@@ -86,6 +87,38 @@ func test_recording_earns_the_unlocks_whose_milestones_are_met() -> void:
 	assert_array(profile.unlocked).contains_exactly(["striker"])
 
 
+func test_an_endless_run_counts_the_sectors_of_its_loops() -> void:
+	var run := _run(3, 1)
+	run.loops = 2
+	run.outcome = RunState.Outcome.DEFEAT
+	assert_int(Profile.sectors_cleared(run)).is_equal(7)
+	run.loops = 0
+	assert_int(Profile.sectors_cleared(run)).is_equal(1)
+
+
+func test_a_win_unlocks_the_next_threat_level_on_its_frame() -> void:
+	var profile := Profile.new()
+	assert_int(profile.get_threat_unlocked("bastion")).is_equal(0)
+	var lost := _run(2, 1, 0)
+	lost.outcome = RunState.Outcome.DEFEAT
+	profile.record_run(lost, [])
+	assert_int(profile.get_threat_unlocked("bastion")).append_failure_message("a loss unlocks nothing").is_equal(0)
+	var won := _run(2, 1, 0)
+	won.outcome = RunState.Outcome.VICTORY
+	profile.record_run(won, [])
+	# A win at Threat 0 unlocks Threat 1 (Slay-The-Robot unlocked only the level beaten).
+	assert_int(profile.get_threat_unlocked("bastion")).is_equal(1)
+	var won_at_two := _run(2, 1, 2)
+	won_at_two.outcome = RunState.Outcome.VICTORY
+	profile.record_run(won_at_two, [])
+	assert_int(profile.get_threat_unlocked("bastion")).is_equal(3)
+	# A later win lower down keeps the highest.
+	profile.record_run(won, [])
+	assert_int(profile.get_threat_unlocked("bastion")).is_equal(3)
+	# Other frames keep their own.
+	assert_int(profile.get_threat_unlocked("striker")).is_equal(0)
+
+
 func test_availability_follows_unlocks() -> void:
 	var profile := Profile.new()
 	var unlocks: Array[Unlock] = [Fixtures.unlock("pod", Unlock.Kind.PART, "missile_pod", {"fights_won_total": 5})]
@@ -111,13 +144,14 @@ func test_reset_forgets_everything() -> void:
 
 
 # A run on a Bastion-id frame through [param act_count] fixture sectors, now in sector
-# [param act_index] (from 0).
-func _run(act_count: int, act_index: int) -> RunState:
+# [param act_index] (from 0), at Threat [param threat].
+func _run(act_count: int, act_index: int, threat := 0) -> RunState:
 	var chassis := Fixtures.bastion()
 	chassis.id = "bastion"
 	var acts: Array[ActData] = []
 	for i in act_count:
 		acts.append(Fixtures.act())
-	var run := RunState.new(chassis, [], [], 10, RunRng.new(1), acts)
+	var run := RunState.new(chassis, [], [], 10, RunRng.new(1), acts, [], [], [],
+		RunModifier.threat_stack(Fixtures.threat_levels().slice(0, 2), threat))
 	run.act_index = act_index
 	return run

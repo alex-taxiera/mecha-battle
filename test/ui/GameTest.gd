@@ -20,6 +20,8 @@ func before_test() -> void:
 	_game.events = [Fixtures.gold_event("Windfall", 10)]
 	_game.affixes = [Fixtures.armored()]
 	_game.hangar_jobs = Fixtures.hangar_jobs()
+	_game.threat_levels = Fixtures.threat_levels()
+	_game.run_modifiers = [Fixtures.glass_cannon(), Fixtures.endless()]
 	# A profile in memory, and the Technician locked out of reach, so no real files are read and
 	# runs go straight to the map.
 	_game.profile = Profile.new()
@@ -135,15 +137,47 @@ func test_beating_a_sectors_boss_moves_to_the_next_sector() -> void:
 func test_beating_the_last_boss_wins_the_run() -> void:
 	await _choose(_armed())
 	var run := _game.run
-	run.next_act() # straight to the last sector
-	_stand_below_the_boss()
-	await _go(run.map.boss)
-	await _finish_fight()
-	await _collect_loot()
+	await _win(run)
 	assert_int(run.outcome).is_equal(RunState.Outcome.VICTORY)
 	var end := _message()
 	assert_str(end.title_label.text).is_equal("RUN COMPLETE")
-	assert_str(end.body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1")
+	# The first win on a frame unlocks its first Threat level.
+	assert_str(end.body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 1 for The Skirmisher")
+	await await_idle_frame()
+
+
+func test_a_run_starts_with_the_threat_and_modes_picked() -> void:
+	var always := Fixtures.run_modifier("always", {"is_automatic": true})
+	_game.run_modifiers.append(always)
+	_game.profile.chassis_records[""] = {"runs": 1, "wins": 1, "best_sector": 2, "threat": 2}
+	var chassis := _armed()
+	_game.chassis_select.set_threat(chassis, 2)
+	_game.chassis_select.set_custom(_game.run_modifiers[0], true) # Glass Cannon
+	await _choose(chassis)
+	assert_int(_game.run.get_threat()).is_equal(2)
+	assert_array(_game.run.run_modifiers).contains_same_exactly(
+		[_game.threat_levels[0], _game.threat_levels[1], _game.run_modifiers[0], always])
+	await await_idle_frame()
+
+
+func test_winning_at_the_highest_threat_unlocks_the_next() -> void:
+	_game.profile.chassis_records[""] = {"runs": 1, "wins": 1, "best_sector": 2, "threat": 2}
+	var chassis := _armed()
+	_game.chassis_select.set_threat(chassis, 2)
+	await _choose(chassis)
+	await _win(_game.run)
+	assert_str(_message().body_label.text) \
+		.is_equal("The Skirmisher · Threat 2\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 3 for The Skirmisher")
+	assert_int(_game.profile.get_threat_unlocked("")).is_equal(3)
+	await await_idle_frame()
+
+
+func test_winning_below_the_highest_threat_unlocks_nothing_new() -> void:
+	_game.profile.chassis_records[""] = {"runs": 1, "wins": 1, "best_sector": 2, "threat": 3}
+	await _choose(_armed())
+	await _win(_game.run)
+	assert_str(_message().body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1")
+	assert_int(_game.profile.get_threat_unlocked("")).is_equal(3)
 	await await_idle_frame()
 
 
@@ -346,6 +380,15 @@ func _gun() -> MechPart:
 	var gatling := Fixtures.gatling()
 	gatling.cooldown_max = 1.0
 	return gatling
+
+
+# Skips to the last sector's boss, beats it, and collects the loot, ending [param run] in a win.
+func _win(run: RunState) -> void:
+	run.next_act() # straight to the last sector
+	_stand_below_the_boss()
+	await _go(run.map.boss)
+	await _finish_fight()
+	await _collect_loot()
 
 
 # Puts the player on the top floor, as if they'd climbed there.

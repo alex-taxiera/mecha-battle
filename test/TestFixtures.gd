@@ -654,3 +654,50 @@ static func hangar_job(id: String, label: String, effects: Array[EventEffect], r
 	job.kind = kind
 	job.hint = hint
 	return job
+
+
+# The design doc's Threat ladder and custom modes.
+
+## A run modifier with [param values] (e.g. [code]{"enemy_hp_scale": 1.1}[/code]); a Threat level
+## when [param threat] is above 0.
+static func run_modifier(id: String, values := {}, threat := 0) -> RunModifier:
+	var modifier := RunModifier.new()
+	modifier.id = id
+	modifier.modifier_name = id.capitalize()
+	modifier.description = id.capitalize()
+	modifier.threat_level = threat
+	for key in values:
+		assert(key in modifier, "RunModifier has no '%s'" % key)
+		modifier.set(key, values[key])
+	return modifier
+
+
+## Threat 1 to 8: enemies +10% HP, shop prices +15%, normal battles -25% gold, elites +1 affix,
+## repairs -10% of max HP, boss phases +16%, normal battles a 25% affix chance, and a start with
+## 10% hull damage and a Glitch.
+static func threat_levels() -> Array[RunModifier]:
+	return [
+		run_modifier("threat_1", {"enemy_hp_scale": 1.1}, 1),
+		run_modifier("threat_2", {"shop_price_scale": 1.15}, 2),
+		run_modifier("threat_3", {"battle_gold_scale": 0.75}, 3),
+		run_modifier("threat_4", {"elite_affixes_add": 1}, 4),
+		run_modifier("threat_5", {"repair_share_add": -0.1}, 5),
+		run_modifier("threat_6", {"phase_threshold_add": 0.16}, 6),
+		run_modifier("threat_7", {"normal_affix_chance": 0.25}, 7),
+		run_modifier("threat_8", {"start_hull_damage_share": 0.1, "start_parts": [glitch()] as Array[MechPart]}, 8),
+	]
+
+
+## Weapons deal 1.5 times the damage; the mech has half the HP.
+static func glass_cannon() -> RunModifier:
+	return run_modifier("glass_cannon", {"is_custom": true, "player_damage_scale": 1.5, "player_hp_scale": 0.5})
+
+
+## The sectors loop after the last boss.
+static func endless() -> RunModifier:
+	return run_modifier("endless", {"is_custom": true, "endless": true})
+
+
+## A 1x1 junk part that does nothing and can't be sold.
+static func glitch() -> MechPart:
+	return part("Glitch", MechPart.PartType.JUNK, [Vector2i(0, 0)], 0, {"sellable": false})

@@ -164,7 +164,7 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 		return
 	if drag.is_from_shop():
 		if run.buy(drag.slot_index, origin):
-			message.emit("Installed %s · -%dg" % [drag.part.get_display_name(), drag.part.cost], true)
+			message.emit("Installed %s · -%dg" % [drag.part.get_display_name(), run.price_of(drag.part)], true)
 			_flash(first_cell)
 	elif drag.is_from_stash():
 		if run.install(drag.stash_index, origin):
@@ -290,12 +290,12 @@ func get_preview_text() -> String:
 	if _preview.fit != MechGridData.Fit.OK:
 		return _FIT_REASONS[_preview.fit]
 	if not _preview.affordable:
-		return "Not enough gold (need %dg)" % _drag.part.cost
+		return "Not enough gold (need %dg)" % run.price_of(_drag.part)
 	if _preview.merge:
 		var next := "Merge → Mk %s" % MechPart.NUMERALS[_drag.part.level]
-		return "%s · -%dg" % [next, _drag.part.cost] if _drag.is_from_shop() else next
+		return "%s · -%dg" % [next, run.price_of(_drag.part)] if _drag.is_from_shop() else next
 	if _drag.is_from_shop():
-		return "Install · -%dg" % _drag.part.cost
+		return "Install · -%dg" % run.price_of(_drag.part)
 	return "Install" if _drag.is_from_stash() else "Move here"
 
 

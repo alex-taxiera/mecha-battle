@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RunModifier" format=3]
+
+[ext_resource type="Script" path="res://src/data/RunModifier.gd" id="1_ox7n7"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_gcwwp"]
+
+[resource]
+script = ExtResource("1_ox7n7")
+id = "threat_7"
+modifier_name = "Hunted"
+description = "Normal battles have a 25% chance to roll an affix."
+threat_level = 7
+normal_affix_chance = 0.25

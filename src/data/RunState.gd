@@ -20,6 +20,10 @@ const BOSS_RELIC_CHOICES := 3
 const SHOP_RELICS := 2
 ## Cells a boss offers to open, in place of a boss relic.
 const BOSS_CELLS := 2
+## An endless run's enemies get this much more HP each loop.
+const ENDLESS_HP_PER_LOOP := 0.5
+## A Hangar never repairs less than this share, however Threat cuts it.
+const MIN_REPAIR_SHARE := 0.05
 ## Each affix on an elite adds this share to its gold.
 const AFFIX_GOLD_BONUS := 0.2
 
@@ -87,6 +91,11 @@ var event_pool: EventPool
 var cells_to_open := 0
 ## The Hangar's own jobs; relics can add more (see [method get_hangar_jobs]).
 var hangar_jobs: Array[HangarJob] = []
+## The run's modifiers: its Threat levels (1 up to the chosen one) and any custom modes (see
+## [RunModifier]). Their numbers stack: scales multiply, the rest add.
+var run_modifiers: Array[RunModifier] = []
+## Times an endless run has started the sectors over.
+var loops := 0
 ## The affixes elites can roll, and how many each one gets.
 var affix_pool: Array[Relic] = []
 var elite_affixes := 1
@@ -100,11 +109,11 @@ var _last_enemy: EnemyLoadout
 ## Starts a run on [param chassis], with its starter kit installed, [param start_gold], and the
 ## first of [param p_acts]' maps. [param p_catalog] is filtered to the parts the chassis can use;
 ## [param p_relics] are the relics it can find and [param p_events] the events it can come
-## across. [param p_affixes] are the affixes elites can roll. Pass a [RunRng] with a set seed to
-## repeat a run.
+## across. [param p_affixes] are the affixes elites can roll, and [param p_modifiers] the run's
+## Threat levels and custom modes. Pass a [RunRng] with a set seed to repeat a run.
 func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[SynergyRule], start_gold := 10,
 		p_rng: RunRng = null, p_acts: Array[ActData] = [], p_relics: Array[Relic] = [],
-		p_events: Array[GameEvent] = [], p_affixes: Array[Relic] = []) -> void:
+		p_events: Array[GameEvent] = [], p_affixes: Array[Relic] = [], p_modifiers: Array[RunModifier] = []) -> void:
 	# The run grows its own copy of the frame; the shared chassis never changes.
 	var frame: MechChassis = chassis.duplicate()
 	frame.opened_cells = chassis.opened_cells.duplicate()
@@ -118,9 +127,79 @@ func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[Syne
 	relic_pool = RelicPool.new(p_relics, rng.stream("relics"))
 	event_pool = EventPool.new(p_events, rng.stream("events"))
 	affix_pool.assign(p_affixes)
+	run_modifiers.assign(p_modifiers)
 	acts.assign(p_acts)
 	if not acts.is_empty():
 		_start_act(0)
+	_start_modifiers()
+
+
+## Returns the run's Threat: its highest Threat level, or 0.
+func get_threat() -> int:
+	var threat := 0
+	for modifier in run_modifiers:
+		threat = maxi(threat, modifier.threat_level)
+	return threat
+
+
+## Returns the run's modifiers' [param field] multiplied together (1 without any).
+func get_mod_product(field: StringName) -> float:
+	var product := 1.0
+	for modifier in run_modifiers:
+		product *= modifier.get(field)
+	return product
+
+
+## Returns the run's modifiers' [param field] added up (0 without any).
+func get_mod_sum(field: StringName) -> float:
+	var total := 0.0
+	for modifier in run_modifiers:
+		total += modifier.get(field)
+	return total
+
+
+## Returns whether a modifier makes the run endless: the sectors loop after the last boss.
+func is_endless() -> bool:
+	return run_modifiers.any(func(modifier: RunModifier) -> bool: return modifier.endless)
+
+
+## Returns what [param part] costs at a shop in this run: its cost, as the modifiers scale it.
+func price_of(part: MechPart) -> int:
+	return scale_price(part.cost)
+
+
+## Returns [param price] as the modifiers scale shop prices, rounded up so that on parts costing
+## a few gold any markup still costs at least one more.
+func scale_price(price: int) -> int:
+	var scale := get_mod_product(&"shop_price_scale")
+	if scale == 1.0:
+		return price
+	# The small allowance keeps float error (20 * 1.15 = 23.000001) from rounding up a whole gold.
+	return ceili(price * scale - 0.001)
+
+
+## Returns the share of max HP a Hangar's Repair mends: [param share], as the modifiers change it.
+func get_repair_share(share: float) -> float:
+	return maxf(MIN_REPAIR_SHARE, share + get_mod_sum(&"repair_share_add"))
+
+
+# The modifiers' start: the player's mech scaled, starting hull damage and parts, and each one's
+# own start.
+func _start_modifiers() -> void:
+	var damage_scale := get_mod_product(&"player_damage_scale")
+	var hp_scale := get_mod_product(&"player_hp_scale")
+	if damage_scale != 1.0 or hp_scale != 1.0:
+		var scale := PlayerScale.new()
+		scale.damage_scale = damage_scale
+		scale.hp_scale = hp_scale
+		upgrades.append(scale)
+	var damage_share := get_mod_sum(&"start_hull_damage_share")
+	if damage_share > 0.0:
+		hull_damage = mini(roundi(get_max_hp() * damage_share), get_max_hp() - 1)
+	for modifier in run_modifiers:
+		for part in modifier.start_parts:
+			stash.append(StashEntry.new(part.duplicate()))
+		modifier.on_run_start(self)
 
 
 func is_over() -> bool:
@@ -215,10 +294,13 @@ func make_enemy_mech(node: MapNode = null) -> BattleMech:
 	var affixes: Array[Relic] = []
 	for affix in node.affixes:
 		affixes.append(affix.duplicate())
-	var hp_scale := get_act().get_enemy_hp_scale(node.floor_index) * enemy.hp_scale
+	enemy = enemy.with_threat(get_threat())
+	var hp_scale := get_act().get_enemy_hp_scale(node.floor_index) * enemy.hp_scale * get_mod_product(&"enemy_hp_scale") \
+		* (1.0 + ENDLESS_HP_PER_LOOP * loops)
 	var mech := BattleMech.new(enemy.build_grid(), rules, hp_scale, -1, affixes)
 	mech.mech_name = enemy.enemy_name
 	mech.phases.assign(enemy.phases)
+	mech.phase_threshold_bonus = get_mod_sum(&"phase_threshold_add")
 	return mech
 
 
@@ -246,6 +328,8 @@ func roll_reward(node: MapNode = null) -> FightReward:
 	reward.tier = node.get_tier()
 	var loot_rng := rng.stream("loot")
 	reward.gold = RewardRoller.roll_gold(loot_rng, get_act().get_gold_range(reward.tier))
+	if reward.tier == EnemyLoadout.Tier.NORMAL:
+		reward.gold = roundi(reward.gold * get_mod_product(&"battle_gold_scale"))
 	# Each affix makes an elite worth a little more.
 	reward.gold = roundi(reward.gold * (1.0 + AFFIX_GOLD_BONUS * node.affixes.size()))
 	for modifier in get_modifiers():
@@ -415,10 +499,15 @@ func travel(node: MapNode) -> bool:
 ## Moves on once the sector's boss is down: to the next sector's map, repairing
 ## [constant ACT_HEAL] of the hull's damage, or, after the last sector, to victory.
 func next_act() -> void:
-	if act_index + 1 >= acts.size():
+	if act_index + 1 >= acts.size() and not is_endless():
 		outcome = Outcome.VICTORY
 	else:
-		act_index += 1
+		if act_index + 1 >= acts.size():
+			# Endless: the sectors start over, tougher.
+			act_index = 0
+			loops += 1
+		else:
+			act_index += 1
 		hull_damage -= ceili(hull_damage * ACT_HEAL)
 		_start_act(act_index)
 	changed.emit()
@@ -431,16 +520,23 @@ func _start_act(index: int) -> void:
 	_roll_affixes()
 
 
-# Rolls each elite's affixes on the run's "affixes" stream: [member elite_affixes] different
-# ones each, from [member affix_pool].
+# Rolls affixes on the run's "affixes" stream, from [member affix_pool]: [member elite_affixes]
+# different ones for each elite (more with Threat), and one for a normal battle by Threat's chance.
 func _roll_affixes() -> void:
 	if affix_pool.is_empty():
 		return
 	var stream := rng.stream("affixes")
+	var per_elite := elite_affixes + roundi(get_mod_sum(&"elite_affixes_add"))
+	var normal_chance := get_mod_sum(&"normal_affix_chance")
 	for node in map.get_nodes():
+		var count := 0
 		if node.type == MapNode.Type.ELITE:
+			count = per_elite
+		elif node.type == MapNode.Type.BATTLE and normal_chance > 0.0 and stream.randf() < normal_chance:
+			count = 1
+		if count > 0:
 			var picks := RunRng.shuffle(stream, affix_pool.duplicate())
-			node.affixes.assign(picks.slice(0, mini(elite_affixes, picks.size())))
+			node.affixes.assign(picks.slice(0, mini(count, picks.size())))
 
 #endregion
 #region Stash
@@ -613,6 +709,8 @@ func open_shop() -> void:
 	var for_sale := relic_pool.take(SHOP_RELICS, [Relic.Rarity.COMMON, Relic.Rarity.UNCOMMON, Relic.Rarity.RARE,
 		Relic.Rarity.SHOP], true)
 	shop = ShopStock.new(catalog, rng.stream("shop"), for_sale)
+	for offer in shop.relic_offers:
+		offer.price = scale_price(offer.price)
 	_fresh.clear()
 	changed.emit()
 
@@ -624,8 +722,9 @@ func close_shop() -> void:
 	changed.emit()
 
 
+## Returns whether the run can pay [param part]'s shop price.
 func can_afford(part: MechPart) -> bool:
-	return part.cost <= gold
+	return price_of(part) <= gold
 
 
 ## Buys the part in shop slot [param slot_index] and installs it, in the slot's rotation, with
@@ -640,7 +739,7 @@ func buy(slot_index: int, origin: Vector2i) -> bool:
 	if not grid.place_part(part, origin, slot.rotation):
 		return false
 	slot.sold = true
-	gold -= part.cost
+	gold -= price_of(part)
 	_fresh.append(part)
 	changed.emit()
 	return true
@@ -654,7 +753,7 @@ func buy_to_stash(slot_index: int) -> bool:
 		return false
 	var part: MechPart = slot.part.duplicate()
 	slot.sold = true
-	gold -= part.cost
+	gold -= price_of(part)
 	_fresh.append(part)
 	stash.append(StashEntry.new(part, slot.rotation))
 	changed.emit()
@@ -812,8 +911,11 @@ func preview_move(coords: Vector2i, new_origin: Vector2i) -> Preview:
 func _value_of(part: MechPart) -> int:
 	if part == null:
 		return 0
+	# A part bought at this shop refunds what was paid for it, Threat's markup and all.
+	if part in _fresh:
+		return price_of(part) * part.level
 	var value := part.cost * part.level
-	return value if part in _fresh or refunds_in_full() else floori(value / 2.0)
+	return value if refunds_in_full() else floori(value / 2.0)
 
 
 func _preview_place(part: MechPart, origin: Vector2i, rotation: int) -> Preview:

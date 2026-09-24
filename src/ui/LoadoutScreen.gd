@@ -169,6 +169,7 @@ func _refresh() -> void:
 		item.turns = slot.rotation
 		item.sold = slot.sold
 		item.affordable = run.can_afford(slot.part)
+		item.price = run.price_of(slot.part)
 		item.rotate_requested.connect(run.rotate_slot.bind(i))
 		_slots.add_child(item)
 	for offer in _relic_offers.get_children():

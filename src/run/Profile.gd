@@ -14,7 +14,8 @@ var runs := 0
 var wins := 0
 var fights_won := 0
 var bosses_beaten := 0
-## Chassis id -> {"runs", "wins", "best_sector"}.
+## Chassis id -> {"runs", "wins", "best_sector", "threat"}, where "threat" is the highest Threat
+## level unlocked on that chassis.
 var chassis_records: Dictionary = {}
 ## The ids of the unlocks earned.
 var unlocked: Array[String] = []
@@ -72,6 +73,13 @@ func reset() -> void:
 	unlocked = []
 
 
+## Returns the highest Threat level unlocked on the chassis with id [param chassis_id]: 0 until
+## it wins a run, then one above the highest Threat it has won at.
+func get_threat_unlocked(chassis_id: String) -> int:
+	var record: Dictionary = chassis_records.get(chassis_id, {})
+	return int(record.get("threat", 0))
+
+
 func is_unlocked(unlock_id: String) -> bool:
 	return unlock_id in unlocked
 
@@ -95,13 +103,14 @@ func get_lock(kind: Unlock.Kind, target_id: String, unlocks: Array[Unlock]) -> U
 
 
 ## Returns how many sectors [param run] cleared: all of them on a win, otherwise the ones before
-## the sector it ended in.
+## the sector it ended in, counting every sector of an endless run's finished loops.
 static func sectors_cleared(run: RunState) -> int:
-	return run.acts.size() if run.outcome == RunState.Outcome.VICTORY else run.act_index
+	return run.acts.size() if run.outcome == RunState.Outcome.VICTORY else run.acts.size() * run.loops + run.act_index
 
 
 ## Counts a finished [param run] into the totals and its chassis's record, then earns every one
-## of [param unlocks] whose milestone is now met. Returns the unlocks just earned.
+## of [param unlocks] whose milestone is now met. A win also unlocks the next Threat level on its
+## chassis. Returns the unlocks just earned.
 func record_run(run: RunState, unlocks: Array[Unlock]) -> Array[Unlock]:
 	var sectors := sectors_cleared(run)
 	var won := run.outcome == RunState.Outcome.VICTORY
@@ -115,6 +124,8 @@ func record_run(run: RunState, unlocks: Array[Unlock]) -> Array[Unlock]:
 	record["runs"] = int(record["runs"]) + 1
 	record["wins"] = int(record["wins"]) + (1 if won else 0)
 	record["best_sector"] = maxi(int(record["best_sector"]), sectors)
+	# A win unlocks the next Threat level (Slay-The-Robot unlocked only the one just beaten).
+	record["threat"] = maxi(int(record.get("threat", 0)), run.get_threat() + 1 if won else 0)
 	chassis_records[chassis_id] = record
 	var earned: Array[Unlock] = []
 	for unlock in unlocks:

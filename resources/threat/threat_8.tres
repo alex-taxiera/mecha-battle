@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RunModifier" format=3]
+
+[ext_resource type="Script" path="res://src/data/RunModifier.gd" id="1_5d1a6"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_476yf"]
+[ext_resource type="Resource" path="res://resources/parts/event/glitch.tres" id="3_u6jfq"]
+
+[resource]
+script = ExtResource("1_5d1a6")
+id = "threat_8"
+modifier_name = "Bad Start"
+description = "Start with 10% hull damage and a Glitch in the stash."
+threat_level = 8
+start_hull_damage_share = 0.1
+start_parts = Array[ExtResource("2_476yf")]([ExtResource("3_u6jfq")])

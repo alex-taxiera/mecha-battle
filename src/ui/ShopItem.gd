@@ -17,6 +17,8 @@ var turns := 0
 var sold := false
 ## Unaffordable parts can still be dragged; the grid explains why they can't drop.
 var affordable := true
+## The price shown: the part's cost as the run's modifiers scale it; -1 for its plain cost.
+var price := -1
 
 @onready var _offer: Control = %Offer
 @onready var _sold_label: Label = %SoldLabel
@@ -34,7 +36,7 @@ func _ready() -> void:
 	if sold:
 		return
 	_name_label.text = part.get_display_name()
-	_cost_label.text = "%dg" % part.cost
+	_cost_label.text = "%dg" % (price if price >= 0 else part.cost)
 	_cost_label.add_theme_color_override("font_color", COST_COLOR if affordable else TOO_EXPENSIVE_COLOR)
 	_shape_view.part = part
 	_shape_view.turns = turns

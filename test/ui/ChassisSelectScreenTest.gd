@@ -105,3 +105,105 @@ func test_the_stats_line_counts_the_cells_a_frame_can_grow_into() -> void:
 	for x in 4:
 		chassis.expansion_cells.append(Vector2i(x, 3))
 	assert_str(ChassisSelectScreen.stats_line(chassis)).is_equal("450 HP · 20 EN a turn · 12 slots (+4) · 1 hardpoint")
+
+
+func test_the_threat_picker_stays_within_what_the_frame_unlocked() -> void:
+	var bastion := Fixtures.bastion()
+	bastion.id = "bastion"
+	var striker := Fixtures.striker()
+	striker.id = "striker"
+	var screen := _screen([bastion, striker])
+	var profile := Profile.new()
+	profile.chassis_records = {"bastion": {"runs": 3, "wins": 2, "best_sector": 3, "threat": 2}}
+	screen.set_locks(profile, [])
+	screen.set_modifiers(Fixtures.threat_levels(), [])
+	assert_int(screen.get_max_threat(bastion)).is_equal(2)
+	assert_int(screen.get_max_threat(striker)).is_equal(0)
+	# Up to what's unlocked, and no further (Slay-The-Robot clamped the old level, not the new one).
+	screen.set_threat(bastion, 2)
+	assert_int(screen.get_threat(bastion)).is_equal(2)
+	screen.set_threat(bastion, 3)
+	assert_int(screen.get_threat(bastion)).is_equal(2)
+	screen.set_threat(bastion, -1)
+	assert_int(screen.get_threat(bastion)).is_equal(0)
+	# Each frame keeps its own level.
+	screen.set_threat(bastion, 1)
+	screen.set_threat(striker, 1)
+	assert_int(screen.get_threat(bastion)).is_equal(1)
+	assert_int(screen.get_threat(striker)).is_equal(0)
+	# The level picked is checked again when the profile changes.
+	screen.set_threat(bastion, 2)
+	profile.chassis_records["bastion"]["threat"] = 1
+	screen.set_locks(profile, [])
+	assert_int(screen.get_threat(bastion)).is_equal(1)
+	await await_idle_frame() # free the rebuilt cards
+
+
+func test_the_picker_never_goes_past_the_ladder() -> void:
+	var bastion := Fixtures.bastion()
+	bastion.id = "bastion"
+	var screen := _screen([bastion])
+	var profile := Profile.new()
+	profile.chassis_records = {"bastion": {"threat": 20}}
+	screen.set_locks(profile, [])
+	screen.set_modifiers(Fixtures.threat_levels(), [])
+	screen.set_threat(bastion, 20)
+	assert_int(screen.get_threat(bastion)).is_equal(8)
+	# Without a profile every level is open.
+	var open := _screen([Fixtures.striker()])
+	open.set_modifiers(Fixtures.threat_levels(), [])
+	assert_int(open.get_max_threat(open.options[0])).is_equal(8)
+	await await_idle_frame()
+
+
+func test_a_card_shows_its_threat_and_what_it_adds() -> void:
+	var bastion := Fixtures.bastion()
+	bastion.id = "bastion"
+	var screen := _screen([bastion])
+	var profile := Profile.new()
+	profile.chassis_records = {"bastion": {"threat": 2}}
+	screen.set_locks(profile, [])
+	var levels := Fixtures.threat_levels()
+	levels[1].description = "Shop prices are 15% higher."
+	screen.set_modifiers(levels, [])
+	assert_array(screen.get_card_texts()[0]).contains(["Threat 0", "Threat 0 · the standard run", "Win at 2 to unlock 3"])
+	screen.set_threat(bastion, 2)
+	assert_array(screen.get_card_texts()[0]).contains(["Threat 2", "Threat 2 · Shop prices are 15% higher. (+1 below)"])
+	# The -/+ buttons step the level.
+	var minus: Button = screen.get_node("%Cards").find_children("*", "Button", true, false) \
+		.filter(func(button: Button) -> bool: return button.text == "−")[0]
+	minus.pressed.emit()
+	await await_idle_frame()
+	assert_int(screen.get_threat(bastion)).is_equal(1)
+	await await_idle_frame()
+
+
+func test_without_a_ladder_there_is_no_picker() -> void:
+	var screen := _screen([Fixtures.bastion()])
+	for text in screen.get_card_texts()[0]:
+		assert_str(text).not_contains("Threat")
+	# Positive control: with one, there is.
+	screen.set_modifiers(Fixtures.threat_levels(), [])
+	assert_array(screen.get_card_texts()[0]).contains(["Threat 0"])
+	await await_idle_frame()
+
+
+func test_a_run_gets_the_stacked_threat_and_the_modes_turned_on() -> void:
+	var bastion := Fixtures.bastion()
+	var glass := Fixtures.glass_cannon()
+	var endless := Fixtures.endless()
+	var sturdy := Fixtures.run_modifier("sturdy", {"is_custom": true, "exclusive_with": ["glass_cannon"] as Array[String]})
+	var screen := _screen([bastion])
+	var levels := Fixtures.threat_levels()
+	screen.set_modifiers(levels, [glass, endless, sturdy])
+	screen.set_threat(bastion, 2)
+	screen.set_custom(glass, true)
+	screen.set_custom(endless, true)
+	assert_array(screen.get_run_modifiers(bastion)).contains_same_exactly([levels[0], levels[1], glass, endless])
+	screen.set_custom(sturdy, true)
+	assert_array(screen.get_custom_modifiers()).contains_same_exactly_in_any_order([endless, sturdy]).has_size(2)
+	# A checkbox per mode, ticked as they are.
+	var boxes := screen.find_children("*", "CheckBox", true, false)
+	assert_array(boxes.map(func(box: CheckBox) -> String: return box.text)).contains_exactly(["Glass Cannon", "Endless", "Sturdy"])
+	assert_array(boxes.map(func(box: CheckBox) -> bool: return box.button_pressed)).contains_exactly([false, true, true])
+	await await_idle_frame()

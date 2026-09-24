@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RunModifier" format=3]
+
+[ext_resource type="Script" path="res://src/data/RunModifier.gd" id="1_ol4mk"]
+[ext_resource type="Script" path="res://src/data/MechPart.gd" id="2_c5p8n"]
+
+[resource]
+script = ExtResource("1_ol4mk")
+id = "glass_cannon"
+modifier_name = "Glass Cannon"
+description = "Your weapons deal 50% more damage, but your mech has half the HP."
+is_custom = true
+player_damage_scale = 1.5
+player_hp_scale = 0.5
