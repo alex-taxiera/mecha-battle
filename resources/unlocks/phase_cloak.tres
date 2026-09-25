@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_dqsbr"]
+
+[resource]
+script = ExtResource("1_dqsbr")
+id = "phase_cloak"
+kind = 2
+target_id = "phase_cloak"
+title = "The Phase Cloak relic"
+hint = "Reach Mastery 3 with the Phantom"
+with_chassis = "phantom"
+mastery_level = 3

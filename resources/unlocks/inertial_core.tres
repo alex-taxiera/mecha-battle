@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_wcvlh"]
+
+[resource]
+script = ExtResource("1_wcvlh")
+id = "inertial_core"
+kind = 2
+target_id = "inertial_core"
+title = "The Inertial Core relic"
+hint = "Reach Mastery 3 with the Juggernaut"
+with_chassis = "juggernaut"
+mastery_level = 3

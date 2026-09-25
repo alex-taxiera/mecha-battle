@@ -1,14 +1,44 @@
 [gd_resource type="Resource" script_class="MechChassis" format=3]
 
+[ext_resource type="Script" path="res://src/data/StartingLoadout.gd" id="1_6wyqw"]
 [ext_resource type="Texture2D" path="res://assets/combat/phantom.png" id="1_x1lto"]
 [ext_resource type="Script" path="res://src/data/Hardpoint.gd" id="2_8ugoc"]
 [ext_resource type="Script" path="res://src/data/passives/EvasionPassive.gd" id="3_5tje3"]
+[ext_resource type="Resource" path="res://resources/parts/shock_lance.tres" id="3_b36em"]
 [ext_resource type="Script" path="res://src/data/MechChassis.gd" id="4_6wyqw"]
 [ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="5_b36em"]
+[ext_resource type="Resource" path="res://resources/parts/ablative_plating.tres" id="6_656lk"]
 [ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="6_rbm4q"]
 [ext_resource type="Resource" path="res://resources/parts/scrap_repeater.tres" id="7_656lk"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="8_16jqm"]
 [ext_resource type="Resource" path="res://resources/parts/capacitor_coupler.tres" id="9_wrsnx"]
+
+[sub_resource type="Resource" id="Resource_16jqm"]
+script = ExtResource("5_b36em")
+part = ExtResource("3_b36em")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_wrsnx"]
+script = ExtResource("5_b36em")
+part = ExtResource("7_656lk")
+origin = Vector2i(3, 1)
+
+[sub_resource type="Resource" id="Resource_mtm5s"]
+script = ExtResource("5_b36em")
+part = ExtResource("8_16jqm")
+origin = Vector2i(0, 1)
+
+[sub_resource type="Resource" id="Resource_rx270"]
+script = ExtResource("5_b36em")
+part = ExtResource("6_656lk")
+origin = Vector2i(2, 1)
+
+[sub_resource type="Resource" id="Resource_uaok4"]
+script = ExtResource("1_6wyqw")
+id = "phantom_skirmisher"
+loadout_name = "Skirmisher"
+description = "A Shock Lance and a Scrap Repeater, with Ablative Plating."
+lineup = Array[ExtResource("5_b36em")]([SubResource("Resource_16jqm"), SubResource("Resource_wrsnx"), SubResource("Resource_mtm5s"), SubResource("Resource_rx270")])
 
 [sub_resource type="Resource" id="Resource_sn2s1"]
 script = ExtResource("2_8ugoc")
@@ -64,6 +94,7 @@ base_energy = 45
 hardpoints = Array[ExtResource("2_8ugoc")]([SubResource("Resource_sn2s1"), SubResource("Resource_pjka7")])
 battle_sprite = ExtResource("1_x1lto")
 starter_lineup = Array[ExtResource("5_b36em")]([SubResource("Resource_lgksy"), SubResource("Resource_i45on"), SubResource("Resource_m5r2x"), SubResource("Resource_ahe47")])
+alt_loadouts = Array[ExtResource("1_6wyqw")]([SubResource("Resource_uaok4")])
 passive = SubResource("Resource_h5f00")
 passive_name = "Evasion"
 passive_text = "Every 4th shot aimed at it misses."

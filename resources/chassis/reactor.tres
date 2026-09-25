@@ -1,13 +1,48 @@
 [gd_resource type="Resource" script_class="MechChassis" format=3]
 
 [ext_resource type="Texture2D" path="res://assets/combat/reactor.png" id="1_4okba"]
+[ext_resource type="Script" path="res://src/data/StartingLoadout.gd" id="1_ai08y"]
 [ext_resource type="Script" path="res://src/data/MechChassis.gd" id="1_nuhbi"]
 [ext_resource type="Script" path="res://src/data/Hardpoint.gd" id="1_p50bv"]
 [ext_resource type="Script" path="res://src/data/passives/MeltdownPassive.gd" id="3_gwwum"]
+[ext_resource type="Resource" path="res://resources/parts/flamer.tres" id="3_wtaxm"]
 [ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="4_tusb7"]
 [ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="5_gwwum"]
+[ext_resource type="Resource" path="res://resources/parts/thermoelectric.tres" id="5_wvbhd"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="6_jpg66"]
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="7_2dejc"]
+
+[sub_resource type="Resource" id="Resource_e7ghm"]
+script = ExtResource("4_tusb7")
+part = ExtResource("3_wtaxm")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_mdxu3"]
+script = ExtResource("4_tusb7")
+part = ExtResource("3_wtaxm")
+origin = Vector2i(5, 1)
+
+[sub_resource type="Resource" id="Resource_gsmgi"]
+script = ExtResource("4_tusb7")
+part = ExtResource("6_jpg66")
+origin = Vector2i(0, 2)
+
+[sub_resource type="Resource" id="Resource_u2f7n"]
+script = ExtResource("4_tusb7")
+part = ExtResource("5_wvbhd")
+origin = Vector2i(1, 1)
+
+[sub_resource type="Resource" id="Resource_l365l"]
+script = ExtResource("4_tusb7")
+part = ExtResource("7_2dejc")
+origin = Vector2i(3, 1)
+
+[sub_resource type="Resource" id="Resource_wsudc"]
+script = ExtResource("1_ai08y")
+id = "reactor_furnace"
+loadout_name = "Furnace"
+description = "Two Flamers and a Thermoelectric Generator: run hot on purpose."
+lineup = Array[ExtResource("4_tusb7")]([SubResource("Resource_e7ghm"), SubResource("Resource_mdxu3"), SubResource("Resource_gsmgi"), SubResource("Resource_u2f7n"), SubResource("Resource_l365l")])
 
 [sub_resource type="Resource" id="Resource_4okba"]
 script = ExtResource("1_p50bv")
@@ -63,6 +98,7 @@ base_energy = 30
 hardpoints = Array[ExtResource("1_p50bv")]([SubResource("Resource_4okba"), SubResource("Resource_32nhj")])
 battle_sprite = ExtResource("1_4okba")
 starter_lineup = Array[ExtResource("4_tusb7")]([SubResource("Resource_ai08y"), SubResource("Resource_wtaxm"), SubResource("Resource_wvbhd"), SubResource("Resource_g64gc")])
+alt_loadouts = Array[ExtResource("1_ai08y")]([SubResource("Resource_wsudc")])
 passive = SubResource("Resource_jpg66")
 passive_name = "Meltdown"
 passive_text = "When heat reaches 100%, deal massive damage and shut down for 3 seconds."

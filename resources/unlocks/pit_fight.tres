@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_45kum"]
+
+[resource]
+script = ExtResource("1_45kum")
+id = "pit_fight"
+kind = 4
+target_id = "pit_fight"
+title = "The Pit (event)"
+hint = "Unlock Threat 1 on any frame"
+threat_reached = 1

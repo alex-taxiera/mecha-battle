@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_sp6fj"]
+
+[resource]
+script = ExtResource("1_sp6fj")
+id = "flak_burst"
+kind = 6
+target_id = "flak_burst"
+title = "The Flak Burst kit"
+hint = "Beat 3 bosses in total"
+bosses_beaten_total = 3

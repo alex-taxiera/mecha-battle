@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_5lh5q"]
+
+[resource]
+script = ExtResource("1_5lh5q")
+id = "siphon"
+kind = 5
+target_id = "siphon"
+title = "The Siphon mod"
+hint = "Beat 2 bosses in total"
+bosses_beaten_total = 2

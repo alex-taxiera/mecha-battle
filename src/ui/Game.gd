@@ -137,17 +137,24 @@ func _start_run(chassis: MechChassis) -> void:
 	# The Threat levels and custom modes picked, then the ones every run gets.
 	var modifiers := chassis_select.get_run_modifiers(chassis)
 	modifiers.append_array(run_modifiers.filter(func(modifier: RunModifier) -> bool: return modifier.is_automatic))
+	# A starting loadout the frame's mastery unlocked replaces its own starter kit.
+	var loadout := chassis_select.get_loadout(chassis)
+	if loadout:
+		chassis = chassis.duplicate()
+		chassis.starter_lineup = loadout.lineup
 	chassis_select = null
 	# Locked parts and relics stay out of loot and shops (a starter kit still has its parts).
 	var run_catalog: Array[MechPart] = []
 	run_catalog.assign(catalog.filter(func(part: MechPart) -> bool: return profile.is_available(Unlock.Kind.PART, part.id, unlocks)))
 	var run_relics: Array[Relic] = []
 	run_relics.assign(relics.filter(func(relic: Relic) -> bool: return profile.is_available(Unlock.Kind.RELIC, relic.id, unlocks)))
+	var run_events: Array[GameEvent] = []
+	run_events.assign(events.filter(func(event: GameEvent) -> bool: return profile.is_available(Unlock.Kind.EVENT, event.id, unlocks)))
 	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts,
-		run_relics, events, affixes, modifiers)
+		run_relics, run_events, affixes, modifiers)
 	run.hangar_jobs.assign(hangar_jobs)
-	run.mod_pool.assign(mods)
-	run.kit_pool.assign(kits)
+	run.mod_pool.assign(mods.filter(func(mod: WeaponMod) -> bool: return profile.is_available(Unlock.Kind.MOD, mod.id, unlocks)))
+	run.kit_pool.assign(kits.filter(func(kit: FieldKit) -> bool: return profile.is_available(Unlock.Kind.KIT, kit.id, unlocks)))
 	if profile.is_available(Unlock.Kind.NPC, TECHNICIAN, unlocks):
 		_meet_technician()
 	else:
@@ -290,11 +297,18 @@ func _show_end() -> void:
 	var lines := end_lines(run)
 	var chassis := run.grid.chassis
 	var threat_before := profile.get_threat_unlocked(chassis.id)
+	var mastery_before := profile.get_mastery_level(chassis.id)
 	for unlock in profile.record_run(run, unlocks):
 		lines.append("Unlocked: %s" % unlock.title)
 	var threat_after := mini(profile.get_threat_unlocked(chassis.id), threat_levels.size())
 	if threat_after > threat_before:
 		lines.append("Unlocked: Threat %d for %s" % [threat_after, chassis.chassis_name])
+	var xp := Profile.mastery_xp_for(run)
+	if xp > 0:
+		lines.append("Mastery: +%d XP for %s" % [xp, chassis.chassis_name])
+	var mastery_after := profile.get_mastery_level(chassis.id)
+	if mastery_after > mastery_before:
+		lines.append("%s reached Mastery %d" % [chassis.chassis_name, mastery_after])
 	profile.save()
 	var message := MessageScreen.new("RUN COMPLETE" if won else "MECH DESTROYED", CLEAR_COLOR if won else LOSS_COLOR,
 		lines, "New run")

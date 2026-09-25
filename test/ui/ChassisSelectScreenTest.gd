@@ -207,3 +207,44 @@ func test_a_run_gets_the_stacked_threat_and_the_modes_turned_on() -> void:
 	assert_array(boxes.map(func(box: CheckBox) -> String: return box.text)).contains_exactly(["Glass Cannon", "Endless", "Sturdy"])
 	assert_array(boxes.map(func(box: CheckBox) -> bool: return box.button_pressed)).contains_exactly([false, true, true])
 	await await_idle_frame()
+
+
+func test_mastery_unlocks_a_frames_other_loadouts() -> void:
+	var bastion := Fixtures.bastion()
+	bastion.id = "bastion"
+	var bulwark := _loadout("Bulwark", 2)
+	var fortress := _loadout("Fortress", 4)
+	bastion.alt_loadouts.assign([bulwark, fortress])
+	var screen := _screen([bastion])
+	var profile := Profile.new()
+	screen.set_locks(profile, [])
+	assert_array(screen.get_loadouts(bastion)).is_empty()
+	assert_array(screen.get_card_texts()[0]).contains(["Mastery 1 · 0 / 10 XP"])
+	assert_bool(screen.get_card_texts()[0].has("Loadout: Standard")).is_false()
+	profile.chassis_records["bastion"] = {"xp": 12}
+	screen.set_locks(profile, [])
+	assert_array(screen.get_loadouts(bastion)).contains_same_exactly([bulwark])
+	assert_array(screen.get_card_texts()[0]).contains(["Mastery 2 · 12 / 25 XP", "Loadout: Standard"])
+	assert_object(screen.get_loadout(bastion)).is_null()
+	screen.set_loadout(bastion, 0)
+	assert_object(screen.get_loadout(bastion)).is_same(bulwark)
+	assert_array(screen.get_card_texts()[0]).contains(["Loadout: Bulwark"])
+	# Out of range clamps to what's unlocked.
+	screen.set_loadout(bastion, 5)
+	assert_object(screen.get_loadout(bastion)).is_same(bulwark)
+	# The button cycles back to the frame's own kit.
+	var button: Button = screen.get_node("%Cards").find_children("*", "Button", true, false) \
+		.filter(func(found: Button) -> bool: return found.text.begins_with("Loadout:"))[0]
+	button.pressed.emit()
+	await await_idle_frame()
+	assert_object(screen.get_loadout(bastion)).is_null()
+	await await_idle_frame()
+
+
+func _loadout(loadout_name: String, level: int) -> StartingLoadout:
+	var loadout := StartingLoadout.new()
+	loadout.id = loadout_name.to_snake_case()
+	loadout.loadout_name = loadout_name
+	loadout.description = "Another way in."
+	loadout.mastery_level = level
+	return loadout

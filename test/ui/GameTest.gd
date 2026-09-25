@@ -144,7 +144,7 @@ func test_beating_the_last_boss_wins_the_run() -> void:
 	var end := _message()
 	assert_str(end.title_label.text).is_equal("RUN COMPLETE")
 	# The first win on a frame unlocks its first Threat level.
-	assert_str(end.body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 1 for The Skirmisher")
+	assert_str(end.body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 1 for The Skirmisher" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
 	await await_idle_frame()
 
 
@@ -169,7 +169,7 @@ func test_winning_at_the_highest_threat_unlocks_the_next() -> void:
 	await _choose(chassis)
 	await _win(_game.run)
 	assert_str(_message().body_label.text) \
-		.is_equal("The Skirmisher · Threat 2\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 3 for The Skirmisher")
+		.is_equal("The Skirmisher · Threat 2\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 3 for The Skirmisher" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
 	assert_int(_game.profile.get_threat_unlocked("")).is_equal(3)
 	await await_idle_frame()
 
@@ -178,7 +178,7 @@ func test_winning_below_the_highest_threat_unlocks_nothing_new() -> void:
 	_game.profile.chassis_records[""] = {"runs": 1, "wins": 1, "best_sector": 2, "threat": 3}
 	await _choose(_armed())
 	await _win(_game.run)
-	assert_str(_message().body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1")
+	assert_str(_message().body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
 	assert_int(_game.profile.get_threat_unlocked("")).is_equal(3)
 	await await_idle_frame()
 
@@ -386,6 +386,46 @@ func test_a_runs_end_is_recorded_and_earns_unlocks() -> void:
 	assert_int(_game.profile.runs).is_equal(1)
 	assert_array(_game.profile.unlocked).contains_exactly(["veteran"])
 	assert_str(_message().body_label.text).is_equal("The Skirmisher\nFell in Sector 1 · Floor 1\nFights won: 0\nUnlocked: Veteran")
+	await await_idle_frame()
+
+
+func test_a_mastered_frame_can_start_with_its_other_loadout() -> void:
+	var chassis := _armed()
+	var loadout := StartingLoadout.new()
+	loadout.loadout_name = "Laser Wall"
+	loadout.mastery_level = 2
+	loadout.lineup = [LoadoutPart.make(Fixtures.laser(), Vector2i(1, 1)), LoadoutPart.make(Fixtures.laser(), Vector2i(2, 1))]
+	chassis.alt_loadouts.assign([loadout])
+	_game.profile.chassis_records[""] = {"xp": 10}
+	_game.chassis_select.set_loadout(chassis, 0)
+	await _choose(chassis)
+	var parts: Array = _game.run.grid.get_placements().map(func(placement: MechGridData.Placement) -> String: return placement.part.part_name)
+	assert_array(parts).contains_exactly(["Point-Defense Laser", "Point-Defense Laser"])
+	# The frame itself keeps its own kit.
+	assert_array(chassis.starter_lineup).has_size(1)
+	await await_idle_frame()
+
+
+func test_locked_events_mods_and_kits_stay_out_of_the_run() -> void:
+	var locked_mod := Fixtures.siphon_mod()
+	_game.mods.append(locked_mod)
+	var locked_kit := Fixtures.shield_cell()
+	_game.kits.append(locked_kit)
+	var locked_event := Fixtures.gold_event("Secret")
+	_game.events.append(locked_event)
+	_game.unlocks = [Fixtures.unlock("siphon", Unlock.Kind.MOD, "siphon", {"runs_won": 1}),
+		Fixtures.unlock("cell", Unlock.Kind.KIT, "shield_cell", {"runs_won": 1}),
+		Fixtures.unlock("secret", Unlock.Kind.EVENT, "secret", {"runs_won": 1}),
+		Fixtures.unlock("technician", Unlock.Kind.NPC, "technician", {"runs_finished": 99})]
+	await _choose(_armed())
+	var run := _game.run
+	assert_bool(run.mod_pool.has(locked_mod)).is_false()
+	assert_bool(run.kit_pool.has(locked_kit)).is_false()
+	assert_bool(run.event_pool.has(locked_event)).is_false()
+	# Positive control: the unlocked ones are there.
+	assert_array(run.mod_pool).has_size(1)
+	assert_array(run.kit_pool).has_size(1)
+	assert_bool(run.event_pool.has(_game.events[0])).is_true()
 	await await_idle_frame()
 
 

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_l5b6c"]
+
+[resource]
+script = ExtResource("1_l5b6c")
+id = "afterburner"
+kind = 2
+target_id = "afterburner"
+title = "The Afterburner relic"
+hint = "Reach Mastery 3 with the Striker"
+with_chassis = "striker"
+mastery_level = 3

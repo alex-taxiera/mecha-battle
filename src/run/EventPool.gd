@@ -25,6 +25,11 @@ func _init(events: Array[GameEvent], rng: RandomNumberGenerator) -> void:
 			_events.append(event)
 
 
+## Returns whether the pool can ever hand out [param event] (the fallback included).
+func has(event: GameEvent) -> bool:
+	return event in _events or event == fallback
+
+
 ## Returns the events left before the pool refills, in the order they'll be tried.
 func get_queue() -> Array[GameEvent]:
 	return _queue.duplicate()

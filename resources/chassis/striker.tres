@@ -3,11 +3,36 @@
 [ext_resource type="Script" path="res://src/data/MechChassis.gd" id="1_6x7m0"]
 [ext_resource type="Texture2D" path="res://assets/combat/striker.png" id="1_6234c"]
 [ext_resource type="Script" path="res://src/data/Hardpoint.gd" id="1_bleus"]
+[ext_resource type="Script" path="res://src/data/StartingLoadout.gd" id="1_tbrjm"]
 [ext_resource type="Script" path="res://src/data/passives/OverclockPassive.gd" id="3_2hl2w"]
+[ext_resource type="Resource" path="res://resources/parts/leech_drill.tres" id="3_i4xwx"]
 [ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="4_35lvg"]
+[ext_resource type="Resource" path="res://resources/parts/shock_lance.tres" id="4_sangs"]
 [ext_resource type="Resource" path="res://resources/parts/gatling.tres" id="5_2hl2w"]
 [ext_resource type="Resource" path="res://resources/parts/missile_pod.tres" id="6_iji7a"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="7_o8tbd"]
+
+[sub_resource type="Resource" id="Resource_05d64"]
+script = ExtResource("4_35lvg")
+part = ExtResource("3_i4xwx")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_iwvr8"]
+script = ExtResource("4_35lvg")
+part = ExtResource("4_sangs")
+origin = Vector2i(2, 1)
+
+[sub_resource type="Resource" id="Resource_k67fe"]
+script = ExtResource("4_35lvg")
+part = ExtResource("7_o8tbd")
+origin = Vector2i(0, 1)
+
+[sub_resource type="Resource" id="Resource_rebg3"]
+script = ExtResource("1_tbrjm")
+id = "striker_duelist"
+loadout_name = "Duelist"
+description = "A Leech Drill and a Shock Lance: no back weapon, all close work."
+lineup = Array[ExtResource("4_35lvg")]([SubResource("Resource_05d64"), SubResource("Resource_iwvr8"), SubResource("Resource_k67fe")])
 
 [sub_resource type="Resource" id="Resource_6234c"]
 script = ExtResource("1_bleus")
@@ -66,6 +91,7 @@ base_energy = 40
 hardpoints = Array[ExtResource("1_bleus")]([SubResource("Resource_6234c"), SubResource("Resource_1ep8u"), SubResource("Resource_ta408")])
 battle_sprite = ExtResource("1_6234c")
 starter_lineup = Array[ExtResource("4_35lvg")]([SubResource("Resource_tbrjm"), SubResource("Resource_i4xwx"), SubResource("Resource_sangs")])
+alt_loadouts = Array[ExtResource("1_tbrjm")]([SubResource("Resource_rebg3")])
 passive = SubResource("Resource_iji7a")
 passive_name = "Overclock"
 passive_text = "The first weapon to fire each battle fires twice."

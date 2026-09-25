@@ -35,6 +35,9 @@ var custom_modifiers: Array[RunModifier] = []
 
 # Chassis id -> the Threat level picked on its card, clamped again whenever it's read.
 var _threats: Dictionary[String, int] = {}
+# Chassis id -> the starting loadout picked on its card: -1 for the frame's own, else an index
+# into its unlocked alternatives.
+var _loadouts: Dictionary[String, int] = {}
 var _customs_on: Array[RunModifier] = []
 var _customs_row := HBoxContainer.new()
 
@@ -114,6 +117,39 @@ func get_run_modifiers(chassis: MechChassis) -> Array[RunModifier]:
 	var modifiers := RunModifier.threat_stack(threat_levels, get_threat(chassis))
 	modifiers.append_array(_customs_on)
 	return modifiers
+
+
+## Returns the starting loadouts [param chassis] has unlocked by its mastery (all of them without
+## a profile).
+func get_loadouts(chassis: MechChassis) -> Array[StartingLoadout]:
+	var level := profile.get_mastery_level(chassis.id) if profile else 99
+	var open: Array[StartingLoadout] = []
+	open.assign(chassis.alt_loadouts.filter(func(loadout: StartingLoadout) -> bool: return loadout.mastery_level <= level))
+	return open
+
+
+## Picks [param chassis]'s starting loadout: -1 for the frame's own, or an index into
+## [method get_loadouts], clamped. Redraws the cards.
+func set_loadout(chassis: MechChassis, index: int) -> void:
+	_loadouts[chassis.id] = clampi(index, -1, get_loadouts(chassis).size() - 1)
+	if is_node_ready():
+		_build_cards()
+
+
+## Returns the starting loadout picked for [param chassis], or null for the frame's own kit.
+func get_loadout(chassis: MechChassis) -> StartingLoadout:
+	var open := get_loadouts(chassis)
+	var index: int = clampi(_loadouts.get(chassis.id, -1), -1, open.size() - 1)
+	return open[index] if index >= 0 else null
+
+
+## Returns a card's mastery line, e.g. "Mastery 2 · 14 / 25 XP", or "Mastery 4 (max)".
+func mastery_text(chassis: MechChassis) -> String:
+	var level := profile.get_mastery_level(chassis.id)
+	var next := profile.get_next_mastery_xp(chassis.id)
+	if next < 0:
+		return "Mastery %d (max)" % level
+	return "Mastery %d · %d / %d XP" % [level, profile.get_mastery_xp(chassis.id), next]
 
 
 ## Returns the words under a card's Threat picker: the level and what it adds, e.g.
@@ -205,6 +241,10 @@ func _make_card(chassis: MechChassis, preview: ChassisPreview, preview_height: f
 	passive.size_flags_vertical = SIZE_EXPAND_FILL
 	box.add_child(passive)
 	var lock := get_lock(chassis)
+	if profile and lock == null:
+		box.add_child(_label(mastery_text(chassis), 12, PASSIVE_COLOR))
+	if lock == null and not get_loadouts(chassis).is_empty():
+		box.add_child(_make_loadout_picker(chassis))
 	if not threat_levels.is_empty() and lock == null:
 		box.add_child(_make_threat_picker(chassis))
 	var button := Button.new()
@@ -258,6 +298,18 @@ func _make_threat_picker(chassis: MechChassis) -> Control:
 	summary.mouse_filter = MOUSE_FILTER_PASS
 	box.add_child(summary)
 	return box
+
+
+# A button that cycles the frame's starting loadouts: its own kit, then each one unlocked.
+func _make_loadout_picker(chassis: MechChassis) -> Control:
+	var picked := get_loadout(chassis)
+	var button := Button.new()
+	button.text = "Loadout: %s" % (picked.loadout_name if picked else "Standard")
+	button.tooltip_text = picked.description if picked else "The frame's own starter kit."
+	var open := get_loadouts(chassis)
+	var index := open.find(picked)
+	button.pressed.connect(func() -> void: set_loadout(chassis, index + 1 if index + 1 < open.size() else -1), CONNECT_DEFERRED)
+	return button
 
 
 # A checkbox per custom mode, in the footer.

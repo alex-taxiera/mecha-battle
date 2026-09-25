@@ -6,6 +6,12 @@ extends RefCounted
 ## per-character records. See THIRD_PARTY_NOTICES.md.
 
 const DEFAULT_PATH := "user://profile.json"
+## Mastery XP a frame needs for each mastery level: level 1 from the start, then 2, 3, and 4.
+const MASTERY_XP: Array[int] = [0, 10, 25, 45]
+## Mastery XP a run earns: a point per fight won, [constant XP_PER_SECTOR] per sector cleared, and
+## [constant XP_FOR_WIN] more for a win.
+const XP_PER_SECTOR := 5
+const XP_FOR_WIN := 10
 const VERSION := 1
 
 ## Where the profile saves; empty for one that never touches disk (tests).
@@ -14,8 +20,8 @@ var runs := 0
 var wins := 0
 var fights_won := 0
 var bosses_beaten := 0
-## Chassis id -> {"runs", "wins", "best_sector", "threat"}, where "threat" is the highest Threat
-## level unlocked on that chassis.
+## Chassis id -> {"runs", "wins", "best_sector", "threat", "xp"}, where "threat" is the highest
+## Threat level unlocked on that chassis and "xp" its mastery XP.
 var chassis_records: Dictionary = {}
 ## The ids of the unlocks earned.
 var unlocked: Array[String] = []
@@ -80,6 +86,35 @@ func get_threat_unlocked(chassis_id: String) -> int:
 	return int(record.get("threat", 0))
 
 
+## Returns the mastery XP earned on the chassis with id [param chassis_id].
+func get_mastery_xp(chassis_id: String) -> int:
+	var record: Dictionary = chassis_records.get(chassis_id, {})
+	return int(record.get("xp", 0))
+
+
+## Returns the mastery level of the chassis with id [param chassis_id]: 1 to [constant MASTERY_XP]'s
+## size, by its XP.
+func get_mastery_level(chassis_id: String) -> int:
+	var xp := get_mastery_xp(chassis_id)
+	var level := 0
+	for needed in MASTERY_XP:
+		if xp >= needed:
+			level += 1
+	return level
+
+
+## Returns the XP the next mastery level of [param chassis_id] needs in total, or -1 at the top.
+func get_next_mastery_xp(chassis_id: String) -> int:
+	var level := get_mastery_level(chassis_id)
+	return MASTERY_XP[level] if level < MASTERY_XP.size() else -1
+
+
+## Returns the mastery XP [param run] earns its chassis.
+static func mastery_xp_for(run: RunState) -> int:
+	var won := run.outcome == RunState.Outcome.VICTORY
+	return run.fights_won + XP_PER_SECTOR * sectors_cleared(run) + (XP_FOR_WIN if won else 0)
+
+
 func is_unlocked(unlock_id: String) -> bool:
 	return unlock_id in unlocked
 
@@ -110,7 +145,7 @@ static func sectors_cleared(run: RunState) -> int:
 
 ## Counts a finished [param run] into the totals and its chassis's record, then earns every one
 ## of [param unlocks] whose milestone is now met. A win also unlocks the next Threat level on its
-## chassis. Returns the unlocks just earned.
+## chassis, and every run earns its chassis mastery XP. Returns the unlocks just earned.
 func record_run(run: RunState, unlocks: Array[Unlock]) -> Array[Unlock]:
 	var sectors := sectors_cleared(run)
 	var won := run.outcome == RunState.Outcome.VICTORY
@@ -126,6 +161,7 @@ func record_run(run: RunState, unlocks: Array[Unlock]) -> Array[Unlock]:
 	record["best_sector"] = maxi(int(record["best_sector"]), sectors)
 	# A win unlocks the next Threat level (Slay-The-Robot unlocked only the one just beaten).
 	record["threat"] = maxi(int(record.get("threat", 0)), run.get_threat() + 1 if won else 0)
+	record["xp"] = int(record.get("xp", 0)) + mastery_xp_for(run)
 	chassis_records[chassis_id] = record
 	var earned: Array[Unlock] = []
 	for unlock in unlocks:

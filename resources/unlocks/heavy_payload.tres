@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_qn2se"]
+
+[resource]
+script = ExtResource("1_qn2se")
+id = "heavy_payload"
+kind = 2
+target_id = "heavy_payload"
+title = "The Heavy Payload relic"
+hint = "Unlock Threat 2 on any frame"
+threat_reached = 2

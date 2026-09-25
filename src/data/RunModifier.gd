@@ -49,6 +49,10 @@ extends Resource
 @export var player_hp_scale := 1.0
 ## After the last sector, the sectors start over, their enemies tougher each loop.
 @export var endless := false
+## Every frame's relics can turn up, not just this frame's own (see [member Relic.chassis_id]).
+@export var prismatic := false
+## No Hangars: every Hangar on the map is a battle instead.
+@export var no_hangars := false
 
 
 ## Once, when a run with this modifier starts, after its starter kit is installed. Override for

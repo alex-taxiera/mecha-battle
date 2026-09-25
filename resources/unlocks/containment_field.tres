@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_8kc8a"]
+
+[resource]
+script = ExtResource("1_8kc8a")
+id = "containment_field"
+kind = 2
+target_id = "containment_field"
+title = "The Containment Field relic"
+hint = "Reach Mastery 3 with the Reactor"
+with_chassis = "reactor"
+mastery_level = 3

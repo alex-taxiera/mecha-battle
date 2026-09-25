@@ -1,13 +1,48 @@
 [gd_resource type="Resource" script_class="MechChassis" format=3]
 
 [ext_resource type="Texture2D" path="res://assets/combat/juggernaut.png" id="1_uq1yw"]
+[ext_resource type="Script" path="res://src/data/StartingLoadout.gd" id="1_xmf0x"]
 [ext_resource type="Script" path="res://src/data/Hardpoint.gd" id="2_cevev"]
+[ext_resource type="Resource" path="res://resources/parts/rivet_mortar.tres" id="3_o1g4h"]
 [ext_resource type="Script" path="res://src/data/passives/MomentumPassive.gd" id="3_xmf0x"]
 [ext_resource type="Script" path="res://src/data/MechChassis.gd" id="4_o1g4h"]
 [ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="5_41pbo"]
 [ext_resource type="Resource" path="res://resources/parts/siege_cannon.tres" id="6_uqtai"]
 [ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="7_bdj05"]
 [ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="8_31hka"]
+
+[sub_resource type="Resource" id="Resource_41pbo"]
+script = ExtResource("5_41pbo")
+part = ExtResource("3_o1g4h")
+origin = Vector2i(0, -2)
+
+[sub_resource type="Resource" id="Resource_uqtai"]
+script = ExtResource("5_41pbo")
+part = ExtResource("3_o1g4h")
+origin = Vector2i(3, -2)
+
+[sub_resource type="Resource" id="Resource_bdj05"]
+script = ExtResource("5_41pbo")
+part = ExtResource("7_bdj05")
+rotation = 1
+
+[sub_resource type="Resource" id="Resource_31hka"]
+script = ExtResource("5_41pbo")
+part = ExtResource("7_bdj05")
+origin = Vector2i(4, 0)
+rotation = 1
+
+[sub_resource type="Resource" id="Resource_r6ywm"]
+script = ExtResource("5_41pbo")
+part = ExtResource("8_31hka")
+origin = Vector2i(1, 0)
+
+[sub_resource type="Resource" id="Resource_utfaj"]
+script = ExtResource("1_xmf0x")
+id = "juggernaut_bombardier"
+loadout_name = "Bombardier"
+description = "Two Rivet Mortars on two upright reactors."
+lineup = Array[ExtResource("5_41pbo")]([SubResource("Resource_41pbo"), SubResource("Resource_uqtai"), SubResource("Resource_bdj05"), SubResource("Resource_31hka"), SubResource("Resource_r6ywm")])
 
 [sub_resource type="Resource" id="Resource_jq8si"]
 script = ExtResource("2_cevev")
@@ -76,6 +111,7 @@ base_energy = 15
 hardpoints = Array[ExtResource("2_cevev")]([SubResource("Resource_jq8si"), SubResource("Resource_vama6"), SubResource("Resource_gnc8l"), SubResource("Resource_ylj0g")])
 battle_sprite = ExtResource("1_uq1yw")
 starter_lineup = Array[ExtResource("5_41pbo")]([SubResource("Resource_va0j4"), SubResource("Resource_pvjxk"), SubResource("Resource_je451")])
+alt_loadouts = Array[ExtResource("1_xmf0x")]([SubResource("Resource_utfaj")])
 passive = SubResource("Resource_v5exa")
 passive_name = "Momentum"
 passive_text = "Weapons fire 2% faster for every second of the fight, up to 30%."

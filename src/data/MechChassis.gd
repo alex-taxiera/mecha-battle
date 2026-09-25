@@ -29,6 +29,8 @@ extends Resource
 @export var battle_sprite: Texture2D
 ## The parts a run on this frame starts with, already installed.
 @export var starter_lineup: Array[LoadoutPart] = []
+## Other starter kits the frame's mastery unlocks (see [StartingLoadout]).
+@export var alt_loadouts: Array[StartingLoadout] = []
 
 @export_group("Passive")
 ## What the frame does in a fight on its own, with its numbers (see [ChassisPassive]); null for

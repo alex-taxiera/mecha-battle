@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_tjuik"]
+
+[resource]
+script = ExtResource("1_tjuik")
+id = "reboot_protocol"
+kind = 6
+target_id = "reboot_protocol"
+title = "The Reboot Protocol kit"
+hint = "Win a run"
+runs_won = 1

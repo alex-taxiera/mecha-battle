@@ -154,14 +154,15 @@ func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[Syne
 	rules.assign(p_rules)
 	gold = start_gold
 	rng = p_rng if p_rng else RunRng.new()
-	# Relics made for one chassis only turn up in its runs.
+	run_modifiers.assign(p_modifiers)
+	# Relics made for one chassis only turn up in its runs, unless a mode opens them all.
+	var prismatic := run_modifiers.any(func(modifier: RunModifier) -> bool: return modifier.prismatic)
 	var relics_here: Array[Relic] = []
 	relics_here.assign(p_relics.filter(func(relic: Relic) -> bool:
-		return relic.chassis_id.is_empty() or relic.chassis_id == chassis.id))
+		return prismatic or relic.chassis_id.is_empty() or relic.chassis_id == chassis.id))
 	relic_pool = RelicPool.new(relics_here, rng.stream("relics"))
 	event_pool = EventPool.new(p_events, rng.stream("events"))
 	affix_pool.assign(p_affixes)
-	run_modifiers.assign(p_modifiers)
 	acts.assign(p_acts)
 	if not acts.is_empty():
 		_start_act(0)
@@ -675,6 +676,10 @@ func _start_act(index: int) -> void:
 	var act := acts[index]
 	var generator: MapGenerator = act.generator.new() if act.generator else MapGenerator.new()
 	map = generator.generate(act, rng.stream("map"))
+	if run_modifiers.any(func(modifier: RunModifier) -> bool: return modifier.no_hangars):
+		for node in map.get_nodes():
+			if node.type == MapNode.Type.HANGAR:
+				node.type = MapNode.Type.BATTLE
 	_roll_affixes()
 	_roll_hazards()
 

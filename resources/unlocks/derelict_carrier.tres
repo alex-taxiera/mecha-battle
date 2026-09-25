@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Unlock" format=3]
+
+[ext_resource type="Script" path="res://src/data/Unlock.gd" id="1_g3epf"]
+
+[resource]
+script = ExtResource("1_g3epf")
+id = "derelict_carrier"
+kind = 4
+target_id = "derelict_carrier"
+title = "A Derelict Carrier (event)"
+hint = "Finish 2 runs"
+runs_finished = 2
