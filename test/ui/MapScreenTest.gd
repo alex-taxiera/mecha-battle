@@ -28,7 +28,8 @@ func test_shows_the_run_and_its_map() -> void:
 	# A legend entry per kind of node.
 	var legend := (_screen.get_node("%Legend") as Container).get_children()
 	assert_array(legend.map(func(label: Label) -> String: return label.text)) \
-		.contains_exactly(["X  Battle", "!  Elite", "$  Scrap Shop", "+  Hangar", "?  Event", "B  Sector Boss"])
+		.contains_exactly(["X  Battle", "!  Elite", "$  Scrap Shop", "+  Hangar", "?  Event", "B  Sector Boss", "~  Unknown",
+			"C  Salvage Cache"])
 
 
 func test_choosing_a_reachable_node_travels_there() -> void:

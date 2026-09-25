@@ -13,6 +13,7 @@ func test_defaults_match_the_design() -> void:
 	assert_int(act.min_special_floor).is_equal(4)
 	assert_that(act.get_node_weights()).is_equal({
 		MapNode.Type.BATTLE: 45, MapNode.Type.EVENT: 22, MapNode.Type.ELITE: 10, MapNode.Type.HANGAR: 12, MapNode.Type.SHOP: 6,
+		MapNode.Type.UNKNOWN: 0, MapNode.Type.CACHE: 0,
 	})
 
 

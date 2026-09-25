@@ -28,6 +28,13 @@ const KIT_DROP_CHANCES := {
 	EnemyLoadout.Tier.ELITE: 0.35,
 	EnemyLoadout.Tier.BOSS: 0.0,
 }
+## What an Unknown node turns into, by weight (Slay the Spire's "?" odds, roughly).
+const UNKNOWN_ODDS := {
+	MapNode.Type.EVENT: 50,
+	MapNode.Type.BATTLE: 25,
+	MapNode.Type.CACHE: 15,
+	MapNode.Type.SHOP: 10,
+}
 ## Weapon mods a Scrap Shop puts up for sale, and their price range before Threat.
 const SHOP_MODS := 1
 const MOD_PRICES := Vector2i(12, 18)
@@ -106,6 +113,9 @@ var cells_to_open := 0
 var hangar_jobs: Array[HangarJob] = []
 ## The weapon mods shops, elites, and a Hangar's Refit can offer.
 var mod_pool: Array[WeaponMod] = []
+## Story flags events set and check (see [SetFlagEffect], [FlagRequirement]), so one event can
+## follow up on another.
+var flags: Dictionary[String, int] = {}
 ## The field kits the run carries, up to [constant KIT_SLOTS], and those it can find or buy.
 var kits: Array[FieldKit] = []
 var kit_pool: Array[FieldKit] = []
@@ -118,6 +128,8 @@ var loops := 0
 var affix_pool: Array[Relic] = []
 var elite_affixes := 1
 
+# News for the next loot screen, e.g. a crate that opened.
+var _notes: PackedStringArray = []
 # Parts bought at the open shop, which still sell back for their full cost.
 var _fresh: Array[MechPart] = []
 # The last enemy picked for a fight, so the same one doesn't come twice in a row.
@@ -291,8 +303,13 @@ func damage_hull(amount: int) -> void:
 
 ## Returns the player's mech for a fight: the build as it is, with the run's relics, starting at
 ## its current HP.
-func make_player_mech() -> BattleMech:
-	var mech := BattleMech.new(grid, rules, 1.0, get_current_hp(), get_modifiers())
+## Returns the player's mech for a fight at [param node] (if given): the build at the hull's
+## current HP, with the run's relics and kits, and the node's hazard.
+func make_player_mech(node: MapNode = null) -> BattleMech:
+	var modifiers := get_modifiers()
+	if node and node.hazard:
+		modifiers.append(node.hazard.duplicate())
+	var mech := BattleMech.new(grid, rules, 1.0, get_current_hp(), modifiers)
 	mech.kits.assign(kits)
 	return mech
 
@@ -322,6 +339,8 @@ func make_enemy_mech(node: MapNode = null) -> BattleMech:
 	var affixes: Array[Relic] = []
 	for affix in node.affixes:
 		affixes.append(affix.duplicate())
+	if node.hazard:
+		affixes.append(node.hazard.duplicate())
 	enemy = enemy.with_threat(get_threat())
 	var hp_scale := get_act().get_enemy_hp_scale(node.floor_index) * enemy.hp_scale * get_mod_product(&"enemy_hp_scale") \
 		* (1.0 + ENDLESS_HP_PER_LOOP * loops)
@@ -348,9 +367,29 @@ func record_fight(result: FightResult, mech: BattleMech) -> void:
 		fights_won += 1
 		for modifier in get_modifiers():
 			modifier.on_fight_won(self)
+		_crack_crates()
 	else:
 		outcome = Outcome.DEFEAT
 	changed.emit()
+
+
+# Counts a won fight for each installed crate; one that's sat through enough opens into a random
+# catalog part of its rarity, in the stash, and says so on the next loot screen.
+func _crack_crates() -> void:
+	for placement in grid.get_placements():
+		var crate := placement.part
+		if crate.opens_after_wins <= 0:
+			continue
+		crate.crate_wins += 1
+		if crate.crate_wins < crate.opens_after_wins:
+			continue
+		var pool := catalog.filter(func(part: MechPart) -> bool: return part.rarity == crate.opens_into)
+		if pool.is_empty():
+			continue
+		var found: MechPart = pool[rng.stream("loot").randi_range(0, pool.size() - 1)]
+		grid.remove_part(placement.origin)
+		stash_part(found)
+		_notes.append("The %s cracked open: a %s is in your stash." % [crate.part_name, found.part_name])
 
 ## Rolls the loot for winning the fight at [param node] (by default the current node): gold from
 ## the sector's range for the enemy's tier (as relics change it), added at once, and a draft of
@@ -362,6 +401,8 @@ func roll_reward(node: MapNode = null, relic_rarity := -1) -> FightReward:
 	node = node if node else map.current
 	var reward := FightReward.new()
 	reward.tier = node.get_tier()
+	reward.notes = _notes
+	_notes = []
 	var loot_rng := rng.stream("loot")
 	reward.gold = RewardRoller.roll_gold(loot_rng, get_act().get_gold_range(reward.tier))
 	if reward.tier == EnemyLoadout.Tier.NORMAL:
@@ -588,6 +629,7 @@ func choose_event_option(event: GameEvent, index: int) -> EventResult:
 	if picked == null:
 		picked = choice.outcomes[0]
 	result.text = picked.text
+	result.next_event = picked.next_event
 	for effect in picked.effects:
 		effect.apply(self, result)
 	changed.emit()
@@ -634,6 +676,7 @@ func _start_act(index: int) -> void:
 	var generator: MapGenerator = act.generator.new() if act.generator else MapGenerator.new()
 	map = generator.generate(act, rng.stream("map"))
 	_roll_affixes()
+	_roll_hazards()
 
 
 # Rolls affixes on the run's "affixes" stream, from [member affix_pool]: [member elite_affixes]
@@ -653,6 +696,40 @@ func _roll_affixes() -> void:
 		if count > 0:
 			var picks := RunRng.shuffle(stream, affix_pool.duplicate())
 			node.affixes.assign(picks.slice(0, mini(count, picks.size())))
+
+# Rolls a hazard onto each battle and elite at the sector's chance, on the run's "hazards" stream.
+func _roll_hazards() -> void:
+	var act := get_act()
+	if act.hazards.is_empty() or act.hazard_chance <= 0.0:
+		return
+	var stream := rng.stream("hazards")
+	for node in map.get_nodes():
+		if node.type in [MapNode.Type.BATTLE, MapNode.Type.ELITE] and stream.randf() < act.hazard_chance:
+			node.hazard = act.hazards[stream.randi_range(0, act.hazards.size() - 1)]
+
+
+## Turns an Unknown [param node] into what it really is, by [constant UNKNOWN_ODDS] on the run's
+## "unknown" stream, and returns its new type. Any other node stays as it is.
+func resolve_unknown(node: MapNode) -> MapNode.Type:
+	if node.type == MapNode.Type.UNKNOWN:
+		var picked: Variant = RunRng.weighted_pick(rng.stream("unknown"), UNKNOWN_ODDS)
+		node.type = picked if picked != null else MapNode.Type.EVENT
+	return node.type
+
+
+## Opens a Salvage Cache: gold from the sector's battle range, a relic rolled like an elite's, and
+## a field kit, all to take like a fight's loot (the gold at once).
+func roll_cache() -> FightReward:
+	var reward := FightReward.new()
+	reward.title = "SALVAGE CACHE"
+	reward.gold = RewardRoller.roll_gold(rng.stream("loot"), get_act().get_gold_range(EnemyLoadout.Tier.NORMAL))
+	var relic := relic_pool.roll(rng.stream("relics"), RelicPool.ELITE_WEIGHTS)
+	if relic:
+		reward.relics.append(relic)
+	reward.kit = roll_kit()
+	gold += reward.gold
+	changed.emit()
+	return reward
 
 #endregion
 #region Stash

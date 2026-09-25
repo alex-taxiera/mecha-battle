@@ -1,0 +1,73 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_xftx4"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_vjykm"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_f6njd"]
+[ext_resource type="Script" path="res://src/data/events/MaxHpEffect.gd" id="4_pkesa"]
+[ext_resource type="Script" path="res://src/data/events/ChassisRequirement.gd" id="5_tqpxa"]
+[ext_resource type="Script" path="res://src/data/events/HullEffect.gd" id="6_pd6vu"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="7_xk7u5"]
+[ext_resource type="Script" path="res://src/data/events/SectorRequirement.gd" id="8_k2daj"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="9_tvg6u"]
+
+[sub_resource type="Resource" id="Resource_mbm57"]
+script = ExtResource("4_pkesa")
+hp = 100
+
+[sub_resource type="Resource" id="Resource_q7obp"]
+script = ExtResource("2_vjykm")
+text = "Your core drinks it down and settles, steadier than before."
+effects = Array[ExtResource("3_f6njd")]([SubResource("Resource_mbm57")])
+
+[sub_resource type="Resource" id="Resource_2m3q3"]
+script = ExtResource("5_tqpxa")
+chassis_id = "reactor"
+chassis_name = "the Reactor"
+
+[sub_resource type="Resource" id="Resource_kglp7"]
+script = ExtResource("1_xftx4")
+label = "Siphon the core"
+hint = "Only a Reactor frame can take it in: +100 max HP."
+requirement = SubResource("Resource_2m3q3")
+outcomes = Array[ExtResource("2_vjykm")]([SubResource("Resource_q7obp")])
+
+[sub_resource type="Resource" id="Resource_utlfl"]
+script = ExtResource("6_pd6vu")
+amount = -30
+
+[sub_resource type="Resource" id="Resource_isl3x"]
+script = ExtResource("7_xk7u5")
+amount = 30
+
+[sub_resource type="Resource" id="Resource_xe3c4"]
+script = ExtResource("2_vjykm")
+text = "It bites back while you seal it, but the salvage pays."
+effects = Array[ExtResource("3_f6njd")]([SubResource("Resource_utlfl"), SubResource("Resource_isl3x")])
+
+[sub_resource type="Resource" id="Resource_opm14"]
+script = ExtResource("1_xftx4")
+label = "Seal it for the salvage"
+hint = "Take 30 hull damage; gain 30 gold."
+outcomes = Array[ExtResource("2_vjykm")]([SubResource("Resource_xe3c4")])
+
+[sub_resource type="Resource" id="Resource_126vm"]
+script = ExtResource("2_vjykm")
+text = "You give it a wide berth."
+
+[sub_resource type="Resource" id="Resource_6s5ie"]
+script = ExtResource("1_xftx4")
+label = "Leave"
+outcomes = Array[ExtResource("2_vjykm")]([SubResource("Resource_126vm")])
+
+[sub_resource type="Resource" id="Resource_0n0jy"]
+script = ExtResource("8_k2daj")
+first = 2
+last = 2
+
+[resource]
+script = ExtResource("9_tvg6u")
+id = "reactor_leak"
+title = "Reactor Leak"
+text = "A crashed hauler's reactor bleeds raw energy into the ground. The air hums."
+requirement = SubResource("Resource_0n0jy")
+choices = Array[ExtResource("1_xftx4")]([SubResource("Resource_kglp7"), SubResource("Resource_opm14"), SubResource("Resource_6s5ie")])

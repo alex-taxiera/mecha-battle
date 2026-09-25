@@ -6,3 +6,5 @@ extends Resource
 @export var weight := 1
 @export_multiline var text: String
 @export var effects: Array[EventEffect] = []
+## The event's next page, shown in place of this one after the outcome; null ends the event.
+@export var next_event: GameEvent

@@ -79,8 +79,10 @@ func _init(p_run: RunState = null, p_reward: FightReward = null) -> void:
 	done_button.pressed.connect(finished.emit)
 	box.add_child(done_button)
 	if reward:
-		title_label.text = _TITLES[reward.tier]
+		title_label.text = reward.title if reward.title else _TITLES[reward.tier]
 		gold_label.text = "+%d gold" % reward.gold
+		if not reward.notes.is_empty():
+			gold_label.text += "\n" + "\n".join(reward.notes)
 		_refresh()
 
 
@@ -170,6 +172,8 @@ func _refresh() -> void:
 	relic_label.visible = relic_label.visible or reward.kit != null
 	if reward.kit != null and reward.relics.is_empty() and reward.cells == 0 and reward.mod == null:
 		relic_label.text = "Recovered a field kit:"
+	elif reward.kit != null and relic_label.text == "Recovered a relic:":
+		relic_label.text = "Recovered a relic and a field kit:"
 	if reward.parts.is_empty():
 		draft_label.text = "Nothing else worth salvaging."
 	elif reward.taken >= 0:

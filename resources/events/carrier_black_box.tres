@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_xaoy5"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_e6po7"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_fpmt5"]
+[ext_resource type="Script" path="res://src/data/events/RelicEffect.gd" id="4_0oiwt"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="5_7ogfh"]
+[ext_resource type="Script" path="res://src/data/events/EventRequirement.gd" id="6_30j8i"]
+[ext_resource type="Script" path="res://src/data/events/FlagRequirement.gd" id="7_gvybs"]
+[ext_resource type="Script" path="res://src/data/events/SectorRequirement.gd" id="8_hsr2p"]
+[ext_resource type="Script" path="res://src/data/events/AllRequirement.gd" id="9_1gq4j"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="10_x7nk7"]
+
+[sub_resource type="Resource" id="Resource_apruj"]
+script = ExtResource("4_0oiwt")
+rarity = 2
+
+[sub_resource type="Resource" id="Resource_kvv1m"]
+script = ExtResource("2_e6po7")
+text = "Its last log points to a hidden cache."
+effects = Array[ExtResource("3_fpmt5")]([SubResource("Resource_apruj")])
+
+[sub_resource type="Resource" id="Resource_uyfpc"]
+script = ExtResource("1_xaoy5")
+label = "Decode it"
+hint = "A rare relic."
+outcomes = Array[ExtResource("2_e6po7")]([SubResource("Resource_kvv1m")])
+
+[sub_resource type="Resource" id="Resource_pckr3"]
+script = ExtResource("5_7ogfh")
+amount = 50
+
+[sub_resource type="Resource" id="Resource_7414f"]
+script = ExtResource("2_e6po7")
+text = "A salvage crew pays well for it."
+effects = Array[ExtResource("3_fpmt5")]([SubResource("Resource_pckr3")])
+
+[sub_resource type="Resource" id="Resource_66f16"]
+script = ExtResource("1_xaoy5")
+label = "Sell the coordinates"
+hint = "Gain 50 gold."
+outcomes = Array[ExtResource("2_e6po7")]([SubResource("Resource_7414f")])
+
+[sub_resource type="Resource" id="Resource_0k15w"]
+script = ExtResource("7_gvybs")
+flag = "carrier_boarded"
+
+[sub_resource type="Resource" id="Resource_4td7c"]
+script = ExtResource("8_hsr2p")
+first = 2
+last = 3
+
+[sub_resource type="Resource" id="Resource_76uj5"]
+script = ExtResource("9_1gq4j")
+requirements = Array[ExtResource("6_30j8i")]([SubResource("Resource_0k15w"), SubResource("Resource_4td7c")])
+
+[resource]
+script = ExtResource("10_x7nk7")
+id = "carrier_black_box"
+title = "The Carrier's Black Box"
+text = "A distress beacon pings on your scanner: the carrier you boarded went down nearby, and its black box survived."
+requirement = SubResource("Resource_76uj5")
+choices = Array[ExtResource("1_xaoy5")]([SubResource("Resource_uyfpc"), SubResource("Resource_66f16")])

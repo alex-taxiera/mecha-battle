@@ -86,10 +86,14 @@ func test_no_elite_or_hangar_before_the_special_floor() -> void:
 
 
 func test_special_nodes_never_come_twice_in_a_row() -> void:
-	var special := [MapNode.Type.ELITE, MapNode.Type.HANGAR, MapNode.Type.SHOP]
+	var special := [MapNode.Type.ELITE, MapNode.Type.HANGAR, MapNode.Type.SHOP, MapNode.Type.CACHE]
 	var seen := {}
+	# Unknown nodes and caches only come up where a sector weights them.
+	var act := Fixtures.act()
+	act.unknown_weight = 8
+	act.cache_weight = 6
 	for map_seed in SEEDS:
-		for node in _map(map_seed).get_nodes():
+		for node in MapGenerator.new().generate(act, _seeded(map_seed)).get_nodes():
 			seen[node.type] = true
 			for child in node.next:
 				if node.type in special:

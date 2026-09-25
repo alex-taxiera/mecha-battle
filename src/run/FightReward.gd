@@ -12,6 +12,10 @@ const CELLS_TAKEN := -2
 const MOD_TAKEN := -3
 
 var tier := EnemyLoadout.Tier.NORMAL
+## News to show with the loot, e.g. a crate that opened after the fight.
+var notes: PackedStringArray = []
+## The loot screen's title in place of the tier's, e.g. "SALVAGE CACHE"; empty for the tier's.
+var title := ""
 var gold := 0
 ## The parts on offer. Taking one ends the draft.
 var parts: Array[MechPart] = []

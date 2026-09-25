@@ -1,0 +1,106 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_lsqug"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_3lrke"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_j2n8m"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="4_jrgyk"]
+[ext_resource type="Resource" path="res://resources/mods/rapid.tres" id="5_bbsex"]
+[ext_resource type="Script" path="res://src/data/events/WeaponModEffect.gd" id="6_ona6c"]
+[ext_resource type="Script" path="res://src/data/events/GoldRequirement.gd" id="7_p6fhm"]
+[ext_resource type="Resource" path="res://resources/mods/stabilized.tres" id="8_yefit"]
+[ext_resource type="Resource" path="res://resources/mods/siphon.tres" id="9_0101x"]
+[ext_resource type="Script" path="res://src/data/events/WeaponRequirement.gd" id="10_buf30"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="11_4w3vv"]
+
+[sub_resource type="Resource" id="Resource_xegnt"]
+script = ExtResource("4_jrgyk")
+amount = -15
+
+[sub_resource type="Resource" id="Resource_muti1"]
+script = ExtResource("6_ona6c")
+mod = ExtResource("5_bbsex")
+
+[sub_resource type="Resource" id="Resource_g6n7a"]
+script = ExtResource("2_3lrke")
+text = "A few minutes with a welder and it's done."
+effects = Array[ExtResource("3_j2n8m")]([SubResource("Resource_xegnt"), SubResource("Resource_muti1")])
+
+[sub_resource type="Resource" id="Resource_hq1nw"]
+script = ExtResource("7_p6fhm")
+gold = 15
+
+[sub_resource type="Resource" id="Resource_0urit"]
+script = ExtResource("1_lsqug")
+label = "Rapid mod · 15 gold"
+hint = "Your strongest weapon: fires 25% faster, 15% less damage."
+requirement = SubResource("Resource_hq1nw")
+outcomes = Array[ExtResource("2_3lrke")]([SubResource("Resource_g6n7a")])
+
+[sub_resource type="Resource" id="Resource_xuttv"]
+script = ExtResource("4_jrgyk")
+amount = -15
+
+[sub_resource type="Resource" id="Resource_aae2j"]
+script = ExtResource("6_ona6c")
+mod = ExtResource("8_yefit")
+
+[sub_resource type="Resource" id="Resource_tqffw"]
+script = ExtResource("2_3lrke")
+text = "A few minutes with a welder and it's done."
+effects = Array[ExtResource("3_j2n8m")]([SubResource("Resource_xuttv"), SubResource("Resource_aae2j")])
+
+[sub_resource type="Resource" id="Resource_gmvqd"]
+script = ExtResource("7_p6fhm")
+gold = 15
+
+[sub_resource type="Resource" id="Resource_ihuyc"]
+script = ExtResource("1_lsqug")
+label = "Stabilized mod · 15 gold"
+hint = "Your strongest weapon: 10 less heat a shot, 10% less damage."
+requirement = SubResource("Resource_gmvqd")
+outcomes = Array[ExtResource("2_3lrke")]([SubResource("Resource_tqffw")])
+
+[sub_resource type="Resource" id="Resource_w3c1u"]
+script = ExtResource("4_jrgyk")
+amount = -15
+
+[sub_resource type="Resource" id="Resource_vpkad"]
+script = ExtResource("6_ona6c")
+mod = ExtResource("9_0101x")
+
+[sub_resource type="Resource" id="Resource_mr6aq"]
+script = ExtResource("2_3lrke")
+text = "A few minutes with a welder and it's done."
+effects = Array[ExtResource("3_j2n8m")]([SubResource("Resource_w3c1u"), SubResource("Resource_vpkad")])
+
+[sub_resource type="Resource" id="Resource_hx0rs"]
+script = ExtResource("7_p6fhm")
+gold = 15
+
+[sub_resource type="Resource" id="Resource_v1mi1"]
+script = ExtResource("1_lsqug")
+label = "Siphon mod · 15 gold"
+hint = "Your strongest weapon: each hit repairs a tenth of its damage."
+requirement = SubResource("Resource_hx0rs")
+outcomes = Array[ExtResource("2_3lrke")]([SubResource("Resource_mr6aq")])
+
+[sub_resource type="Resource" id="Resource_6quu4"]
+script = ExtResource("2_3lrke")
+text = "The vendor shrugs."
+
+[sub_resource type="Resource" id="Resource_fkd8r"]
+script = ExtResource("1_lsqug")
+label = "Move on"
+outcomes = Array[ExtResource("2_3lrke")]([SubResource("Resource_6quu4")])
+
+[sub_resource type="Resource" id="Resource_70ffn"]
+script = ExtResource("10_buf30")
+
+[resource]
+script = ExtResource("11_4w3vv")
+id = "mod_vendor"
+title = "Mod Vendor"
+text = "A vendor with a cart full of weapon parts waves you over. \"Fifteen gold, fitted while you wait.\""
+requirement = SubResource("Resource_70ffn")
+failed_strategy = 3
+choices = Array[ExtResource("1_lsqug")]([SubResource("Resource_0urit"), SubResource("Resource_ihuyc"), SubResource("Resource_v1mi1"), SubResource("Resource_fkd8r")])

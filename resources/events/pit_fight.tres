@@ -1,0 +1,78 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_jutdl"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_nvnot"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_j6bwg"]
+[ext_resource type="Resource" path="res://resources/enemies/event/pit_champion.tres" id="4_5rol8"]
+[ext_resource type="Script" path="res://src/data/events/FightEffect.gd" id="5_yl37s"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="6_7fw86"]
+[ext_resource type="Script" path="res://src/data/events/GoldRequirement.gd" id="7_1k574"]
+[ext_resource type="Script" path="res://src/data/events/SectorRequirement.gd" id="8_w1jyu"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="9_i2nfi"]
+
+[sub_resource type="Resource" id="Resource_qagh4"]
+script = ExtResource("5_yl37s")
+enemy = ExtResource("4_5rol8")
+relic_rarity = 2
+
+[sub_resource type="Resource" id="Resource_p674l"]
+script = ExtResource("2_nvnot")
+text = "The gate slams behind you."
+effects = Array[ExtResource("3_j6bwg")]([SubResource("Resource_qagh4")])
+
+[sub_resource type="Resource" id="Resource_o8rer"]
+script = ExtResource("1_jutdl")
+label = "Step into the pit"
+hint = "Fight the Pit Champion, an elite, for a rare relic on top of its loot."
+outcomes = Array[ExtResource("2_nvnot")]([SubResource("Resource_p674l")])
+
+[sub_resource type="Resource" id="Resource_4jmhv"]
+script = ExtResource("6_7fw86")
+amount = 25
+
+[sub_resource type="Resource" id="Resource_6fe1c"]
+script = ExtResource("2_nvnot")
+text = "The champion wins. So do you."
+effects = Array[ExtResource("3_j6bwg")]([SubResource("Resource_4jmhv")])
+
+[sub_resource type="Resource" id="Resource_aw2ly"]
+script = ExtResource("6_7fw86")
+amount = -15
+
+[sub_resource type="Resource" id="Resource_wvuat"]
+script = ExtResource("2_nvnot")
+text = "An upset! Your bet's gone."
+effects = Array[ExtResource("3_j6bwg")]([SubResource("Resource_aw2ly")])
+
+[sub_resource type="Resource" id="Resource_gucts"]
+script = ExtResource("7_1k574")
+gold = 15
+
+[sub_resource type="Resource" id="Resource_2dwou"]
+script = ExtResource("1_jutdl")
+label = "Bet on the champion"
+hint = "15 gold: an even chance to win 40."
+requirement = SubResource("Resource_gucts")
+outcomes = Array[ExtResource("2_nvnot")]([SubResource("Resource_6fe1c"), SubResource("Resource_wvuat")])
+
+[sub_resource type="Resource" id="Resource_mr2rq"]
+script = ExtResource("2_nvnot")
+text = "The roar fades behind you."
+
+[sub_resource type="Resource" id="Resource_kud0e"]
+script = ExtResource("1_jutdl")
+label = "Leave"
+outcomes = Array[ExtResource("2_nvnot")]([SubResource("Resource_mr2rq")])
+
+[sub_resource type="Resource" id="Resource_c8ivl"]
+script = ExtResource("8_w1jyu")
+first = 2
+last = 3
+
+[resource]
+script = ExtResource("9_i2nfi")
+id = "pit_fight"
+title = "The Pit"
+text = "A crowd roars around a scrap-walled arena. The Pit Champion waits, drill already spinning."
+requirement = SubResource("Resource_c8ivl")
+choices = Array[ExtResource("1_jutdl")]([SubResource("Resource_o8rer"), SubResource("Resource_2dwou"), SubResource("Resource_kud0e")])

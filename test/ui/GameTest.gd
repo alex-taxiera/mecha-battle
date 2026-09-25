@@ -291,6 +291,42 @@ func test_an_event_plays_its_choice_then_returns_to_the_map() -> void:
 	await await_idle_frame()
 
 
+func test_a_salvage_cache_hands_out_its_loot() -> void:
+	await _choose(_armed())
+	var run := _game.run
+	var gold := run.gold
+	var node: MapNode = run.get_reachable()[0]
+	node.type = MapNode.Type.CACHE
+	await _go(node)
+	var loot := _game.screen as RewardScreen
+	assert_object(loot).is_not_null()
+	assert_str(loot.title_label.text).is_equal("SALVAGE CACHE")
+	assert_int(run.gold).is_equal(gold + loot.reward.gold)
+	await _collect_loot()
+	assert_object(_map_screen()).is_not_null()
+	await await_idle_frame()
+
+
+func test_an_unknown_node_shows_what_it_turns_into() -> void:
+	await _choose(_armed())
+	var run := _game.run
+	var node: MapNode = run.get_reachable()[0]
+	node.type = MapNode.Type.UNKNOWN
+	await _go(node)
+	assert_int(node.type).is_not_equal(MapNode.Type.UNKNOWN)
+	# Whatever it became is what opened.
+	match node.type:
+		MapNode.Type.EVENT:
+			assert_object(_game.screen as EventScreen).is_not_null()
+		MapNode.Type.BATTLE:
+			assert_object(_game.combat).is_not_null()
+		MapNode.Type.CACHE:
+			assert_object(_game.screen as RewardScreen).is_not_null()
+		MapNode.Type.SHOP:
+			assert_object(_game.screen as LoadoutScreen).is_not_null()
+	await await_idle_frame()
+
+
 func test_an_event_can_start_a_prize_fight_against_a_named_enemy() -> void:
 	var fight := FightEffect.new()
 	fight.enemy = Fixtures.enemy("Pit Champion", EnemyLoadout.Tier.NORMAL)

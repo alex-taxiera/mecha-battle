@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_aiw78"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_we11e"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_dbisq"]
+[ext_resource type="Resource" path="res://resources/parts/event/sealed_crate.tres" id="4_uypey"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="5_iamo1"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="6_8nyfh"]
+
+[sub_resource type="Resource" id="Resource_5jb40"]
+script = ExtResource("5_iamo1")
+part = ExtResource("4_uypey")
+
+[sub_resource type="Resource" id="Resource_71omw"]
+script = ExtResource("2_we11e")
+text = "It's heavy. A few fights' worth of shaking should crack it."
+effects = Array[ExtResource("3_dbisq")]([SubResource("Resource_5jb40")])
+
+[sub_resource type="Resource" id="Resource_ra7qc"]
+script = ExtResource("1_aiw78")
+label = "Haul it aboard"
+hint = "A 2×2 junk crate: install it and win 3 fights, and it opens into a rare part."
+outcomes = Array[ExtResource("2_we11e")]([SubResource("Resource_71omw")])
+
+[sub_resource type="Resource" id="Resource_njp72"]
+script = ExtResource("2_we11e")
+text = "Whatever's in there stays in there."
+
+[sub_resource type="Resource" id="Resource_65c2p"]
+script = ExtResource("1_aiw78")
+label = "Leave it"
+outcomes = Array[ExtResource("2_we11e")]([SubResource("Resource_njp72")])
+
+[resource]
+script = ExtResource("6_8nyfh")
+id = "sealed_crate"
+title = "A Sealed Crate"
+text = "A reinforced crate sits in the wreckage, its lock fused shut. Something rattles inside."
+choices = Array[ExtResource("1_aiw78")]([SubResource("Resource_ra7qc"), SubResource("Resource_65c2p")])

@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_wm7c0"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_ymvhx"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_w2v0l"]
+[ext_resource type="Script" path="res://src/data/events/KitEffect.gd" id="4_k5m8t"]
+[ext_resource type="Script" path="res://src/data/events/RelicEffect.gd" id="5_f3tku"]
+[ext_resource type="Script" path="res://src/data/events/FightEffect.gd" id="6_ws1gp"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="7_ks3va"]
+
+[sub_resource type="Resource" id="Resource_ef1ji"]
+script = ExtResource("4_k5m8t")
+
+[sub_resource type="Resource" id="Resource_xt1p0"]
+script = ExtResource("4_k5m8t")
+
+[sub_resource type="Resource" id="Resource_n880y"]
+script = ExtResource("2_ymvhx")
+text = "The lockers are still stocked."
+effects = Array[ExtResource("3_w2v0l")]([SubResource("Resource_ef1ji"), SubResource("Resource_xt1p0")])
+
+[sub_resource type="Resource" id="Resource_gk7of"]
+script = ExtResource("1_wm7c0")
+label = "Loot the supply lockers"
+hint = "Two random field kits."
+outcomes = Array[ExtResource("2_ymvhx")]([SubResource("Resource_n880y")])
+
+[sub_resource type="Resource" id="Resource_k0tbp"]
+script = ExtResource("5_f3tku")
+rarity = 1
+
+[sub_resource type="Resource" id="Resource_pxacm"]
+script = ExtResource("2_ymvhx")
+text = "Nothing stirs. On the console, a relic still humming."
+effects = Array[ExtResource("3_w2v0l")]([SubResource("Resource_k0tbp")])
+
+[sub_resource type="Resource" id="Resource_rquio"]
+script = ExtResource("6_ws1gp")
+
+[sub_resource type="Resource" id="Resource_cfbo0"]
+script = ExtResource("2_ymvhx")
+text = "A security mech powers up as the door gives way."
+effects = Array[ExtResource("3_w2v0l")]([SubResource("Resource_rquio")])
+
+[sub_resource type="Resource" id="Resource_a4idr"]
+script = ExtResource("1_wm7c0")
+label = "Force the reactor room"
+hint = "Something valuable, or something awake."
+outcomes = Array[ExtResource("2_ymvhx")]([SubResource("Resource_pxacm"), SubResource("Resource_cfbo0")])
+
+[sub_resource type="Resource" id="Resource_4dg6h"]
+script = ExtResource("2_ymvhx")
+text = "You back out the way you came."
+
+[sub_resource type="Resource" id="Resource_dk8lc"]
+script = ExtResource("1_wm7c0")
+label = "Get out"
+outcomes = Array[ExtResource("2_ymvhx")]([SubResource("Resource_4dg6h")])
+
+[resource]
+script = ExtResource("7_ks3va")
+id = "derelict_carrier_hangar"
+title = "The Carrier's Hangar"
+text = "The hangar deck is dark and half-flooded with coolant. Two doors: the supply lockers, and the sealed reactor room."
+choices = Array[ExtResource("1_wm7c0")]([SubResource("Resource_gk7of"), SubResource("Resource_a4idr"), SubResource("Resource_dk8lc")])

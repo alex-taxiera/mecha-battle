@@ -28,6 +28,12 @@ const NUMERALS: Array[String] = ["I", "II", "III"]
 @export_storage var level := 1
 ## The run copy's weapon mod, if any: one per weapon. Like [member level], it belongs to the copy.
 @export_storage var mod: WeaponMod
+## A crate that opens after this many won fights with it installed (0: not a crate), into a random
+## catalog part of [member opens_into] in the stash (see [method RunState.record_fight]).
+@export var opens_after_wins := 0
+@export var opens_into := Rarity.RARE
+## The wins the run copy has sat through installed, toward [member opens_after_wins].
+@export_storage var crate_wins := 0
 ## Damage the run copy has earned, e.g. a Trophy Rack's from fights won. It adds to
 ## [member damage] before the Mk and the mod scale it, and belongs to the copy like [member level].
 @export_storage var bonus_damage := 0

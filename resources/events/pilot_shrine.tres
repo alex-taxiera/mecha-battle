@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_7joia"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_ug2v8"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_tvpyv"]
+[ext_resource type="Script" path="res://src/data/events/StripJunkEffect.gd" id="4_61vxk"]
+[ext_resource type="Script" path="res://src/data/events/JunkRequirement.gd" id="5_0nijf"]
+[ext_resource type="Script" path="res://src/data/events/HullEffect.gd" id="6_43wo0"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="7_2fxdv"]
+
+[sub_resource type="Resource" id="Resource_ijdjo"]
+script = ExtResource("4_61vxk")
+
+[sub_resource type="Resource" id="Resource_wqxe6"]
+script = ExtResource("2_ug2v8")
+text = "You pile the junk on. Someone left gold for it."
+effects = Array[ExtResource("3_tvpyv")]([SubResource("Resource_ijdjo")])
+
+[sub_resource type="Resource" id="Resource_qlw51"]
+script = ExtResource("5_0nijf")
+
+[sub_resource type="Resource" id="Resource_jcrqo"]
+script = ExtResource("1_7joia")
+label = "Leave your junk"
+hint = "Every junk part goes, for 15 gold each."
+requirement = SubResource("Resource_qlw51")
+outcomes = Array[ExtResource("2_ug2v8")]([SubResource("Resource_wqxe6")])
+
+[sub_resource type="Resource" id="Resource_41wny"]
+script = ExtResource("6_43wo0")
+amount = 40
+
+[sub_resource type="Resource" id="Resource_tdpxb"]
+script = ExtResource("2_ug2v8")
+text = "The quiet does you good."
+effects = Array[ExtResource("3_tvpyv")]([SubResource("Resource_41wny")])
+
+[sub_resource type="Resource" id="Resource_uipt1"]
+script = ExtResource("1_7joia")
+label = "Rest a moment"
+hint = "Repair 40 hull."
+outcomes = Array[ExtResource("2_ug2v8")]([SubResource("Resource_tdpxb")])
+
+[sub_resource type="Resource" id="Resource_83v3g"]
+script = ExtResource("2_ug2v8")
+text = "You nod to the helmets and go."
+
+[sub_resource type="Resource" id="Resource_ycffo"]
+script = ExtResource("1_7joia")
+label = "Move on"
+outcomes = Array[ExtResource("2_ug2v8")]([SubResource("Resource_83v3g")])
+
+[resource]
+script = ExtResource("7_2fxdv")
+id = "pilot_shrine"
+title = "Pilot's Shrine"
+text = "A ring of fallen pilots' helmets around a salvage heap. Scavengers leave junk here and take what they need."
+choices = Array[ExtResource("1_7joia")]([SubResource("Resource_jcrqo"), SubResource("Resource_uipt1"), SubResource("Resource_ycffo")])

@@ -16,6 +16,11 @@ enum Type {
 	EVENT,
 	## The sector boss, at the top of the map.
 	BOSS,
+	## Could be anything: it turns into an event, a battle, a cache, or a shop on arrival (see
+	## [method RunState.resolve_unknown]).
+	UNKNOWN,
+	## A Salvage Cache: a relic, some gold, and a field kit, free.
+	CACHE,
 }
 
 ## Unique within a map, e.g. "3_5" (floor 3, column 5), or "boss".
@@ -36,6 +41,8 @@ var enemy: EnemyLoadout
 var event: GameEvent
 ## An elite's affixes: rolled with the map, so the map can show them, and carried into its fight.
 var affixes: Array[Relic] = []
+## A hazard on a fight here, e.g. an Ion Storm: a relic both mechs fight under, rolled with the map.
+var hazard: Relic
 ## Where the node is drawn, off its lattice point, in fractions of the spacing between points,
 ## so the map doesn't look like a grid. Rolled with the map.
 var jitter := Vector2.ZERO

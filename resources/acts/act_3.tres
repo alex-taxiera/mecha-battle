@@ -10,15 +10,24 @@
 [ext_resource type="Resource" path="res://resources/enemies/ion_lancer.tres" id="7_m1at6"]
 [ext_resource type="Resource" path="res://resources/enemies/siege_warden.tres" id="8_4njjo"]
 [ext_resource type="Resource" path="res://resources/enemies/iron_juggernaut.tres" id="9_4njjo"]
+[ext_resource type="Script" path="res://src/data/Relic.gd" id="10_kt6oy"]
+[ext_resource type="Resource" path="res://resources/hazards/ion_storm.tres" id="11_ks20m"]
+[ext_resource type="Resource" path="res://resources/hazards/scorched_ground.tres" id="12_l3jqe"]
+[ext_resource type="Resource" path="res://resources/hazards/magnetic_interference.tres" id="13_kp4g0"]
 
 [resource]
 script = ExtResource("7_cgyiy")
 id = "act_3"
 sector_name = "The Core Citadel"
 battle_weight = 43
+event_weight = 18
 elite_weight = 12
+unknown_weight = 8
+cache_weight = 4
 enemies = Array[ExtResource("1_nv2mn")]([ExtResource("2_dmb7u"), ExtResource("3_m1at6"), ExtResource("4_4njjo"), ExtResource("5_b00fj"), ExtResource("6_bd1kb"), ExtResource("7_m1at6"), ExtResource("8_4njjo"), ExtResource("9_4njjo")])
 enemy_hp_scale = 1.8
+hazard_chance = 0.25
+hazards = Array[ExtResource("10_kt6oy")]([ExtResource("11_ks20m"), ExtResource("12_l3jqe"), ExtResource("13_kp4g0")])
 battle_gold = Vector2i(12, 16)
 elite_gold = Vector2i(26, 34)
 boss_gold = Vector2i(45, 55)

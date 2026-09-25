@@ -178,6 +178,13 @@ func _enter(node: MapNode) -> void:
 			_show(rest)
 		MapNode.Type.EVENT:
 			_open_event()
+		MapNode.Type.UNKNOWN:
+			run.resolve_unknown(node)
+			_enter(node)
+		MapNode.Type.CACHE:
+			var loot := RewardScreen.new(run, run.roll_cache())
+			loot.finished.connect(show_map, CONNECT_DEFERRED)
+			_show(loot)
 
 
 # The player's build, as it stands, at the hull's current HP, against the current node's enemy,
@@ -188,7 +195,7 @@ func _start_fight(tier := -1, enemy: EnemyLoadout = null, relic_rarity := -1) ->
 	if tier >= 0:
 		_fight_node = MapNode.new(run.map.current.floor_index, run.map.current.column, _TIER_NODES[tier])
 		_fight_node.enemy = enemy
-	_player = run.make_player_mech()
+	_player = run.make_player_mech(_fight_node)
 	combat = COMBAT_SCENE.instantiate()
 	combat.setup(_player, run.make_enemy_mech(_fight_node), run)
 	combat.finished.connect(_end_fight, CONNECT_DEFERRED)

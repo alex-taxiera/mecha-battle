@@ -1,0 +1,99 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_3lly5"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_0egls"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_4fpf5"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="4_yvuin"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="5_mkb2u"]
+[ext_resource type="Script" path="res://src/data/events/GoldRequirement.gd" id="6_4734r"]
+[ext_resource type="Script" path="res://src/data/events/RelicEffect.gd" id="7_p7v7y"]
+[ext_resource type="Script" path="res://src/data/events/SectorRequirement.gd" id="8_65y4x"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="9_rmc7f"]
+
+[sub_resource type="Resource" id="Resource_x75h0"]
+script = ExtResource("4_yvuin")
+amount = -20
+
+[sub_resource type="Resource" id="Resource_ugu56"]
+script = ExtResource("5_mkb2u")
+rarity = 2
+
+[sub_resource type="Resource" id="Resource_wpdnt"]
+script = ExtResource("2_0egls")
+weight = 3
+text = "The tarp comes off: yours, and it's a good one."
+effects = Array[ExtResource("3_4fpf5")]([SubResource("Resource_x75h0"), SubResource("Resource_ugu56")])
+
+[sub_resource type="Resource" id="Resource_33see"]
+script = ExtResource("4_yvuin")
+amount = -20
+
+[sub_resource type="Resource" id="Resource_5gu7i"]
+script = ExtResource("5_mkb2u")
+rarity = 1
+
+[sub_resource type="Resource" id="Resource_yh2vy"]
+script = ExtResource("2_0egls")
+weight = 2
+text = "Outbid at the last second. The auctioneer tosses you a consolation lot."
+effects = Array[ExtResource("3_4fpf5")]([SubResource("Resource_33see"), SubResource("Resource_5gu7i")])
+
+[sub_resource type="Resource" id="Resource_tvsrj"]
+script = ExtResource("6_4734r")
+gold = 20
+
+[sub_resource type="Resource" id="Resource_6xpxk"]
+script = ExtResource("1_3lly5")
+label = "Bid 20 gold"
+hint = "A good chance at a rare part."
+requirement = SubResource("Resource_tvsrj")
+outcomes = Array[ExtResource("2_0egls")]([SubResource("Resource_wpdnt"), SubResource("Resource_yh2vy")])
+
+[sub_resource type="Resource" id="Resource_g02up"]
+script = ExtResource("4_yvuin")
+amount = -40
+
+[sub_resource type="Resource" id="Resource_2roy5"]
+script = ExtResource("5_mkb2u")
+rarity = 2
+
+[sub_resource type="Resource" id="Resource_yfyoy"]
+script = ExtResource("7_p7v7y")
+rarity = 0
+
+[sub_resource type="Resource" id="Resource_xp16e"]
+script = ExtResource("2_0egls")
+text = "Nobody tops you. The auctioneer throws in something extra."
+effects = Array[ExtResource("3_4fpf5")]([SubResource("Resource_g02up"), SubResource("Resource_2roy5"), SubResource("Resource_yfyoy")])
+
+[sub_resource type="Resource" id="Resource_np20q"]
+script = ExtResource("6_4734r")
+gold = 40
+
+[sub_resource type="Resource" id="Resource_y138i"]
+script = ExtResource("1_3lly5")
+label = "Bid 40 gold"
+hint = "A rare part, and a common relic thrown in."
+requirement = SubResource("Resource_np20q")
+outcomes = Array[ExtResource("2_0egls")]([SubResource("Resource_xp16e")])
+
+[sub_resource type="Resource" id="Resource_1yt6j"]
+script = ExtResource("2_0egls")
+text = "You leave them to it."
+
+[sub_resource type="Resource" id="Resource_5r20c"]
+script = ExtResource("1_3lly5")
+label = "Walk away"
+outcomes = Array[ExtResource("2_0egls")]([SubResource("Resource_1yt6j")])
+
+[sub_resource type="Resource" id="Resource_ppwho"]
+script = ExtResource("8_65y4x")
+last = 2
+
+[resource]
+script = ExtResource("9_rmc7f")
+id = "scrapyard_auction"
+title = "Scrapyard Auction"
+text = "Scavengers crowd around a crane hauling a tarp-covered lot. \"Bidding starts at twenty!\""
+requirement = SubResource("Resource_ppwho")
+choices = Array[ExtResource("1_3lly5")]([SubResource("Resource_6xpxk"), SubResource("Resource_y138i"), SubResource("Resource_5r20c")])

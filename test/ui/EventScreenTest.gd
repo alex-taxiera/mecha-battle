@@ -72,3 +72,27 @@ func _screen() -> EventScreen:
 	var screen: EventScreen = auto_free(EventScreen.new(_run, _event))
 	add_child(screen)
 	return screen
+
+
+func test_continue_turns_to_the_next_page() -> void:
+	var page := Fixtures.event("The Hangar", [Fixtures.choice("Loot it", [Fixtures.outcome("Got it.", [Fixtures.gold_effect(5)])])])
+	var enter := Fixtures.outcome("You go in.", [])
+	enter.next_event = page
+	var event := Fixtures.event("The Carrier", [Fixtures.choice("Board it", [enter])])
+	var screen: EventScreen = auto_free(EventScreen.new(_run, event))
+	add_child(screen)
+	var done := [0]
+	screen.confirmed.connect(func() -> void: done[0] += 1)
+	assert_bool(screen.choose(0)).is_true()
+	assert_str(screen.button.text).is_equal("Continue")
+	screen.button.pressed.emit()
+	assert_int(done[0]).is_equal(0)
+	assert_str(screen.title_label.text).is_equal("The Hangar")
+	assert_object(screen.event).is_same(page)
+	assert_object(screen.result).is_null()
+	assert_array(screen.options.get_children().filter(func(node: Node) -> bool: return not node.is_queued_for_deletion())) \
+		.has_size(1)
+	assert_bool(screen.choose(0)).is_true()
+	screen.button.pressed.emit()
+	assert_int(done[0]).is_equal(1)
+	await await_idle_frame()

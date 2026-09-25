@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RapidFire" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_8271m"]
+[ext_resource type="Script" path="res://src/data/affixes/RapidFire.gd" id="2_360lf"]
+
+[resource]
+script = ExtResource("2_360lf")
+cooldown_scale = 1.15
+id = "magnetic_interference"
+relic_name = "Magnetic Interference"
+description = "Weapons fire 15% slower."
+rarity = 6
+glyph = "%"
+color = Color(0.71, 0.55, 1, 1)

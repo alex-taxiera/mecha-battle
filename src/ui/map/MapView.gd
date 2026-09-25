@@ -27,6 +27,8 @@ const KINDS := {
 	MapNode.Type.HANGAR: ["+", Color("#5fd38a"), "Hangar", "Repair or reinforce your hull."],
 	MapNode.Type.EVENT: ["?", Color("#5aa9ff"), "Event", "Something's out there. Risk or reward."],
 	MapNode.Type.BOSS: ["B", Color("#b476f0"), "Sector Boss", "The sector's boss. Beat it to move on."],
+	MapNode.Type.UNKNOWN: ["~", Color("#aab2c0"), "Unknown", "Could be anything: an event, a fight, a cache, or a shop."],
+	MapNode.Type.CACHE: ["C", Color("#7de8f0"), "Salvage Cache", "Free for the taking: gold, a relic, and a field kit."],
 }
 
 const LINK_COLOR := Color("#3a4150")
@@ -109,6 +111,8 @@ static func describe(node: MapNode) -> String:
 	var text := "%s\n%s" % [title, kind[3]]
 	if not node.affixes.is_empty():
 		text += "\nAffixes: %s" % ", ".join(node.affixes.map(func(affix: Relic) -> String: return affix.relic_name))
+	if node.hazard:
+		text += "\nHazard: %s (both mechs): %s" % [node.hazard.relic_name, node.hazard.description]
 	return text
 
 
@@ -159,6 +163,11 @@ func _draw_node(node: MapNode) -> void:
 	draw_arc(center, radius, 0, TAU, 32, edge, 3.0, true)
 	if node == map.current:
 		draw_arc(center, radius + 5.0, 0, TAU, 32, WALKED_COLOR, 2.0, true)
+	if node.hazard:
+		# A hazard is a small badge of its color on the node's upper right.
+		var spot := center + Vector2(radius, -radius) * 0.75
+		draw_circle(spot, 6.0, CombatColors.NIGHT)
+		draw_circle(spot, 4.0, node.hazard.color)
 	var font_size := 30 if node.type == MapNode.Type.BOSS else 20
 	CombatDraw.text(self, CombatDraw.BODY_FONT, Rect2(center - Vector2(radius, radius), Vector2(radius, radius) * 2),
 		kind[0], font_size, edge, 0, HORIZONTAL_ALIGNMENT_CENTER)

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="IonStorm" format=3]
+
+[ext_resource type="Script" path="res://src/data/HangarJob.gd" id="1_2oqvv"]
+[ext_resource type="Script" path="res://src/data/hazards/IonStorm.gd" id="2_jul41"]
+
+[resource]
+script = ExtResource("2_jul41")
+id = "ion_storm"
+relic_name = "Ion Storm"
+description = "Shields start the fight drained."
+rarity = 6
+glyph = "~"
+color = Color(0.49, 0.91, 0.94, 1)

@@ -5,6 +5,8 @@ extends RefCounted
 
 var text := ""
 var lines: PackedStringArray = []
+## The event's next page, if the outcome leads on (see [member EventOutcome.next_event]).
+var next_event: GameEvent
 ## The tier of the fight that follows, or -1 for none.
 var fight_tier := -1
 ## The enemy that fight is against, or null for one of the sector's of [member fight_tier].

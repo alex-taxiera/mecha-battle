@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_cyyom"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_fd610"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_ssns7"]
+[ext_resource type="Script" path="res://src/data/events/LosePartsEffect.gd" id="4_6y1j7"]
+[ext_resource type="Script" path="res://src/data/events/FightEffect.gd" id="5_jcep8"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="6_xke14"]
+
+[sub_resource type="Resource" id="Resource_bjixu"]
+script = ExtResource("4_6y1j7")
+
+[sub_resource type="Resource" id="Resource_1a3xg"]
+script = ExtResource("2_fd610")
+text = "They take it and melt back into the junk."
+effects = Array[ExtResource("3_ssns7")]([SubResource("Resource_bjixu")])
+
+[sub_resource type="Resource" id="Resource_u6y1w"]
+script = ExtResource("1_cyyom")
+label = "Hand over a part"
+hint = "Lose a random part (from the stash first)."
+outcomes = Array[ExtResource("2_fd610")]([SubResource("Resource_1a3xg")])
+
+[sub_resource type="Resource" id="Resource_qqebs"]
+script = ExtResource("5_jcep8")
+tier = 0
+
+[sub_resource type="Resource" id="Resource_mpmbp"]
+script = ExtResource("2_fd610")
+text = "Weapons up."
+effects = Array[ExtResource("3_ssns7")]([SubResource("Resource_qqebs")])
+
+[sub_resource type="Resource" id="Resource_vqaxl"]
+script = ExtResource("1_cyyom")
+label = "Fight them off"
+hint = "A normal fight, with its loot."
+outcomes = Array[ExtResource("2_fd610")]([SubResource("Resource_mpmbp")])
+
+[resource]
+script = ExtResource("6_xke14")
+id = "salvager_ambush"
+title = "Salvager Ambush"
+text = "Salvagers box you in. \"Hand over something shiny and nobody gets scrapped.\""
+choices = Array[ExtResource("1_cyyom")]([SubResource("Resource_u6y1w"), SubResource("Resource_vqaxl")])

@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyLoadout" format=3]
+
+[ext_resource type="Resource" path="res://resources/chassis/striker.tres" id="1_2wceu"]
+[ext_resource type="Script" path="res://src/data/LoadoutPart.gd" id="2_x0ljp"]
+[ext_resource type="Resource" path="res://resources/parts/leech_drill.tres" id="3_0sye4"]
+[ext_resource type="Resource" path="res://resources/parts/shock_lance.tres" id="4_2i7mx"]
+[ext_resource type="Resource" path="res://resources/parts/rivet_mortar.tres" id="5_70f62"]
+[ext_resource type="Resource" path="res://resources/parts/reactor.tres" id="6_kxrgt"]
+[ext_resource type="Resource" path="res://resources/parts/heatsink.tres" id="7_8e4ht"]
+[ext_resource type="Resource" path="res://resources/parts/ablative_plating.tres" id="8_oqywo"]
+[ext_resource type="Script" path="res://src/data/BossPhase.gd" id="9_q30ti"]
+[ext_resource type="Script" path="res://src/data/EnemyLoadout.gd" id="10_r70tr"]
+
+[sub_resource type="Resource" id="Resource_bnl3u"]
+script = ExtResource("2_x0ljp")
+part = ExtResource("3_0sye4")
+origin = Vector2i(-1, 1)
+
+[sub_resource type="Resource" id="Resource_3k08o"]
+script = ExtResource("2_x0ljp")
+part = ExtResource("4_2i7mx")
+origin = Vector2i(2, 1)
+
+[sub_resource type="Resource" id="Resource_xqylh"]
+script = ExtResource("2_x0ljp")
+part = ExtResource("5_70f62")
+origin = Vector2i(0, -2)
+
+[sub_resource type="Resource" id="Resource_6sn6d"]
+script = ExtResource("2_x0ljp")
+part = ExtResource("6_kxrgt")
+
+[sub_resource type="Resource" id="Resource_ofofx"]
+script = ExtResource("2_x0ljp")
+part = ExtResource("7_8e4ht")
+origin = Vector2i(0, 1)
+
+[sub_resource type="Resource" id="Resource_luvhy"]
+script = ExtResource("2_x0ljp")
+part = ExtResource("8_oqywo")
+origin = Vector2i(1, 3)
+
+[resource]
+script = ExtResource("10_r70tr")
+id = "pit_champion"
+enemy_name = "Pit Champion"
+tier = 1
+chassis = ExtResource("1_2wceu")
+lineup = Array[ExtResource("2_x0ljp")]([SubResource("Resource_bnl3u"), SubResource("Resource_3k08o"), SubResource("Resource_xqylh"), SubResource("Resource_6sn6d"), SubResource("Resource_ofofx"), SubResource("Resource_luvhy")])
+hp_scale = 1.2

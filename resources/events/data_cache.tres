@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_nmok6"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_7mq0o"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_24t0i"]
+[ext_resource type="Resource" path="res://resources/parts/targeting_computer.tres" id="4_ccny6"]
+[ext_resource type="Script" path="res://src/data/events/PartEffect.gd" id="5_pabub"]
+[ext_resource type="Script" path="res://src/data/events/GoldEffect.gd" id="6_caier"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="7_pq08u"]
+
+[sub_resource type="Resource" id="Resource_y3jaw"]
+script = ExtResource("5_pabub")
+part = ExtResource("4_ccny6")
+
+[sub_resource type="Resource" id="Resource_i2y28"]
+script = ExtResource("2_7mq0o")
+text = "The data flashes into a spare module."
+effects = Array[ExtResource("3_24t0i")]([SubResource("Resource_y3jaw")])
+
+[sub_resource type="Resource" id="Resource_v18pr"]
+script = ExtResource("1_nmok6")
+label = "Download the targeting data"
+hint = "Gain a Targeting Computer."
+outcomes = Array[ExtResource("2_7mq0o")]([SubResource("Resource_i2y28")])
+
+[sub_resource type="Resource" id="Resource_573kb"]
+script = ExtResource("6_caier")
+amount = 35
+
+[sub_resource type="Resource" id="Resource_0iv0k"]
+script = ExtResource("2_7mq0o")
+text = "Someone pays for it, no questions asked."
+effects = Array[ExtResource("3_24t0i")]([SubResource("Resource_573kb")])
+
+[sub_resource type="Resource" id="Resource_xtxqp"]
+script = ExtResource("1_nmok6")
+label = "Sell the location"
+hint = "Gain 35 gold."
+outcomes = Array[ExtResource("2_7mq0o")]([SubResource("Resource_0iv0k")])
+
+[resource]
+script = ExtResource("7_pq08u")
+id = "data_cache"
+title = "Data Cache"
+text = "A buried relay still broadcasts old targeting data. You could pull it, or sell the location."
+choices = Array[ExtResource("1_nmok6")]([SubResource("Resource_v18pr"), SubResource("Resource_xtxqp")])

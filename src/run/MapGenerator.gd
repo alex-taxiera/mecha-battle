@@ -13,7 +13,7 @@ extends RefCounted
 ## scripts/actions/world_generation_actions/ActionGenerateAct.gd. See THIRD_PARTY_NOTICES.md.
 
 ## Special nodes that never follow one of their own kind on a path.
-const NO_REPEAT: Array[MapNode.Type] = [MapNode.Type.ELITE, MapNode.Type.HANGAR, MapNode.Type.SHOP]
+const NO_REPEAT: Array[MapNode.Type] = [MapNode.Type.ELITE, MapNode.Type.HANGAR, MapNode.Type.SHOP, MapNode.Type.CACHE]
 ## How far a node is drawn off its lattice point, at most, in lattice spacings.
 const JITTER := Vector2(0.25, 0.2)
 

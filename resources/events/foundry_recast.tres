@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="GameEvent" format=3]
+
+[ext_resource type="Script" path="res://src/data/events/EventChoice.gd" id="1_mgodl"]
+[ext_resource type="Script" path="res://src/data/events/EventOutcome.gd" id="2_3hrbk"]
+[ext_resource type="Script" path="res://src/data/events/EventEffect.gd" id="3_bqi5b"]
+[ext_resource type="Script" path="res://src/data/events/ReforgeEffect.gd" id="4_yqs73"]
+[ext_resource type="Script" path="res://src/data/events/StashRequirement.gd" id="5_7ror3"]
+[ext_resource type="Script" path="res://src/data/events/SectorRequirement.gd" id="6_0l005"]
+[ext_resource type="Script" path="res://src/data/events/GameEvent.gd" id="7_yqa6v"]
+
+[sub_resource type="Resource" id="Resource_0j28n"]
+script = ExtResource("4_yqs73")
+
+[sub_resource type="Resource" id="Resource_lxcbe"]
+script = ExtResource("2_3hrbk")
+text = "The furnace roars and spits out something new."
+effects = Array[ExtResource("3_bqi5b")]([SubResource("Resource_0j28n")])
+
+[sub_resource type="Resource" id="Resource_xyny2"]
+script = ExtResource("5_7ror3")
+
+[sub_resource type="Resource" id="Resource_ux55y"]
+script = ExtResource("1_mgodl")
+label = "Feed the furnace"
+hint = "A random stashed part becomes a random part of the next rarity up."
+requirement = SubResource("Resource_xyny2")
+outcomes = Array[ExtResource("2_3hrbk")]([SubResource("Resource_lxcbe")])
+
+[sub_resource type="Resource" id="Resource_etq3w"]
+script = ExtResource("2_3hrbk")
+text = "The furnace glows on without you."
+
+[sub_resource type="Resource" id="Resource_lutkm"]
+script = ExtResource("1_mgodl")
+label = "Leave"
+outcomes = Array[ExtResource("2_3hrbk")]([SubResource("Resource_etq3w")])
+
+[sub_resource type="Resource" id="Resource_pu1ng"]
+script = ExtResource("6_0l005")
+first = 2
+last = 3
+
+[resource]
+script = ExtResource("7_yqa6v")
+id = "foundry_recast"
+title = "Foundry Recast"
+text = "An automated furnace still runs, glowing. Feed it a part and it casts something new."
+requirement = SubResource("Resource_pu1ng")
+choices = Array[ExtResource("1_mgodl")]([SubResource("Resource_ux55y"), SubResource("Resource_lutkm")])

@@ -28,6 +28,9 @@ extends Resource
 @export var elite_weight := 10
 @export var hangar_weight := 12
 @export var shop_weight := 6
+## Unknown nodes (see [constant MapNode.Type.UNKNOWN]) and Salvage Caches; none unless set.
+@export var unknown_weight := 0
+@export var cache_weight := 0
 
 @export_group("Enemies")
 ## Every enemy the sector can send, of all tiers. Bosses guard the top of its map.
@@ -36,6 +39,12 @@ extends Resource
 @export var enemy_hp_scale := 1.0
 ## How much enemy HP grows each floor up the map: 0.03 is +3% of the sector's a floor.
 @export var enemy_hp_per_floor := 0.03
+
+@export_group("Hazards")
+## The chance a battle or elite rolls a hazard from [member hazards] with the map.
+@export var hazard_chance := 0.0
+## Hazards the sector's fights can have: relics both mechs fight under.
+@export var hazards: Array[Relic] = []
 
 @export_group("Loot")
 ## Gold a won fight drops, from x to y, by the enemy's tier.
@@ -52,6 +61,8 @@ func get_node_weights() -> Dictionary[MapNode.Type, int]:
 		MapNode.Type.ELITE: elite_weight,
 		MapNode.Type.HANGAR: hangar_weight,
 		MapNode.Type.SHOP: shop_weight,
+		MapNode.Type.UNKNOWN: unknown_weight,
+		MapNode.Type.CACHE: cache_weight,
 	}
 
 
