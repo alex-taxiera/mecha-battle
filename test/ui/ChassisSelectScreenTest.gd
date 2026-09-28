@@ -248,3 +248,21 @@ func _loadout(loadout_name: String, level: int) -> StartingLoadout:
 	loadout.description = "Another way in."
 	loadout.mastery_level = level
 	return loadout
+
+
+func test_the_top_bar_takes_a_seed_and_asks_for_the_other_screens() -> void:
+	var screen := _screen([Fixtures.bastion()])
+	assert_int(screen.get_seed()).is_equal(-1)
+	screen.seed_edit.text = "12345"
+	assert_int(screen.get_seed()).is_equal(12345)
+	screen.seed_edit.text = "nope"
+	assert_int(screen.get_seed()).is_equal(-1)
+	var asked: Array[String] = []
+	screen.daily_requested.connect(func() -> void: asked.append("daily"))
+	screen.history_requested.connect(func() -> void: asked.append("history"))
+	screen.databank_requested.connect(func() -> void: asked.append("databank"))
+	screen.daily_button.pressed.emit()
+	screen.history_button.pressed.emit()
+	screen.databank_button.pressed.emit()
+	await await_idle_frame()
+	assert_array(asked).contains_exactly(["daily", "history", "databank"])

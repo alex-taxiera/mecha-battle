@@ -12,6 +12,10 @@ extends Control
 signal chassis_chosen(chassis: MechChassis)
 ## Emitted when the player confirms resetting their progress.
 signal reset_requested
+## Emitted when the player asks for today's daily run, the run history, or the Databank.
+signal daily_requested
+signal history_requested
+signal databank_requested
 
 const CHASSIS_DIR := "res://resources/chassis"
 ## Frames in the order the design lists them, by id. Any others follow, by id.
@@ -40,6 +44,12 @@ var _threats: Dictionary[String, int] = {}
 var _loadouts: Dictionary[String, int] = {}
 var _customs_on: Array[RunModifier] = []
 var _customs_row := HBoxContainer.new()
+## Along the top right: a seed for the next run, and buttons for the daily run, the Databank, and
+## the run history.
+var seed_edit := LineEdit.new()
+var daily_button := Button.new()
+var databank_button := Button.new()
+var history_button := Button.new()
 
 var _stats_label := Label.new()
 var _reset_button := Button.new()
@@ -54,6 +64,7 @@ func _ready() -> void:
 		loaded.sort_custom(_listed_before)
 		options.assign(loaded)
 	_add_footer()
+	_add_top_bar()
 	_build_cards()
 
 
@@ -252,7 +263,7 @@ func _make_card(chassis: MechChassis, preview: ChassisPreview, preview_height: f
 	button.custom_minimum_size.y = 40
 	button.pressed.connect(choose.bind(chassis))
 	if lock:
-		box.add_child(_label("Locked · %s" % lock.hint, 14, LOCKED_COLOR))
+		box.add_child(_wrapped(_label("Locked · %s" % lock.hint, 14, LOCKED_COLOR)))
 		button.text = "Locked"
 		button.disabled = true
 		preview.modulate = Color(1, 1, 1, 0.35)
@@ -325,6 +336,36 @@ func _build_customs() -> void:
 		box.button_pressed = modifier in _customs_on
 		box.toggled.connect(func(on: bool) -> void: set_custom(modifier, on), CONNECT_DEFERRED)
 		_customs_row.add_child(box)
+
+
+## Returns the seed typed for the next run, or -1 for a random one.
+func get_seed() -> int:
+	var text := seed_edit.text.strip_edges()
+	return text.to_int() if text.is_valid_int() and text.to_int() >= 0 else -1
+
+
+## Sets what the Daily run button's tooltip says about today's run, e.g. its frame and best.
+func set_daily_text(text: String) -> void:
+	daily_button.tooltip_text = text
+
+
+func _add_top_bar() -> void:
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 10)
+	add_child(bar)
+	bar.set_anchors_and_offsets_preset(PRESET_TOP_RIGHT, PRESET_MODE_MINSIZE, 28)
+	bar.grow_horizontal = GROW_DIRECTION_BEGIN
+	seed_edit.placeholder_text = "Seed"
+	seed_edit.custom_minimum_size = Vector2(120, 36)
+	seed_edit.tooltip_text = "A number to play a set run again; empty for a random one."
+	bar.add_child(seed_edit)
+	for entry in [[daily_button, "Daily run", daily_requested], [databank_button, "Databank", databank_requested],
+			[history_button, "Run history", history_requested]]:
+		var button: Button = entry[0]
+		button.text = entry[1]
+		button.custom_minimum_size.y = 36
+		button.pressed.connect((entry[2] as Signal).emit, CONNECT_DEFERRED)
+		bar.add_child(button)
 
 
 # Totals and the Reset progress button, under the cards.

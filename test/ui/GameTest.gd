@@ -102,7 +102,7 @@ func test_losing_ends_the_run_and_a_new_one_starts() -> void:
 	assert_int(_game.run.outcome).is_equal(RunState.Outcome.DEFEAT)
 	var end := _message()
 	assert_str(end.title_label.text).is_equal("MECH DESTROYED")
-	assert_str(end.body_label.text).is_equal("The Skirmisher\nFell in Sector 1 · Floor 1\nFights won: 0")
+	assert_str(end.body_label.text).is_equal("The Skirmisher\nFell in Sector 1 · Floor 1\nFights won: 0\nDestroyed by Grunt B")
 	assert_str(end.button.text).is_equal("New run")
 	end.button.pressed.emit()
 	await await_idle_frame()
@@ -144,7 +144,7 @@ func test_beating_the_last_boss_wins_the_run() -> void:
 	var end := _message()
 	assert_str(end.title_label.text).is_equal("RUN COMPLETE")
 	# The first win on a frame unlocks its first Threat level.
-	assert_str(end.body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 1 for The Skirmisher" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
+	assert_str(end.body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1\nMVP: Twin Gatling · 32 damage\nUnlocked: Threat 1 for The Skirmisher" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
 	await await_idle_frame()
 
 
@@ -169,7 +169,7 @@ func test_winning_at_the_highest_threat_unlocks_the_next() -> void:
 	await _choose(chassis)
 	await _win(_game.run)
 	assert_str(_message().body_label.text) \
-		.is_equal("The Skirmisher · Threat 2\nCleared all 2 sectors\nFights won: 1\nUnlocked: Threat 3 for The Skirmisher" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
+		.is_equal("The Skirmisher · Threat 2\nCleared all 2 sectors\nFights won: 1\nMVP: Twin Gatling · 40 damage\nUnlocked: Threat 3 for The Skirmisher" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
 	assert_int(_game.profile.get_threat_unlocked("")).is_equal(3)
 	await await_idle_frame()
 
@@ -178,7 +178,7 @@ func test_winning_below_the_highest_threat_unlocks_nothing_new() -> void:
 	_game.profile.chassis_records[""] = {"runs": 1, "wins": 1, "best_sector": 2, "threat": 3}
 	await _choose(_armed())
 	await _win(_game.run)
-	assert_str(_message().body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
+	assert_str(_message().body_label.text).is_equal("The Skirmisher\nCleared all 2 sectors\nFights won: 1\nMVP: Twin Gatling · 32 damage" + "\nMastery: +21 XP for The Skirmisher\nThe Skirmisher reached Mastery 2")
 	assert_int(_game.profile.get_threat_unlocked("")).is_equal(3)
 	await await_idle_frame()
 
@@ -385,7 +385,7 @@ func test_a_runs_end_is_recorded_and_earns_unlocks() -> void:
 	await _finish_fight() # a draw: the run ends
 	assert_int(_game.profile.runs).is_equal(1)
 	assert_array(_game.profile.unlocked).contains_exactly(["veteran"])
-	assert_str(_message().body_label.text).is_equal("The Skirmisher\nFell in Sector 1 · Floor 1\nFights won: 0\nUnlocked: Veteran")
+	assert_str(_message().body_label.text).is_equal("The Skirmisher\nFell in Sector 1 · Floor 1\nFights won: 0\nDestroyed by Grunt B\nUnlocked: Veteran")
 	await await_idle_frame()
 
 
@@ -426,6 +426,50 @@ func test_locked_events_mods_and_kits_stay_out_of_the_run() -> void:
 	assert_array(run.mod_pool).has_size(1)
 	assert_array(run.kit_pool).has_size(1)
 	assert_bool(run.event_pool.has(_game.events[0])).is_true()
+	await await_idle_frame()
+
+
+func test_a_typed_seed_seeds_the_run() -> void:
+	_game.chassis_select.seed_edit.text = "4242"
+	await _choose(_armed())
+	assert_int(_game.run.rng.run_seed).is_equal(4242)
+	await await_idle_frame()
+
+
+func test_the_daily_run_starts_todays_frame_and_mode() -> void:
+	var frames: Array[MechChassis] = [_armed()]
+	_game.chassis_select.options.assign(frames)
+	_game.chassis_select.daily_requested.emit()
+	await await_idle_frame()
+	var run := _game.run
+	assert_object(run).is_not_null()
+	assert_str(run.daily).is_equal(Time.get_date_string_from_system())
+	var modes: Array[RunModifier] = []
+	modes.assign(_game.run_modifiers.filter(func(modifier: RunModifier) -> bool: return modifier.is_custom and not modifier.endless))
+	var setup := Game.daily_setup(run.daily, frames, modes)
+	assert_int(run.rng.run_seed).is_equal(setup["seed"])
+	assert_str(run.grid.chassis.chassis_name).is_equal("The Skirmisher")
+	assert_bool(run.run_modifiers.has(setup["mode"])).is_true()
+	# Endless is never a daily's mode.
+	assert_bool(run.run_modifiers.any(func(modifier: RunModifier) -> bool: return modifier.endless)).is_false()
+	await await_idle_frame()
+
+
+func test_history_and_databank_open_from_the_frame_select_and_come_back() -> void:
+	_game.chassis_select.history_button.pressed.emit()
+	await await_idle_frame()
+	var history := _game.screen as HistoryScreen
+	assert_object(history).is_not_null()
+	history.back_button.pressed.emit()
+	await await_idle_frame()
+	assert_object(_game.chassis_select).is_not_null()
+	_game.chassis_select.databank_button.pressed.emit()
+	await await_idle_frame()
+	var databank := _game.screen as DatabankScreen
+	assert_object(databank).is_not_null()
+	databank.back_button.pressed.emit()
+	await await_idle_frame()
+	assert_object(_game.screen).is_same(_game.chassis_select)
 	await await_idle_frame()
 
 

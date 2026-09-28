@@ -113,6 +113,13 @@ var cells_to_open := 0
 var hangar_jobs: Array[HangarJob] = []
 ## The weapon mods shops, elites, and a Hangar's Refit can offer.
 var mod_pool: Array[WeaponMod] = []
+## Damage each of the run's parts has dealt across its fights (the run's own part copies as keys),
+## for the run's MVP.
+var part_damage: Dictionary[MechPart, int] = {}
+## What ended the run: the enemy that won the fight, or empty.
+var defeated_by := ""
+## The date of the daily run this is (e.g. "2026-09-27"), or empty for an ordinary run.
+var daily := ""
 ## Story flags events set and check (see [SetFlagEffect], [FlagRequirement]), so one event can
 ## follow up on another.
 var flags: Dictionary[String, int] = {}
@@ -167,6 +174,15 @@ func _init(chassis: MechChassis, p_catalog: Array[MechPart], p_rules: Array[Syne
 	if not acts.is_empty():
 		_start_act(0)
 	_start_modifiers()
+
+
+## Returns the part that has dealt the most damage this run, or null before any has.
+func get_mvp() -> MechPart:
+	var best: MechPart = null
+	for part in part_damage:
+		if best == null or part_damage[part] > part_damage[best]:
+			best = part
+	return best
 
 
 ## Returns the run's Threat: its highest Threat level, or 0.
@@ -355,8 +371,13 @@ func make_enemy_mech(node: MapNode = null) -> BattleMech:
 ## Records how a fight went, given the player's [param mech] as the fight left it: its damage
 ## carries over to the hull, then relics act on a win. Anything but a win destroys the mech and
 ## ends the run.
-func record_fight(result: FightResult, mech: BattleMech) -> void:
+func record_fight(result: FightResult, mech: BattleMech, enemy_name := "") -> void:
 	hull_damage = maxi(0, mech.max_hp - mech.current_health)
+	for active in mech.active_parts:
+		if active.damage_dealt > 0:
+			part_damage[active.part] = part_damage.get(active.part, 0) + active.damage_dealt
+	if result != FightResult.WIN:
+		defeated_by = enemy_name
 	# The kits it used are spent.
 	var used := mech.kits_used.duplicate()
 	used.sort()

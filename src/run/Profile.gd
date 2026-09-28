@@ -12,6 +12,8 @@ const MASTERY_XP: Array[int] = [0, 10, 25, 45]
 ## [constant XP_FOR_WIN] more for a win.
 const XP_PER_SECTOR := 5
 const XP_FOR_WIN := 10
+## Past runs kept in [member history]; older ones drop off (Slay-The-Robot kept every one).
+const HISTORY_MAX := 20
 const VERSION := 1
 
 ## Where the profile saves; empty for one that never touches disk (tests).
@@ -25,6 +27,10 @@ var bosses_beaten := 0
 var chassis_records: Dictionary = {}
 ## The ids of the unlocks earned.
 var unlocked: Array[String] = []
+## The last [constant HISTORY_MAX] runs, newest first, each a summary (see [method summarize]).
+var history: Array[Dictionary] = []
+## Daily run date -> the best that day's run did: {"sector", "won", "fights_won"}.
+var daily_records: Dictionary = {}
 
 
 ## Returns the profile saved at [param from_path], or a fresh one there if there's none (or it
@@ -47,6 +53,12 @@ static func load_from(from_path: String) -> Profile:
 		profile.chassis_records = records
 	for id: Variant in data.get("unlocked", []):
 		profile.unlocked.append(str(id))
+	for entry: Variant in data.get("history", []):
+		if entry is Dictionary:
+			profile.history.append(entry)
+	var dailies: Variant = data.get("daily", {})
+	if dailies is Dictionary:
+		profile.daily_records = dailies
 	return profile
 
 
@@ -65,6 +77,8 @@ func save() -> Error:
 		"bosses_beaten": bosses_beaten,
 		"chassis": chassis_records,
 		"unlocked": unlocked,
+		"history": history,
+		"daily": daily_records,
 	}, "\t"))
 	return OK
 
@@ -77,6 +91,8 @@ func reset() -> void:
 	bosses_beaten = 0
 	chassis_records = {}
 	unlocked = []
+	history = []
+	daily_records = {}
 
 
 ## Returns the highest Threat level unlocked on the chassis with id [param chassis_id]: 0 until
@@ -146,7 +162,57 @@ static func sectors_cleared(run: RunState) -> int:
 ## Counts a finished [param run] into the totals and its chassis's record, then earns every one
 ## of [param unlocks] whose milestone is now met. A win also unlocks the next Threat level on its
 ## chassis, and every run earns its chassis mastery XP. Returns the unlocks just earned.
+## Returns a finished [param run] as a history entry: its frame, Threat, how far it got and how it
+## ended, its MVP part, relics, seed, and a snapshot of its grid ([x, y, part type] per cell).
+static func summarize(run: RunState) -> Dictionary:
+	var won := run.outcome == RunState.Outcome.VICTORY
+	var cells: Array = []
+	for placement in run.grid.get_placements():
+		for cell in placement.cells:
+			cells.append([cell.x, cell.y, placement.part.type])
+	var mvp := run.get_mvp()
+	var cause := "Cleared all %d sectors" % run.acts.size() if won else \
+		("Destroyed by %s" % run.defeated_by if not run.defeated_by.is_empty() else "Destroyed")
+	return {
+		"date": Time.get_date_string_from_system(),
+		"chassis": run.grid.chassis.id,
+		"chassis_name": run.grid.chassis.chassis_name,
+		"threat": run.get_threat(),
+		"won": won,
+		"sector": run.act_index + 1,
+		"floor": run.get_floor_number(),
+		"loop": run.loops,
+		"fights_won": run.fights_won,
+		"cause": cause,
+		"mvp": mvp.get_display_name() if mvp else "",
+		"mvp_damage": run.part_damage.get(mvp, 0) if mvp else 0,
+		"relics": run.relics.map(func(relic: Relic) -> String: return relic.relic_name),
+		"grid": cells,
+		"seed": run.rng.run_seed,
+		"daily": run.daily,
+	}
+
+
+## Puts [param entry] at the top of [member history], keeping [constant HISTORY_MAX].
+func add_history(entry: Dictionary) -> void:
+	history.push_front(entry)
+	if history.size() > HISTORY_MAX:
+		history.resize(HISTORY_MAX)
+
+
+## Records a finished daily [param run]: its history entry and that day's best, and nothing else
+## (a daily doesn't count toward totals, Threat, mastery, or unlocks).
+func record_daily(run: RunState) -> void:
+	add_history(summarize(run))
+	var won := run.outcome == RunState.Outcome.VICTORY
+	var best: Dictionary = daily_records.get(run.daily, {"sector": 0, "won": false, "fights_won": 0})
+	var sector := sectors_cleared(run)
+	if won or (not best["won"] and (sector > int(best["sector"]) or (sector == int(best["sector"]) and run.fights_won > int(best["fights_won"])))):
+		daily_records[run.daily] = {"sector": sector, "won": won or bool(best["won"]), "fights_won": run.fights_won}
+
+
 func record_run(run: RunState, unlocks: Array[Unlock]) -> Array[Unlock]:
+	add_history(summarize(run))
 	var sectors := sectors_cleared(run)
 	var won := run.outcome == RunState.Outcome.VICTORY
 	var chassis_id := run.grid.chassis.id

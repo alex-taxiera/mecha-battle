@@ -226,25 +226,47 @@ A run crosses three **sectors** (acts), each a branching map climbed one node at
   | Flamers in loot and shops | Part | Clear Sector 1 with the Reactor |
   | Acid Sprayers in loot and shops | Part | Win 15 fights in total |
   | Ion Cannons in loot and shops | Part | Win a run |
-  | Railguns in loot and shops | Part | Clear Sector 3 with the Striker |
+  | Railguns in loot and shops | Part | Reach Mastery 4 with the Striker |
   | Emergency Vents in loot and shops | Part | Win 20 fights in total |
   | Meltdown Capacitors in loot and shops | Part | Clear Sector 2 with the Reactor |
   | Ammo Feeders in loot and shops | Part | Clear Sector 2 with the Striker |
   | The Heat Converter relic | Relic | Win 15 fights in total |
   | The Titan Plating relic | Relic | Clear Sector 1 with the Bastion |
   | Shock Lances in loot and shops | Part | Win 8 fights in total |
-  | Leech Drills in loot and shops | Part | Finish 4 runs |
+  | Leech Drills in loot and shops | Part | Reach Mastery 4 with the Phantom |
   | Guillotine Cannons in loot and shops | Part | Clear Sector 2 with the Bastion |
   | Trophy Racks in loot and shops | Part | Win 2 runs |
-  | Siege Cannons in loot and shops | Part | Clear Sector 3 with the Bastion |
+  | Siege Cannons in loot and shops | Part | Reach Mastery 4 with the Juggernaut |
   | Thermoelectric Generators in loot and shops | Part | Win 35 fights in total |
-  | Fusion Cells in loot and shops | Part | Clear Sector 3 with the Reactor |
+  | Fusion Cells in loot and shops | Part | Reach Mastery 4 with the Reactor |
   | Nanite Repair Bays in loot and shops | Part | Finish 5 runs |
-  | Damage Limiters in loot and shops | Part | Win 3 runs |
+  | Damage Limiters in loot and shops | Part | Reach Mastery 4 with the Bastion |
   | Status Scrubbers in loot and shops | Part | Win 40 fights in total |
   | The Black Box Contract relic | Relic | Win a run |
   | The Pyromaniac relic | Relic | Win 20 fights in total |
   | The Kinetic Battery relic | Relic | Clear Sector 2 with the Striker |
+  | The Reinforced Bulkheads, Afterburner, Containment Field, Phase Cloak, and Inertial Core relics | Relic | Reach Mastery 3 with the Bastion, Striker, Reactor, Phantom, and Juggernaut |
+  | The Heavy Payload relic | Relic | Unlock Threat 2 on any frame |
+  | The Pit (event) | Event | Unlock Threat 1 on any frame |
+  | A Derelict Carrier (event) | Event | Finish 2 runs |
+  | The Siphon mod | Mod | Beat 2 bosses in total |
+  | The Corrosive mod | Mod | Win 20 fights in total |
+  | The Reboot Protocol kit | Kit | Win a run |
+  | The Flak Burst kit | Kit | Beat 3 bosses in total |
+
+  A locked event stays out of the run's event pool, a locked mod out of shops, elites, and Refits (an event that names a mod still fits it), and a locked kit out of shops, drops, and random kit effects.
+- **Run history:** the profile keeps the last 20 runs (`Profile.history`, newest first; Slay-The-Robot kept every one, so its save grew forever). Each has the frame, Threat, how it ended ("Destroyed by The Crucible · Sector 2 · Floor 7" or "Cleared all 3 sectors"), fights won, the MVP part (the one that dealt the most damage over the run), relics, the date and seed, and a snapshot of the grid, drawn in miniature. **Run history** on the frame select opens it; the end screen also names what destroyed the mech and the MVP ("MVP: Missile Pod · 1240 damage").
+- **The Databank:** from the frame select, a tab each for parts, relics, field kits, and enemies. Anything the profile hasn't unlocked is a silhouette ("???") with how to earn it. Enemies are listed by sector with their frame, parts, and a boss's phases.
+- **Seeds and the daily run:** a seed typed on the frame select starts the next run on it, so a run can be played again. **Daily run** starts today's run: the same for everyone that day, from a seed hashed from the date, which also picks its frame (any of the five, unlocked or not) and one custom mode (never Endless). Its button's tooltip names today's frame and mode and the best the profile did today. A daily counts only toward its own record (`Profile.daily_records`: the best sector, win, and fights for each date) and the history, not the totals, Threat, mastery, or unlocks.
+- **Chassis mastery:** each frame earns mastery XP every run: a point per fight won, 5 per sector cleared, and 10 more for a win. Mastery 2, 3, and 4 come at 10, 25, and 45 XP; the frame's card shows "Mastery 2 · 12 / 25 XP" and the end screen "Mastery: +21 XP for The Bastion" and any level reached. Mastery 2 unlocks the frame's alternate starting loadout, picked on its card ("Loadout: Bulwark", cycling back to Standard), Mastery 3 its chassis relic, and Mastery 4 a part, so mastery widens what a frame can do rather than making it stronger:
+
+  | Frame | Mastery 2 loadout | Mastery 3 relic | Mastery 4 part |
+  |---|---|---|---|
+  | The Bastion | Bulwark: a Rivet Mortar, a heatsink and reactor, two Ablative Platings | Reinforced Bulkheads | Damage Limiter |
+  | The Striker | Duelist: a Leech Drill and a Shock Lance, a reactor, no back weapon | Afterburner | Railgun |
+  | The Reactor | Furnace: two Flamers, a Thermoelectric Generator, a reactor, a heatsink | Containment Field | Fusion Cell |
+  | The Phantom | Skirmisher: a Shock Lance and a Scrap Repeater, a reactor, Ablative Plating | Phase Cloak | Leech Drill |
+  | The Juggernaut | Bombardier: two Rivet Mortars on two upright reactors, a heatsink | Inertial Core | Siege Cannon |
 - **The Mech Technician** (once unlocked): after the frame is chosen, before the map, offers three boons to pick one of: two pair an upside with a downside ("Gain 75 gold, but start with 60 hull damage"; the downside applies first), one is whole ("Gain a random common relic"). None repeats within an offer. The placeholder options (`res://resources/technician/`), each using the event effects:
 
   | Kind | Options |
@@ -269,6 +291,8 @@ A run crosses three **sectors** (acts), each a branching map climbed one node at
   | Mode | Effect |
   |---|---|
   | Glass Cannon | Your weapons deal 50% more damage, but your mech has half the HP. |
+  | Prismatic | Every frame's own relics can turn up, whatever frame you're on. |
+  | Iron Man | No Hangars: every one on the map is a battle instead. |
   | Endless | After the last boss the sectors start over ("Loop 2"), their enemies 50% more HP each loop. The run only ends when the mech falls, so it never unlocks a Threat level. |
 - Content still to come: more parts, enemies, relics, and events, and balance.
 
@@ -303,7 +327,7 @@ Something a part does beyond its numbers. Each is a subclass in `res://src/data/
 A weapon bay on a chassis: `id`, `hardpoint_name` ("Left Arm"), `origin` (the bay's top-left in the frame's cell coordinates, e.g. (-1, 1)), and `shape`. For fights, `battle_anchor` (where a mounted weapon's sprite goes on the chassis sprite, in its pixels) and `battle_behind` (drawn behind the body, like a far arm). `get_cells()` and `fits(part)` (a weapon whose unturned shape is the bay's).
 
 ### `MechChassis.gd` (Extends Resource)
-A mech frame: `id`, `chassis_name`, `frame_name`, `playstyle`, `size`, `disabled_cells`, `base_hp`, `base_energy`, `hardpoints`, `battle_sprite`, `starter_lineup` (the run's starting parts, as `LoadoutPart`s), and its passive: `passive` (a `ChassisPassive`, or null for none) with `passive_name` and `passive_text` for the UI. `get_hardpoint_at(cell)`, `can_mount(part)`, and `get_layout_rect()` (the frame and its bays, for drawing). `expansion_cells` (inside `size`, locked until opened) and `opened_cells` (the run copy's, `@export_storage`); `is_locked(cell)`, `get_locked_cells()`, `get_frontier()` (locked cells touching a usable one), and `open_cell(cell)` (a frontier cell only). The three frames in section 1 live in `res://resources/chassis/`.
+A mech frame: `id`, `chassis_name`, `frame_name`, `playstyle`, `size`, `disabled_cells`, `base_hp`, `base_energy`, `hardpoints`, `battle_sprite`, `starter_lineup` (the run's starting parts, as `LoadoutPart`s), `alt_loadouts` (`StartingLoadout`s: `id`, `loadout_name`, `description`, `mastery_level`, and a `lineup` that replaces the starter kit), and its passive: `passive` (a `ChassisPassive`, or null for none) with `passive_name` and `passive_text` for the UI. `get_hardpoint_at(cell)`, `can_mount(part)`, and `get_layout_rect()` (the frame and its bays, for drawing). `expansion_cells` (inside `size`, locked until opened) and `opened_cells` (the run copy's, `@export_storage`); `is_locked(cell)`, `get_locked_cells()`, `get_frontier()` (locked cells touching a usable one), and `open_cell(cell)` (a frontier cell only). The three frames in section 1 live in `res://resources/chassis/`.
 
 ### `ChassisPassive.gd` (Extends Resource)
 What a frame does in a fight on its own. Each kind is a subclass in `res://src/data/passives/` with its numbers exported, overriding the hooks it needs: `make_interceptors(mech)` (added to the mech's side of the hit pipeline), `on_fight_start(mech)`, `on_tick(mech, delta)`, `extra_shots(mech, weapon) -> int` (free shots right after a paid one), and `modify_weapon_speed(mech, speed)`. A passive is shared by every mech on its frame, so a fight's state lives in `BattleMech.passive_state`. The passives: `ThickPlatingPassive` (`plating`, 2: a target-side interceptor, priority 9000, skipped by pierce), `OverclockPassive` (the first paid shot of a fight gets one extra), `MeltdownPassive` (`damage` 100, `shutdown` 3 s; the engine runs the meltdown for a chassis that has one), `EvasionPassive` (`every` 4: a target-side interceptor, priority 20000, SHOT only, that rejects every 4th real shot; previews don't count; `passive_state[EVERY]` overrides it), and `MomentumPassive` (`per_second` 0.02, `max_bonus` 0.3, counted from the fight's ticks; `passive_state[RATE]` speeds it). A rejected shot marks its weapon's `ActivePart.last_missed`, and the fight shows MISS instead of a hit.
@@ -332,7 +356,7 @@ Hidden relics: `HullUpgrade` (`hp`; a Reinforce or an event's max HP) and `Timed
 - **`EventRequirement.gd`** subclasses, each `check(run)` and `describe()`: `GoldRequirement`, `WeaponRequirement`, `PartsRequirement`, `UpgradableRequirement`, `FlagRequirement` (`flag` at `value` or more), `ChassisRequirement` (`chassis_id`, "Needs the Reactor"), `RelicRequirement`, `SectorRequirement` (`first`..`last`, from 1), `JunkRequirement`, `StashRequirement` (`count` non-junk stashed parts), and `AllRequirement` (every one of `requirements`).
 
 ### `Unlock.gd` (Extends Resource)
-Something a profile earns: `id`, `kind` (CHASSIS, PART, RELIC, NPC), `target_id` (the chassis, part, relic, or NPC id), `title` ("The Striker"), `hint` ("Clear Sector 1"), and a milestone whose set fields must all be met: `sectors_cleared` in one run (optionally `with_chassis`), `runs_finished`, `fights_won_total`, and `runs_won` in total. `is_met(profile, sectors, chassis_id)`.
+Something a profile earns: `id`, `kind` (CHASSIS, PART, RELIC, NPC, EVENT, MOD, KIT), `target_id` (what it unlocks), `title` ("The Striker"), `hint` ("Clear Sector 1"), and a milestone whose set fields must all be met: `sectors_cleared` in one run (optionally `with_chassis`), `runs_finished`, `fights_won_total`, `runs_won`, and `bosses_beaten_total` in total, `threat_reached` (the highest Threat unlocked, on `with_chassis` or any frame), and `mastery_level` (on `with_chassis`). `is_met(profile, sectors, chassis_id)`.
 
 ### `RunStartOption.gd` (Extends Resource)
 One of the Technician's options: `id`, `text` (a sentence for a whole boon, a clause for a half), `kind` (UPSIDE, DOWNSIDE, COMPLETE), and `effects` (event effects). Adapted from Slay-The-Robot's `RunStartOptionData`.
@@ -395,7 +419,7 @@ One run: `RunState.new(chassis, catalog, rules, start_gold, rng, acts)`. It inst
 - **`FightReward.gd`:** a won fight's `tier`, `gold`, draft `parts` and `taken` (-1 until one is), and `relics` on offer, a boss's `cells` in the same group, and `relic_taken` (`CELLS_TAKEN` for the cells; `take_reward_cells`); `is_draft_open()`, `is_relic_open()`.
 - **`RelicPool.gd`:** every relic, shuffled once with the run's "relics" stream. `take(count, rarities, from_back)` (no repeats; shops will pull from the back), `roll(rng, weights)` (a rarity from `CHEST_WEIGHTS` or `ELITE_WEIGHTS`, falling back to the other standard rarities), `remove(relic)`, `has`, `size`. Adapted from Slay-The-Robot's artifact pool.
 - **`ShopStock.gd`:** one Scrap Shop visit's `slots` (`SIZE` 4; each a part, its rotation, and whether it's sold), drafted from the catalog with the SHOP odds by a roller of its own (so the loot pity doesn't move), and `relic_offers` (each a relic, its `price` rolled from `RELIC_PRICES`, and whether it's sold). `get_open_slot`, `get_open_relic`, `rotate_slot`, `restock` (parts only), `REROLL_COST`.
-- **`Profile.gd`:** `path` (empty never writes), `runs`, `wins`, `fights_won`, `bosses_beaten`, `chassis_records` (id -> runs, wins, best_sector, threat: the highest Threat unlocked), and `unlocked`. `get_threat_unlocked(chassis_id)`. `load_from(path)` (fresh if missing or unreadable), `save()`, `reset()`, `is_unlocked(id)`, `is_available(kind, target_id, unlocks)` and `get_lock(...)`, `sectors_cleared(run)` (all on a win, else the sectors before the one it ended in, plus every sector of an endless run's finished loops), and `record_run(run, unlocks)`, which counts the run, raises its frame's Threat to one above the run's on a win (Slay-The-Robot unlocked only the level beaten), and returns the unlocks it earned. Its shape follows Slay-The-Robot's `ProfileData`.
+- **`Profile.gd`:** `path` (empty never writes), `runs`, `wins`, `fights_won`, `bosses_beaten`, `chassis_records` (id -> runs, wins, best_sector, threat: the highest Threat unlocked, xp: mastery XP), and `unlocked`. `get_threat_unlocked(chassis_id)`, `get_mastery_xp(chassis_id)`, `get_mastery_level(chassis_id)` (by `MASTERY_XP`, [0, 10, 25, 45]), `get_next_mastery_xp(chassis_id)` (-1 at the top), and `mastery_xp_for(run)` (fights won, `XP_PER_SECTOR` 5 a sector cleared, `XP_FOR_WIN` 10). `load_from(path)` (fresh if missing or unreadable), `save()`, `reset()`, `is_unlocked(id)`, `is_available(kind, target_id, unlocks)` and `get_lock(...)`, `sectors_cleared(run)` (all on a win, else the sectors before the one it ended in, plus every sector of an endless run's finished loops), and `record_run(run, unlocks)`, which counts the run, raises its frame's Threat to one above the run's on a win (Slay-The-Robot unlocked only the level beaten), and returns the unlocks it earned. Its shape follows Slay-The-Robot's `ProfileData`.
 - **`TechnicianOffer.gd`:** `roll(options, rng)` returns `PAIRS` (2) upside-and-downside `Boon`s ("Upside, but downside"; downside effects first) then `COMPLETE` (1) whole ones, each list shuffled once and nothing used twice; `apply(boon, run)` returns an `EventResult`. Adapted from Slay-The-Robot's `populate_run_start_options`, which shuffled its downsides twice and its complete options never.
 - **`EventPool.gd`:** `next(run)` as in section 1b, with the `fallback` kept aside; `get_queue()`. Adapted from Slay-The-Robot's event pools, whose failure strategies never ran (it didn't record failed events).
 - **`EventResult.gd`:** a choice's `text`, `lines`, and `fight_tier` (-1 for none).
@@ -460,7 +484,8 @@ Drawn in code after the mockup, from `CombatColors` (its palette) and `CombatDra
 - `StormTimer`: whole seconds until the storm, pulsing red in the last 5 while the fight runs, then STORM. `RoundBadge`, `PlaybackControls` (with `PixelIconButton`), and `ResultPanel` are above.
 
 ### `ChassisSelectScreen.tscn` (Extends Control)
-Where a run starts: one card per frame in `options` (every chassis in `res://resources/chassis/` when unset, in section 1's order) with its name, playstyle, a `ChassisPreview` of its slot layout and bays, "HP · EN a turn · slots · hardpoints", and its passive. A card's button calls `choose(chassis)`, which emits `chassis_chosen`. `set_locks(profile, unlocks)` locks frames the profile hasn't earned: "Locked · Clear Sector 1", a dimmed preview, and an off button (`choose` ignores them). With a profile, a footer shows its totals and **Reset progress**, which confirms and then emits `reset_requested`. `set_modifiers(threat_levels, custom_modifiers)` adds a -/+ Threat picker to each open card ("Threat 2", "Win at 2 to unlock 3", and "Threat 2 · <that level's effect> (+1 below)", with every stacked level in its tooltip) and a checkbox per custom mode to the footer. `get_max_threat(chassis)` (the profile's unlocked level, capped at the ladder; every level without a profile), `set_threat(chassis, value)` (clamps the new value, per frame), `get_threat(chassis)` (clamped again on every read, so a changed profile can't leave a level too high), `set_custom(modifier, on)`, `get_custom_modifiers()`, and `get_run_modifiers(chassis)` (the stacked Threat, then the modes). The picker follows Slay-The-Robot's `NewRunMenu`, whose setter clamped the old value.
+Along the top right: `seed_edit` (`get_seed()`, -1 when empty or not a number) and **Daily run**, **Databank**, and **Run history**, which emit `daily_requested`, `databank_requested`, and `history_requested`; `set_daily_text(text)` sets the Daily run tooltip. A locked frame's hint wraps, so five cards share the width evenly.
+Where a run starts: one card per frame in `options` (every chassis in `res://resources/chassis/` when unset, in section 1's order) with its name, playstyle, a `ChassisPreview` of its slot layout and bays, "HP · EN a turn · slots · hardpoints", and its passive. A card's button calls `choose(chassis)`, which emits `chassis_chosen`. `set_locks(profile, unlocks)` locks frames the profile hasn't earned: "Locked · Clear Sector 1", a dimmed preview, and an off button (`choose` ignores them). With a profile, a footer shows its totals and **Reset progress**, which confirms and then emits `reset_requested`. `set_modifiers(threat_levels, custom_modifiers)` adds a -/+ Threat picker to each open card ("Threat 2", "Win at 2 to unlock 3", and "Threat 2 · <that level's effect> (+1 below)", with every stacked level in its tooltip) and a checkbox per custom mode to the footer. `get_max_threat(chassis)` (the profile's unlocked level, capped at the ladder; every level without a profile), `set_threat(chassis, value)` (clamps the new value, per frame), `get_threat(chassis)` (clamped again on every read, so a changed profile can't leave a level too high), `set_custom(modifier, on)`, `get_custom_modifiers()`, and `get_run_modifiers(chassis)` (the stacked Threat, then the modes). The picker follows Slay-The-Robot's `NewRunMenu`, whose setter clamped the old value. With a profile, each open card also shows its mastery (`mastery_text(chassis)`) and, once a loadout is unlocked, a **Loadout** button that cycles the frame's own kit and its unlocked `StartingLoadout`s (`get_loadouts(chassis)`, `set_loadout(chassis, index)` clamped, `get_loadout(chassis)`, null for the frame's own); the Game starts the run on a copy of the frame with that loadout's lineup, and leaves out events, mods, and kits the profile hasn't unlocked.
 
 ### `MapScreen.tscn` (Extends Control)
 The sector map between stops, for the `run` it's given: the `RunHud` on top, a bar with a hint ("Pick where to start. Each step climbs one floor toward the boss." at a sector's start, then "Pick your next stop.") and the **Loadout** button ("Loadout · 2 in stash"; emits `loadout_requested`), the `MapView` in a vertical scroll, scrolled so the reachable nodes are in the middle, and a legend of node kinds (glyph and name in each kind's color, its blurb as a tooltip). `choose(node)` travels there and emits `node_chosen(node)`; an unreachable node is refused. After a choice the map takes no more clicks.
@@ -488,6 +513,12 @@ One Hangar job: `id`, `order`, `label`, `hint` (empty to build it from the effec
 
 ### `EventScreen.gd` (Extends MessageScreen)
 An Event stop: the event's title and text and a button per choice (label over hint; off with "(Needs 30 gold)" when its requirement fails). `choose(index)` shows the outcome and its lines, then the button: **Continue**, or **Fight!** when the `result` starts a fight. When the outcome leads to a next page, Continue shows it in place (`show_page(page)`): its title, text, and choices, with no choice made yet.
+
+### `HistoryScreen.gd` (Extends Control)
+The run history, built in code: RUN HISTORY and **Back** (`closed`), then an entry per `Profile.history` item: a `HistoryGridView` of its grid (each cell in its part type's color) beside `entry_lines(entry)` (frame, Threat, and result; how it ended; fights won and MVP; relics; date, seed, and "Daily run"). "No runs yet." when there are none.
+
+### `DatabankScreen.gd` (Extends Control)
+The Databank, built in code from the profile, unlocks, parts, relics (affixes and hazards left out), kits, and sectors: DATABANK and **Back** (`closed`), and a `TabContainer` of Parts (by type, then name, each with its shape), Relics (by rarity; a chassis relic says which frame), Kits, and Enemies (by sector: tier, frame, parts, phases). A locked entry shows "???" and "Locked · <hint>". `get_entry_texts(tab)`. Adapted from Slay-The-Robot's codex, which left locked content out.
 
 ### `Game.tscn` (Extends Node) — the main scene
 Plays runs, one screen at a time (`screen`). It loads the parts, rules, sectors (in id order), relics, events, unlocks, `threat_levels` (by level), and `run_modifiers` from `res://resources/`, and the `profile` from `user://profile.json`, unless set (tests set them, and `run_seed`). It opens on the `ChassisSelectScreen`; a chosen frame starts a `RunState` (`start_gold` 20) with the frame select's `get_run_modifiers` and every `is_automatic` modifier, then, once the Technician is unlocked, a `TechnicianScreen` with an offer rolled on the run's "start" stream from `technician_options` (loaded from `res://resources/technician/` unless set), then the `MapScreen`. A chosen node opens what's there:

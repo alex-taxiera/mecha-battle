@@ -142,6 +142,42 @@ func _start_run(chassis: MechChassis) -> void:
 	if loadout:
 		chassis = chassis.duplicate()
 		chassis.starter_lineup = loadout.lineup
+	var typed_seed := chassis_select.get_seed()
+	_begin_run(chassis, modifiers, typed_seed if typed_seed >= 0 else run_seed)
+
+
+## Returns today's daily run for [param date] (e.g. "2026-09-27"): the same for everyone that day,
+## from a seed hashed from the date. {"seed", "chassis" (one of [param frames]), "mode" (one of
+## [param modes], or null)}.
+static func daily_setup(date: String, frames: Array[MechChassis], modes: Array[RunModifier]) -> Dictionary:
+	var day_seed := absi(hash("daily-" + date))
+	return {
+		"seed": day_seed,
+		"chassis": frames[day_seed % frames.size()] if not frames.is_empty() else null,
+		"mode": modes[(day_seed / 7) % modes.size()] if not modes.is_empty() else null,
+	}
+
+
+# Today's daily run: a set frame, seed, and custom mode, whatever the profile has unlocked.
+func _start_daily() -> void:
+	var setup := daily_setup(Time.get_date_string_from_system(), chassis_select.options, _daily_modes())
+	var modifiers: Array[RunModifier] = []
+	if setup["mode"]:
+		modifiers.append(setup["mode"])
+	modifiers.append_array(run_modifiers.filter(func(modifier: RunModifier) -> bool: return modifier.is_automatic))
+	_begin_run(setup["chassis"], modifiers, setup["seed"], Time.get_date_string_from_system())
+
+
+# The custom modes a daily run can have: any but Endless, which never ends.
+func _daily_modes() -> Array[RunModifier]:
+	var modes: Array[RunModifier] = []
+	modes.assign(run_modifiers.filter(func(modifier: RunModifier) -> bool: return modifier.is_custom and not modifier.endless))
+	return modes
+
+
+# Starts a run on [param chassis] with [param modifiers], seeded by [param seed] (random below 0).
+# A [param daily] date makes it that day's daily run.
+func _begin_run(chassis: MechChassis, modifiers: Array[RunModifier], seed: int, daily := "") -> void:
 	chassis_select = null
 	# Locked parts and relics stay out of loot and shops (a starter kit still has its parts).
 	var run_catalog: Array[MechPart] = []
@@ -150,8 +186,9 @@ func _start_run(chassis: MechChassis) -> void:
 	run_relics.assign(relics.filter(func(relic: Relic) -> bool: return profile.is_available(Unlock.Kind.RELIC, relic.id, unlocks)))
 	var run_events: Array[GameEvent] = []
 	run_events.assign(events.filter(func(event: GameEvent) -> bool: return profile.is_available(Unlock.Kind.EVENT, event.id, unlocks)))
-	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(run_seed) if run_seed >= 0 else RunRng.new(), acts,
+	run = RunState.new(chassis, run_catalog, rules, start_gold, RunRng.new(seed) if seed >= 0 else RunRng.new(), acts,
 		run_relics, run_events, affixes, modifiers)
+	run.daily = daily
 	run.hangar_jobs.assign(hangar_jobs)
 	run.mod_pool.assign(mods.filter(func(mod: WeaponMod) -> bool: return profile.is_available(Unlock.Kind.MOD, mod.id, unlocks)))
 	run.kit_pool.assign(kits.filter(func(kit: FieldKit) -> bool: return profile.is_available(Unlock.Kind.KIT, kit.id, unlocks)))
@@ -215,7 +252,7 @@ func _end_fight(winner: BattleMech) -> void:
 		result = RunState.FightResult.WIN
 	elif winner != null:
 		result = RunState.FightResult.LOSS
-	run.record_fight(result, _player)
+	run.record_fight(result, _player, combat.engine.right.mech_name if combat else "")
 	_player = null
 	combat = null
 	if run.is_over():
@@ -295,6 +332,16 @@ func _after_event(event_screen: EventScreen) -> void:
 func _show_end() -> void:
 	var won := run.outcome == RunState.Outcome.VICTORY
 	var lines := end_lines(run)
+	if not run.daily.is_empty():
+		# A daily counts only toward its own record.
+		lines.insert(0, "Daily run · %s" % run.daily)
+		profile.record_daily(run)
+		profile.save()
+		var daily_end := MessageScreen.new("RUN COMPLETE" if won else "MECH DESTROYED", CLEAR_COLOR if won else LOSS_COLOR,
+			lines, "New run")
+		daily_end.confirmed.connect(_new_run, CONNECT_DEFERRED)
+		_show(daily_end)
+		return
 	var chassis := run.grid.chassis
 	var threat_before := profile.get_threat_unlocked(chassis.id)
 	var mastery_before := profile.get_mastery_level(chassis.id)
@@ -330,6 +377,11 @@ static func end_lines(p_run: RunState) -> PackedStringArray:
 	else:
 		lines.append("Fell in Sector %d · Floor %d" % [p_run.act_index + 1, p_run.get_floor_number()])
 	lines.append("Fights won: %d" % p_run.fights_won)
+	if not p_run.defeated_by.is_empty() and p_run.outcome != RunState.Outcome.VICTORY:
+		lines.append("Destroyed by %s" % p_run.defeated_by)
+	var mvp := p_run.get_mvp()
+	if mvp:
+		lines.append("MVP: %s · %d damage" % [mvp.get_display_name(), p_run.part_damage[mvp]])
 	return lines
 
 
@@ -347,6 +399,35 @@ func _watch_chassis_select() -> void:
 	chassis_select.set_modifiers(threat_levels, run_modifiers.filter(func(modifier: RunModifier) -> bool: return modifier.is_custom))
 	chassis_select.chassis_chosen.connect(_start_run, CONNECT_DEFERRED)
 	chassis_select.reset_requested.connect(_reset_progress)
+	chassis_select.daily_requested.connect(_start_daily, CONNECT_DEFERRED)
+	chassis_select.history_requested.connect(_show_history, CONNECT_DEFERRED)
+	chassis_select.databank_requested.connect(_show_databank, CONNECT_DEFERRED)
+	var today := Time.get_date_string_from_system()
+	var setup := daily_setup(today, chassis_select.options, _daily_modes())
+	if setup["chassis"]:
+		var text := "Today's daily run: %s" % (setup["chassis"] as MechChassis).chassis_name
+		if setup["mode"]:
+			text += " · %s" % (setup["mode"] as RunModifier).modifier_name
+		var best: Dictionary = profile.daily_records.get(today, {})
+		if not best.is_empty():
+			text += "\nYour best today: %s" % ("won" if best["won"] else "cleared %d sectors" % int(best["sector"]))
+		chassis_select.set_daily_text(text)
+
+
+func _show_history() -> void:
+	var history := HistoryScreen.new(profile)
+	history.closed.connect(_new_run, CONNECT_DEFERRED)
+	chassis_select = null
+	_show(history)
+
+
+func _show_databank() -> void:
+	var all_relics: Array[Relic] = []
+	all_relics.assign(relics)
+	var databank := DatabankScreen.new(profile, unlocks, catalog, all_relics, kits, acts)
+	databank.closed.connect(_new_run, CONNECT_DEFERRED)
+	chassis_select = null
+	_show(databank)
 
 
 func _reset_progress() -> void:
